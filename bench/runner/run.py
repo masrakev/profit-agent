@@ -7,9 +7,11 @@ from functools import lru_cache
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Engine
 
-from app.db import make_engine
+from app.db import make_engine, tenant_transaction
 from app.detection.models import Incident
 from app.detection.pipeline import DetectionResult, run_pipeline
+from app.facts.model import Fact
+from app.facts.repository import get_facts
 from app.observability import configure_logging
 from bench.faults import FaultLabel
 from bench.generator.load import load
@@ -49,6 +51,9 @@ class IncidentView(BaseModel):
     detectors: tuple[str, ...]
     symptoms: tuple[SymptomView, ...]
     candidates: tuple[CandidateView, ...]
+    alert: str = "watchlist"
+    material: bool = False
+    impact: tuple[str, str, str] | None = None  # expected monthly impact P10, P50, P90
 
 
 class AttributionView(BaseModel):
@@ -59,6 +64,7 @@ class AttributionView(BaseModel):
     delta: str
     level1: dict[str, str]
     largest_negative: str | None
+    significant: dict[str, bool | None] = {}
 
 
 class ScenarioOutcome(BaseModel):
@@ -69,6 +75,7 @@ class ScenarioOutcome(BaseModel):
     labels: tuple[FaultLabel, ...]
     store_id: str
     runtime_s: float
+    days: int = 0  # length of the generated history
     incidents: tuple[IncidentView, ...] = ()
     attribution: AttributionView | None = None
     error: str | None = None
@@ -79,8 +86,16 @@ def _engine(url: str) -> Engine:
     return make_engine(url)
 
 
-def _incident_view(incident: Incident, manifest: ScenarioManifest) -> IncidentView:
+def _incident_view(
+    incident: Incident, manifest: ScenarioManifest, impacts: dict[int, Fact]
+) -> IncidentView:
     start = manifest.config.start_date
+    fact = impacts.get(incident.monthly_impact_fact_id or -1)
+    impact = (
+        None
+        if fact is None or None in (fact.p10, fact.p50, fact.p90)
+        else (format(fact.p10, "f"), format(fact.p50, "f"), format(fact.p90, "f"))
+    )
     return IncidentView(
         incident_id=incident.incident_id,
         category=incident.category.value,
@@ -105,6 +120,9 @@ def _incident_view(incident: Incident, manifest: ScenarioManifest) -> IncidentVi
             )
             for c in incident.candidates[:TOP_CANDIDATES]
         ),
+        alert=incident.alert.value,
+        material=incident.material,
+        impact=impact,
     )
 
 
@@ -126,6 +144,7 @@ def _attribution_view(
         delta=format(a.delta, "f"),
         level1={d.value: format(c.value, "f") for d, c in a.level1.items()},
         largest_negative=None if largest is None else largest.value,
+        significant={d.value: c.significant for d, c in a.level1.items()},
     )
 
 
@@ -137,6 +156,9 @@ def run_scenario(manifest: ScenarioManifest, app_url: str) -> ScenarioOutcome:
         engine = _engine(app_url)
         load(engine, data, manifest.config)
         result = run_pipeline(engine, store_id)
+        ids = [i.monthly_impact_fact_id for i in result.incidents if i.monthly_impact_fact_id]
+        with tenant_transaction(engine, store_id) as conn:
+            impacts = get_facts(conn, store_id, [i for i in ids if i is not None])
     except Exception:
         return ScenarioOutcome(
             scenario_id=manifest.scenario_id,
@@ -152,7 +174,8 @@ def run_scenario(manifest: ScenarioManifest, app_url: str) -> ScenarioOutcome:
         labels=manifest.labels,
         store_id=str(store_id),
         runtime_s=round(time.perf_counter() - began, 3),
-        incidents=tuple(_incident_view(i, manifest) for i in result.incidents),
+        days=manifest.config.days,
+        incidents=tuple(_incident_view(i, manifest, impacts) for i in result.incidents),
         attribution=_attribution_view(result, manifest),
     )
 

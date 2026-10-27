@@ -41,13 +41,25 @@ def render_markdown(
         "",
         "## Overall (faulty scenarios)",
         "",
-        "| Top-1 | Top-3 | Detection | Mean delay (days) | Attribution check | "
-        "False alerts (healthy) | Tracking breaks as data quality | Errors |",
+        "| Top-1 | Top-3 | Detection | Mean delay (days) | Attribution: largest negative | "
+        "Attribution: significant | Tracking breaks as data quality | Errors |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",
         f"| {_pct(overall['top1'])} | {_pct(overall['top3'])} | "
         f"{_pct(overall['detection_rate'])} | {_num(overall['mean_delay_days'])} | "
-        f"{_pct(overall['attribution_check'])} | {_pct(overall['false_alert_rate'])} | "
+        f"{_pct(overall['attribution_check'])} | {_pct(overall['attribution_significant'])} | "
         f"{_pct(overall['tracking_classified_dq'])} | {overall['errors']} |",
+        "",
+        "## Alerting",
+        "",
+        "| False profit alerts (healthy) | Alert precision | Profit alerts per healthy store-month "
+        "| Alerts | Materiality-gated incidents per scenario | Incidents by level |",
+        "| --- | --- | --- | --- | --- | --- |",
+        f"| {overall['false_alerts']} / {overall['healthy_scenarios']} | "
+        f"{_pct(overall['alert_precision'])} | "
+        f"{_num(overall['profit_alerts_per_healthy_store_month'])} | {overall['alerts']} | "
+        f"{_num(overall['gated_incidents_per_scenario'])} | "
+        + ", ".join(f"{k} {v}" for k, v in overall["severity_distribution"].items())
+        + " |",
         "",
         "## Per fault type",
         "",
@@ -58,7 +70,7 @@ def render_markdown(
         assert isinstance(m, dict)
         other = ""
         if fault_type == "healthy":
-            other = f"false alerts {_pct(m['false_alert_rate'])}"
+            other = f"false profit alerts {m['false_alerts']} / {m['scenarios']}"
         elif fault_type == "tracking_break":
             other = f"classified as data quality {_pct(m['tracking_classified_dq'])}"
         if fault_type == "healthy":
