@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy import (
     CHAR,
     BigInteger,
+    Boolean,
     Column,
     Computed,
     Date,
@@ -18,8 +19,10 @@ from sqlalchemy import (
     Integer,
     MetaData,
     Numeric,
+    SmallInteger,
     Table,
     Text,
+    Time,
     Uuid,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -229,4 +232,33 @@ audit_log = Table(
     Column("payload", JSONB, nullable=False),
     Column("prev_hash", CHAR(64), nullable=False),
     Column("entry_hash", CHAR(64), nullable=False),
+)
+
+store_settings = Table(
+    "store_settings",
+    metadata,
+    Column("store_id", Uuid, primary_key=True),
+    Column("timezone", Text, nullable=False),
+    _currency(),
+    Column("daily_brief_enabled", Boolean, nullable=False),
+    Column("daily_brief_at", Time, nullable=False),
+    Column("daily_brief_weekdays", ARRAY(SmallInteger), nullable=False),
+    Column("weekly_report_enabled", Boolean, nullable=False),
+    Column("weekly_report_weekday", SmallInteger, nullable=False),
+    Column("weekly_report_at", Time, nullable=False),
+    Column("monthly_review_enabled", Boolean, nullable=False),
+    Column("monthly_review_day", SmallInteger, nullable=False),
+    Column("monthly_review_at", Time, nullable=False),
+    Column("alert_channels", ARRAY(Text), nullable=False),
+    Column("quiet_hours_start", Time, nullable=False),
+    Column("quiet_hours_end", Time, nullable=False),
+    Column("alert_budget_per_day", Integer, nullable=False),
+    _money("materiality_absolute"),
+    Column("materiality_relative", Numeric(9, 6), nullable=False),
+    Column("detail_level", Text, nullable=False),
+    Column("autonomy", JSONB, nullable=False),
+    Column("max_budget_change_ratio", Numeric(9, 6), nullable=False),
+    Column("max_budget_changes_per_day", Integer, nullable=False),
+    Column("language", Text, nullable=False),
+    _ts("updated_at"),
 )

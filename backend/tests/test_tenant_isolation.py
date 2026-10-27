@@ -28,6 +28,7 @@ TENANT_TABLES = (
     "facts",
     "fact_lineage",
     "audit_log",
+    "store_settings",
 )
 
 
