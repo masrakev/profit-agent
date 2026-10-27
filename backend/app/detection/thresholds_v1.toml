@@ -1,0 +1,97 @@
+# Detector thresholds. The only place detection numbers live; bump `version` on any change.
+# Tuned on the `dev` benchmark suite only (see docs/adr/0005-detectors.md).
+version = 1
+
+[robust_z]
+# Daily values against the trailing `baseline_days` (median and 1.4826 * MAD).
+baseline_days = 28
+threshold = 3.5        # |z| needed on a day
+persist_days = 3       # consecutive days above threshold before the symptom fires
+rel_floor = 0.02       # scale floor relative to the baseline median (stable ratios, costs)
+abs_floor = 1e-9
+
+[cusum]
+# Daily standardized values against a fixed reference period (slow drifts).
+reference_start_day = 7        # skip the first week of an entity's data
+reference_days = 28
+current_days = 7               # window of the facts reported for a CUSUM symptom
+k = 0.5                        # allowance, in sigmas
+h = 8.0                        # decision interval
+abs_floor = 1e-9
+
+[campaign_cpa]
+min_reference_purchases = 30   # attributed purchases in the reference period
+
+[product_units]
+min_baseline_units = 5         # daily units, baseline median
+threshold = 4.0
+
+[product_unit_cost]
+rel_floor = 0.01
+
+[product_unit_fee]
+rel_floor = 0.01
+
+[store_payment_fee_rate]
+rel_floor = 0.01
+cusum_k = 0.5
+cusum_h = 8.0
+
+[store_gross_margin_rate]
+rel_floor = 0.005
+cusum_k = 0.25
+cusum_h = 12.0
+
+[campaign_profit]
+window_days = 14
+persist_days = 3
+min_loss_ratio = 0.0           # fires when profit < -min_loss_ratio * spend
+
+[inventory_cover]
+persist_days = 4
+spend_window_days = 7          # the product must have promoting spend in this window
+
+[refund_rate]
+# Refunds per order line in the window vs the product's history since the warm-up
+# (conditional binomial test, which accounts for the baseline's own noise).
+window_days = 14
+baseline_days = 28             # minimum history before the window
+warmup_days = 21               # refunds lag sales by up to 20 days: skip the first weeks
+ratio = 1.5                    # current rate >= ratio * baseline rate ...
+alpha = 0.001                  # ... and conditional binomial p < alpha
+min_baseline_rate = 0.01
+persist_days = 3
+
+[attribution_collapse]
+window_days = 14
+baseline_days = 28
+max_ratio_of_baseline = 0.5    # attributed / promoted revenue falls below half its baseline ...
+orders_stable_tolerance = 0.15 # ... while promoted revenue moves less than this ...
+max_explained_share = 0.3      # ... and fell by less than 30% of the attributed revenue drop,
+min_drop_sigmas = 2.0          # ... which itself exceeds 2 sigma of the promoted sales
+persist_days = 3
+
+[incrementality]
+window_days = 14
+baseline_days = 28
+min_rise = 0.35                # attributed purchases up at least 35% vs baseline ...
+sales_flat_tolerance = 0.10    # ... while promoted units move less than 10%
+min_baseline_purchases = 30
+persist_days = 5
+
+[severity]
+medium = 1.5                   # score / threshold
+high = 3.0
+score_cap = 3.0                # cap per symptom when ranking root causes
+
+[incidents]
+gap_days = 7                   # symptoms within this many days of each other overlap in time
+
+[attribution]
+# Baseline: the weeks before the incident (ending `pre_incident_gap_days` before it was first
+# seen); current: the same number of weeks at the end of the data.
+min_window_days = 14
+max_window_days = 42
+pre_incident_gap_days = 7
+bonus = 1.5                    # added to the candidate matching the largest negative driver
+min_driver_share = 0.25        # ... when it explains at least this share of the profit drop
