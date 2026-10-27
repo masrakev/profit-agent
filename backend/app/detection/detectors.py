@@ -12,7 +12,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.detection.config import DetectionConfig
-from app.detection.models import EntityRef, SymptomCategory
+from app.detection.models import OUT_OF_STOCK_NOTE, EntityRef, SymptomCategory
 from app.detection.series import CampaignSeries, ProductSeries, StoreSeries
 from app.detection.stats import (
     Episode,
@@ -474,7 +474,7 @@ def inventory_cover_below_lead_time(series: StoreSeries, cfg: DetectionConfig) -
             return 1.0 + (lead - cover) / lead
 
         entity = EntityRef.product(p.product_id)
-        out += _rule_findings(
+        found = _rule_findings(
             "product_cover_below_lead_time",
             entity,
             "inventory_cover_days",
@@ -486,6 +486,11 @@ def inventory_cover_below_lead_time(series: StoreSeries, cfg: DetectionConfig) -
             baseline=28,
             facts=_refs(entity, "inventory_cover_days", "units_on_hand"),
         )
+        # Ads still running on a product with nothing on hand: critical whatever the amount.
+        out += [
+            replace(f, note=OUT_OF_STOCK_NOTE) if p.on_hand[f.episode.confirmed] == 0 else f
+            for f in found
+        ]
     return out
 
 

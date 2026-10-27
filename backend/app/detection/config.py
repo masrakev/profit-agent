@@ -111,6 +111,10 @@ class Attribution(_Section):
     min_driver_share: float
 
 
+class MaterialityEstimate(_Section):
+    resamples: int
+
+
 class MultipleTesting(_Section):
     fdr: float
 
@@ -142,6 +146,7 @@ class DetectionConfig(_Section):
     attribution: Attribution
     noise_band: NoiseBand
     multiple_testing: MultipleTesting
+    materiality: MaterialityEstimate
 
 
 def load_config(path: Path | None = None) -> DetectionConfig:

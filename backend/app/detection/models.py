@@ -60,6 +60,27 @@ class SymptomCategory(StrEnum):
     DATA_QUALITY = "data_quality"
 
 
+class AlertLevel(StrEnum):
+    """What reaches the owner (docs/product/SPEC.md, section 6)."""
+
+    CRITICAL = "critical"
+    HIGH = "high"
+    NORMAL = "normal"
+    WATCHLIST = "watchlist"  # real but not material: the briefing watchlist, not an alert
+    DATA_QUALITY = "data_quality"
+
+
+# Presentation order: alerts first, data quality between high and normal, watchlist last.
+ALERT_RANK = {
+    AlertLevel.CRITICAL: 0,
+    AlertLevel.HIGH: 1,
+    AlertLevel.DATA_QUALITY: 2,
+    AlertLevel.NORMAL: 3,
+    AlertLevel.WATCHLIST: 4,
+}
+OUT_OF_STOCK_NOTE = "out of stock while promoted"
+
+
 class Severity(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
@@ -97,3 +118,10 @@ class Incident(_Frozen):
     symptoms: tuple[Symptom, ...]
     candidates: tuple[Candidate, ...]  # ranked, best first
     attribution_fact_ids: tuple[int, ...] = ()
+    alert: AlertLevel = AlertLevel.WATCHLIST
+    material: bool = False
+    monthly_impact_fact_id: int | None = None  # `expected_monthly_impact` estimate fact
+
+    @property
+    def is_alert(self) -> bool:
+        return self.alert is not AlertLevel.WATCHLIST

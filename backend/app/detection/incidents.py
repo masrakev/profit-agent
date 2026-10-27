@@ -13,12 +13,15 @@ negative driver. Symptoms re-classified as data quality vote for `tracking_break
 from collections import defaultdict
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from decimal import Decimal
 from uuid import UUID
 
 from app.causes.drivers import Driver
 from app.causes.profit import ProfitAttribution
 from app.detection.config import DetectionConfig
 from app.detection.models import (
+    ALERT_RANK,
+    AlertLevel,
     Candidate,
     EntityRef,
     FaultFamily,
@@ -241,14 +244,34 @@ def rank_candidates(
     ]
 
 
+@dataclass(frozen=True)
+class Assessment:
+    """Economic assessment of an incident (see detection.impact)."""
+
+    alert: AlertLevel
+    material: bool
+    loss: Decimal = Decimal(0)  # P50 monthly profit loss, for ordering
+    fact_id: int | None = None  # `expected_monthly_impact` estimate fact
+
+
+UNGATED = Assessment(AlertLevel.NORMAL, True)
+DATA_QUALITY_ALERT = Assessment(AlertLevel.DATA_QUALITY, False)
+
+
 def build_incidents(
     symptoms: list[Symptom],
     graph: EntityGraph,
     cfg: DetectionConfig,
     attribution_for: Callable[[list[Symptom]], ProfitAttribution | None],
+    assess: Callable[[list[Symptom]], Assessment] | None = None,
 ) -> list[Incident]:
-    """Incidents sorted by severity, most severe first. Only the most severe profitability group
-    gets a profit attribution (`attribution_for(group)`), the costly step."""
+    """Incidents ordered as the owner sees them: alert level (critical, high, data quality,
+    normal, watchlist), then monthly loss, then statistical severity.
+
+    `assess(group)` gives each profitability group its impact and alert level (without it,
+    every profitability group is an ungated `normal` alert). Only the first profitability group
+    in that order gets a profit attribution (`attribution_for(group)`), the costly step.
+    """
     groups = group_symptoms(symptoms, graph, cfg)
     for group in groups:
         group.sort(key=lambda s: (s.first_seen, s.detector_id, str(s.entity)))
@@ -256,21 +279,22 @@ def build_incidents(
     def is_profitability(group: list[Symptom]) -> bool:
         return any(s.category is SymptomCategory.PROFITABILITY for s in group)
 
-    profit_groups = [g for g in groups if is_profitability(g)]
-    primary = (
-        max(profit_groups, key=lambda g: (severity_score(g, cfg), -g[0].first_seen.toordinal()))
-        if profit_groups
-        else None
-    )
-    primary_attribution = attribution_for(primary) if primary is not None else None
+    assessments = [
+        (assess(g) if assess else UNGATED) if is_profitability(g) else DATA_QUALITY_ALERT
+        for g in groups
+    ]
+
+    def order(i: int) -> tuple[int, Decimal, float, int]:
+        a, g = assessments[i], groups[i]
+        return (ALERT_RANK[a.alert], -a.loss, -severity_score(g, cfg), g[0].first_seen.toordinal())
+
+    ranked = sorted(range(len(groups)), key=order)
+    primary = next((i for i in ranked if is_profitability(groups[i])), None)
+    primary_attribution = attribution_for(groups[primary]) if primary is not None else None
     incidents: list[Incident] = []
-    for group in groups:
-        category = (
-            SymptomCategory.PROFITABILITY
-            if is_profitability(group)
-            else SymptomCategory.DATA_QUALITY
-        )
-        attribution = primary_attribution if group is primary else None
+    for i in ranked:
+        group, assessment = groups[i], assessments[i]
+        attribution = primary_attribution if i == primary else None
         entities = tuple(sorted({s.entity for s in group}, key=str))
         first = min(s.first_seen for s in group)
         incident_id = (
@@ -282,7 +306,11 @@ def build_incidents(
         incidents.append(
             Incident(
                 incident_id=incident_id,
-                category=category,
+                category=(
+                    SymptomCategory.PROFITABILITY
+                    if is_profitability(group)
+                    else SymptomCategory.DATA_QUALITY
+                ),
                 severity_score=round(severity_score(group, cfg), 6),
                 first_seen=first,
                 last_seen=max(s.last_seen for s in group),
@@ -297,6 +325,9 @@ def build_incidents(
                         *(c.fact_id for c in attribution.level1.values()),
                     )
                 ),
+                alert=assessment.alert,
+                material=assessment.material,
+                monthly_impact_fact_id=assessment.fact_id,
             )
         )
-    return sorted(incidents, key=lambda i: (-i.severity_score, i.first_seen, i.incident_id))
+    return incidents

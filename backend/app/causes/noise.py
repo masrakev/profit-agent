@@ -89,8 +89,19 @@ def _factors(mine: WindowTotals, other: WindowTotals) -> dict[Driver, FloatArray
     }
 
 
-def decompose_totals(base: WindowTotals, cur: WindowTotals) -> dict[Driver, FloatArray]:
-    """Level-1 Shapley contributions per resample (same game as `drivers.decompose`)."""
+def decompose_totals(
+    base: WindowTotals,
+    cur: WindowTotals,
+    products: NDArray[np.bool_] | None = None,
+    campaigns: NDArray[np.bool_] | None = None,
+) -> dict[Driver, FloatArray]:
+    """Level-1 Shapley contributions per resample (same game as `drivers.decompose`).
+
+    With `products` / `campaigns` masks, only those entities' level-2 contributions are summed
+    (the game itself, including total volume, always covers every product).
+    """
+    keep_p = np.ones(base.units.shape[1], dtype=bool) if products is None else products
+    keep_c = np.ones(base.spend.shape[1], dtype=bool) if campaigns is None else campaigns
     fb, fc = _factors(base, cur), _factors(cur, base)
     players = PRODUCT_GAME_DRIVERS
     n = len(players)
@@ -109,9 +120,9 @@ def decompose_totals(base: WindowTotals, cur: WindowTotals) -> dict[Driver, Floa
         for mask in range(1 << n):
             if not mask & bit:
                 total += weights[mask.bit_count()] * (values[mask | bit] - values[mask])
-        out[driver] = total.sum(axis=1)
-    out[Driver.REFUNDS] = -(cur.refunds - base.refunds).sum(axis=1)
-    out[Driver.AD_SPEND] = -(cur.spend - base.spend).sum(axis=1)
+        out[driver] = total[:, keep_p].sum(axis=1)
+    out[Driver.REFUNDS] = -(cur.refunds - base.refunds)[:, keep_p].sum(axis=1)
+    out[Driver.AD_SPEND] = -(cur.spend - base.spend)[:, keep_c].sum(axis=1)
     out[Driver.FIXED_COSTS] = -(cur.fixed - base.fixed)
     return out
 

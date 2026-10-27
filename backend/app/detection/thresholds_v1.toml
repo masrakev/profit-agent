@@ -116,3 +116,9 @@ high_percentile = 95.0
 # and refund tests). A day counts only if its test survives at this false discovery rate AND
 # meets the detector's own threshold; persistence rules then apply as usual.
 fdr = 0.05
+
+[materiality]
+# Expected monthly impact of an incident: seeded block bootstrap (7-day blocks) of its Shapley
+# contributions over the current window. The thresholds themselves are store settings
+# (absolute and relative materiality, see app/settings).
+resamples = 500

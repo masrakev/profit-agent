@@ -1,5 +1,6 @@
 """Deterministic detection pipeline: series -> detectors -> symptoms (backed by facts) ->
-incidents (ranked root causes) with a profit attribution for the most severe one.
+incidents with an expected monthly impact (estimate fact), an alert level gated by the store's
+materiality settings, ranked root causes, and a profit attribution for the first one.
 
     uv run python -m app.detection.pipeline --store <store_id>
 """
@@ -26,14 +27,24 @@ from app.config import get_settings
 from app.db import app_engine, tenant_transaction
 from app.detection.config import DetectionConfig, default_config
 from app.detection.detectors import Finding, run_detectors
-from app.detection.incidents import EntityGraph, build_incidents
+from app.detection.impact import METHOD as IMPACT_METHOD
+from app.detection.impact import (
+    MonthlyImpact,
+    ads_on_out_of_stock,
+    alert_level,
+    estimate_monthly_impact,
+    impact_scope,
+)
+from app.detection.incidents import Assessment, EntityGraph, build_incidents
 from app.detection.models import Incident, Severity, Symptom
 from app.detection.series import StoreSeries, load_series
 from app.domain.audit import append_audit
 from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.engine import FactEngine
-from app.facts.model import Period
+from app.facts.model import Fact, FactKind, FactStatus, Lineage, ParentRef, Period, Scope, Unit
+from app.facts.repository import get_facts
 from app.observability import configure_logging, get_logger
+from app.settings import StoreSettingsRepository
 
 
 @dataclass(frozen=True)
@@ -147,6 +158,50 @@ def attribution_windows(
     )
 
 
+def _impact_fact(
+    engine: FactEngine,
+    group: list[Symptom],
+    impact: MonthlyImpact,
+    baseline: Period,
+    current: Period,
+    digest: str,
+) -> Fact:
+    """Persist the incident's `expected_monthly_impact` estimate, with its symptoms' facts as
+    parents."""
+    ids = sorted({i for s in group for i in (*s.baseline_fact_ids, *s.current_fact_ids)})
+    parents = get_facts(engine.conn, engine.store_id, ids)
+    for parent in parents.values():
+        engine.adopt(parent)
+    lineage = Lineage(
+        parents=tuple(
+            ParentRef(role=f"symptom_fact:{i}", fact_hash=parents[i].fact_hash) for i in ids
+        )
+    )
+    inputs_hash = sha256_hex(
+        canonical_json({"digest": digest, "parents": [parents[i].fact_hash for i in ids]})
+    )
+    fact = Fact(
+        store_id=engine.store_id,
+        formula_id="expected_monthly_impact",
+        formula_version=1,
+        kind=FactKind.ESTIMATE,
+        scope=Scope.store(),
+        period=current,
+        baseline=baseline,
+        status=FactStatus.DEFINED,
+        value=impact.p50,
+        p10=impact.p10,
+        p50=impact.p50,
+        p90=impact.p90,
+        method=IMPACT_METHOD,
+        unit=Unit.MONEY,
+        currency=engine.currency,
+        inputs_hash=inputs_hash,
+        lineage=lineage,
+    )
+    return engine.persist(engine.adopt(fact))
+
+
 def run_pipeline(
     engine: Engine, store_id: UUID, cfg: DetectionConfig | None = None
 ) -> DetectionResult:
@@ -159,6 +214,53 @@ def run_pipeline(
             {c.campaign_id: frozenset(c.promoted) for c in series.campaigns.values()}
         )
         attributions: list[ProfitAttribution] = []
+        settings = StoreSettingsRepository(conn).get_or_default(store_id)
+        figures = daily_figures(series)
+        product_ids, campaign_ids = list(series.products), list(series.campaigns)
+        month = _day_period(series, max(series.days - 30, 0), series.days) if series.days else None
+        trailing = (
+            facts.persist(facts.fact("contribution_margin", Scope.store(), month))
+            if month is not None
+            else None
+        )
+
+        def assess(group: list[Symptom]) -> Assessment:
+            first_seen = min(s.first_seen for s in group)
+            baseline, current = attribution_windows(series, first_seen, cfg)
+            b = (series.index(baseline.start.date()), series.index(baseline.end.date()))
+            c = (series.index(current.start.date()), series.index(current.end.date()))
+            scope = impact_scope(group, graph)
+            entities = sorted(str(s.entity) for s in group)
+            impact = estimate_monthly_impact(
+                figures,
+                product_ids,
+                campaign_ids,
+                scope,
+                baseline=b,
+                current=c,
+                rng=np.random.default_rng(_seed(store_id, "impact", first_seen, *entities)),
+                resamples=cfg.materiality.resamples,
+            )
+            digest = sha256_hex(
+                canonical_json(
+                    {
+                        "method": IMPACT_METHOD,
+                        "resamples": cfg.materiality.resamples,
+                        "products": sorted(map(str, scope.products)),
+                        "campaigns": sorted(map(str, scope.campaigns)),
+                        "drivers": sorted(scope.store_drivers),
+                        "entities": entities,
+                    }
+                )
+            )
+            fact = _impact_fact(facts, group, impact, baseline, current, digest)
+            level, material = alert_level(
+                impact,
+                settings.materiality,
+                (trailing.value if trailing is not None else None) or Decimal(0),
+                ads_on_out_of_stock=ads_on_out_of_stock(group),
+            )
+            return Assessment(level, material, impact.loss, fact.id)
 
         def attribution_for(group: list[Symptom]) -> ProfitAttribution | None:
             first_seen = min(s.first_seen for s in group)
@@ -178,7 +280,7 @@ def run_pipeline(
                 return None
             return attributions[0]
 
-        incidents = build_incidents(symptoms, graph, cfg, attribution_for)
+        incidents = build_incidents(symptoms, graph, cfg, attribution_for, assess)
         if not attributions and series.days >= 4 * cfg.attribution.min_window_days:
             baseline, current = attribution_windows(series, None, cfg)
             with contextlib.suppress(AttributionUnavailableError):
@@ -194,6 +296,7 @@ def run_pipeline(
                 "thresholds_version": cfg.version,
                 "symptoms": len(symptoms),
                 "incidents": [i.incident_id for i in incidents],
+                "alerts": [i.alert.value for i in incidents],
             },
         )
     return DetectionResult(

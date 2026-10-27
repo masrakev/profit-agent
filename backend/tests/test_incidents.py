@@ -8,6 +8,7 @@ from app.causes.drivers import Driver
 from app.causes.profit import Contribution, ProfitAttribution
 from app.detection.config import default_config
 from app.detection.incidents import (
+    Assessment,
     EntityGraph,
     build_incidents,
     group_symptoms,
@@ -15,6 +16,7 @@ from app.detection.incidents import (
     severity_score,
 )
 from app.detection.models import (
+    AlertLevel,
     EntityRef,
     FaultFamily,
     Severity,
@@ -148,7 +150,7 @@ def test_attribution_bonus_by_driver() -> None:
     assert len(rank_candidates(base, GRAPH, CFG, no_level2)) == 1
 
 
-def test_build_incidents_orders_by_severity_and_attributes_the_primary_only() -> None:
+def test_build_incidents_orders_by_alert_level_and_attributes_the_primary_only() -> None:
     calls: list[int] = []
 
     def attribute(group: list[Symptom]) -> ProfitAttribution:
@@ -163,15 +165,39 @@ def test_build_incidents_orders_by_severity_and_attributes_the_primary_only() ->
         50,
         category=SymptomCategory.DATA_QUALITY,
     )
+    # Ungated: profitability incidents are `normal` alerts, ordered by statistical severity;
+    # data quality ranks between high and normal.
     incidents = build_incidents([weak, strong, dq], GRAPH, CFG, attribute)
     assert calls == [1]
-    assert incidents[0].symptoms == (strong,)
-    assert incidents[0].attribution_fact_ids[0] == 98
-    assert incidents[0].candidates[0].family is F.SUPPLIER_COST_INCREASE
-    assert {i.category for i in incidents} == {
-        SymptomCategory.PROFITABILITY,
-        SymptomCategory.DATA_QUALITY,
-    }
+    assert [i.alert for i in incidents] == [
+        AlertLevel.DATA_QUALITY,
+        AlertLevel.NORMAL,
+        AlertLevel.NORMAL,
+    ]
+    assert incidents[1].symptoms == (strong,)
+    assert incidents[1].attribution_fact_ids[0] == 98
+    assert incidents[1].candidates[0].family is F.SUPPLIER_COST_INCREASE
     assert all(i.incident_id.startswith("inc-") for i in incidents)
+
+    # Gated: the material incident becomes the alert and takes the attribution, even though
+    # the other one is statistically stronger.
+    def assess(group: list[Symptom]) -> Assessment:
+        if group[0].entity == EntityRef.product(P3):
+            return Assessment(AlertLevel.HIGH, True, Decimal(900), 7)
+        return Assessment(AlertLevel.WATCHLIST, False, Decimal(20), 8)
+
+    calls.clear()
+    gated = build_incidents([weak, strong, dq], GRAPH, CFG, attribute, assess)
+    assert [i.alert for i in gated] == [
+        AlertLevel.HIGH,
+        AlertLevel.DATA_QUALITY,
+        AlertLevel.WATCHLIST,
+    ]
+    assert gated[0].symptoms == (weak,)
+    assert (gated[0].material, gated[0].monthly_impact_fact_id) == (True, 7)
+    assert gated[0].is_alert
+    assert not gated[2].is_alert
+    assert gated[0].attribution_fact_ids
+    assert not gated[2].attribution_fact_ids
     assert severity_score([], CFG) == 0.0
     assert build_incidents([], GRAPH, CFG, attribute) == []
