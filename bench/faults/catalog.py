@@ -305,8 +305,10 @@ class MixShift(_FaultBase):
                     "unit_fee_at_sale": target.unit_fee,
                 }
             )
+            # Units the original product did not sell go back to its stock. The products demand
+            # moves to are assumed replenished by the store (the adaptive reorder policy would
+            # follow their sales), so their stock is left alone: no impossible stockouts.
             deltas[line.product_id].append((day, line.quantity))
-            deltas[target.id].append((day, -quantity))
         lines = tuple(changed.get(line.id, line) for line in data.lines)
         data = dataclasses.replace(data, lines=lines)
         by_order = lines_by_order(data)
