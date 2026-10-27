@@ -100,6 +100,12 @@ class FactEngine:
             for scope in scopes[kind]
         ]
 
+    def adopt(self, fact: Fact) -> Fact:
+        """Register a fact built outside the registry (e.g. a Shapley contribution) so that facts
+        naming it as a parent can be persisted."""
+        self._by_hash.setdefault(fact.fact_hash, fact)
+        return fact
+
     def persist(self, fact: Fact) -> Fact:
         """Persist `fact` and, before it, its parents. Returns the fact with its id."""
         known = self._ids.get(fact.fact_hash)

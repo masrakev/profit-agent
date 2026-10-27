@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import Engine, text
 
 from app.db import tenant_transaction
+from app.domain.hashing import canonical_json, sha256_hex
 from app.facts import recompute
 from app.facts.engine import FactEngine
 from app.facts.formulas import REGISTRY
@@ -198,6 +199,40 @@ def _fact(**overrides: object) -> Fact:
     }
     fields.update(overrides)
     return Fact.model_validate(fields)
+
+
+def test_baseline_period_is_optional_and_hashed_only_when_present() -> None:
+    december = Period.days(date(2025, 12, 1), date(2026, 1, 1))
+    plain, compared = _fact(), _fact(baseline=december)
+    assert plain.fact_hash != compared.fact_hash
+    # Facts without a baseline keep the hash they had before the field existed.
+    before_baseline_existed = sha256_hex(
+        canonical_json(
+            {
+                "store_id": plain.store_id,
+                "formula_id": "revenue",
+                "formula_version": 1,
+                "kind": "exact",
+                "scope_kind": "store",
+                "scope_id": None,
+                "period_start": JAN.start,
+                "period_end": JAN.end,
+                "status": "defined",
+                "value": Decimal("1.00"),
+                "unit": "money",
+                "currency": "USD",
+                "undefined_reason": None,
+                "p10": None,
+                "p50": None,
+                "p90": None,
+                "method": None,
+                "inputs_hash": "a" * 64,
+            }
+        )
+    )
+    assert plain.fact_hash == before_baseline_existed
+    with pytest.raises(ValueError, match="baseline period must end"):
+        _fact(baseline=JAN)
 
 
 def test_fact_invariants() -> None:

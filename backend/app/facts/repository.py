@@ -46,6 +46,8 @@ def save_fact(conn: Connection, fact: Fact, parent_ids: Mapping[str, int]) -> tu
             scope_id=fact.scope.id,
             period_start=fact.period.start,
             period_end=fact.period.end,
+            baseline_start=fact.baseline.start if fact.baseline else None,
+            baseline_end=fact.baseline.end if fact.baseline else None,
             status=fact.status.value,
             value=fact.value,
             p10=fact.p10,
@@ -111,6 +113,11 @@ def _fact_from_row(row: Row[Any], lineage: Lineage) -> Fact:
         kind=FactKind(row.kind),
         scope=Scope(kind=ScopeKind(row.scope_kind), id=row.scope_id),
         period=Period(start=row.period_start, end=row.period_end),
+        baseline=(
+            Period(start=row.baseline_start, end=row.baseline_end)
+            if row.baseline_start is not None
+            else None
+        ),
         status=FactStatus(row.status),
         value=row.value,
         unit=Unit(row.unit),

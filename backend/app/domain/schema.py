@@ -189,6 +189,8 @@ facts = Table(
     Column("scope_id", Uuid, nullable=True),
     _ts("period_start"),
     _ts("period_end"),
+    Column("baseline_start", DateTime(timezone=True), nullable=True),
+    Column("baseline_end", DateTime(timezone=True), nullable=True),
     Column("status", Text, nullable=False),
     Column("value", Numeric, nullable=True),
     Column("p10", Numeric, nullable=True),

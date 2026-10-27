@@ -106,6 +106,8 @@ class Fact(_Frozen):
     kind: FactKind
     scope: Scope
     period: Period
+    # Comparison facts (e.g. Shapley contributions to a change) also name the baseline period.
+    baseline: Period | None = None
     status: FactStatus
     value: Decimal | None
     unit: Unit
@@ -132,34 +134,37 @@ class Fact(_Frozen):
             raise ValueError("an undefined fact has no value and a reason")
         if (self.unit is Unit.MONEY) != (self.currency is not None):
             raise ValueError("money facts, and only money facts, carry a currency")
+        if self.baseline is not None and self.baseline.end > self.period.start:
+            raise ValueError("the baseline period must end before the period starts")
         return self
 
     @cached_property
     def fact_hash(self) -> str:
-        return sha256_hex(
-            canonical_json(
-                {
-                    "store_id": self.store_id,
-                    "formula_id": self.formula_id,
-                    "formula_version": self.formula_version,
-                    "kind": self.kind,
-                    "scope_kind": self.scope.kind,
-                    "scope_id": self.scope.id,
-                    "period_start": self.period.start,
-                    "period_end": self.period.end,
-                    "status": self.status,
-                    "value": self.value,
-                    "unit": self.unit,
-                    "currency": self.currency,
-                    "undefined_reason": self.undefined_reason,
-                    "p10": self.p10,
-                    "p50": self.p50,
-                    "p90": self.p90,
-                    "method": self.method,
-                    "inputs_hash": self.inputs_hash,
-                }
-            )
-        )
+        content: dict[str, object] = {
+            "store_id": self.store_id,
+            "formula_id": self.formula_id,
+            "formula_version": self.formula_version,
+            "kind": self.kind,
+            "scope_kind": self.scope.kind,
+            "scope_id": self.scope.id,
+            "period_start": self.period.start,
+            "period_end": self.period.end,
+            "status": self.status,
+            "value": self.value,
+            "unit": self.unit,
+            "currency": self.currency,
+            "undefined_reason": self.undefined_reason,
+            "p10": self.p10,
+            "p50": self.p50,
+            "p90": self.p90,
+            "method": self.method,
+            "inputs_hash": self.inputs_hash,
+        }
+        # Added only when present, so facts without a baseline keep their original hashes.
+        if self.baseline is not None:
+            content["baseline_start"] = self.baseline.start
+            content["baseline_end"] = self.baseline.end
+        return sha256_hex(canonical_json(content))
 
     @property
     def is_defined(self) -> bool:
