@@ -8,6 +8,9 @@ verifiable numbers, acts with the owner's approval, and measures what each decis
 
 Built for the Meta Global AI Developer Hackathon (Startup track).
 
+What the product does, for whom, and its settings and alerting rules: see the
+[product specification](docs/product/SPEC.md).
+
 ## Principles
 
 - **No number comes from an LLM.** Every number is a `Fact` computed by deterministic code and
@@ -30,7 +33,7 @@ uv run python -m app.facts.recompute --store <store_id printed above>
 uv run python -m app.detection.pipeline --store <store_id>   # symptoms, incidents, attribution
 make test
 make lint
-make eval                                 # detection benchmark (test suite), ~2 minutes
+make eval                                 # detection benchmark (test_v2 suite), ~5 minutes
 ```
 
 ### Run without make
@@ -45,7 +48,7 @@ Each Makefile target runs these commands:
 | `make test` | `uv run pytest` |
 | `make lint` | `uv run ruff check .` then `uv run ruff format --check .` then `uv run mypy` |
 | `make format` | `uv run ruff check --fix .` then `uv run ruff format .` |
-| `make eval` | `uv run python -m bench.runner` (test suite; writes `bench/reports/`) |
+| `make eval` | `uv run python -m bench.runner` (test_v2 suite; writes `bench/reports/`) |
 | `make eval-dev` | `uv run python -m bench.runner --suite dev` (tuning suite) |
 | `make scenarios` | `uv run python -m bench.scenarios.build` (rebuild scenario manifests) |
 
@@ -59,17 +62,20 @@ backend/app/
   domain/         Pydantic models, SQL schema, repositories, hash-chained audit log
   facts/          fact engine: formula registry, SQL aggregations, lineage, recompute CLI
   verifier/       render {{F<id>}} references; reject unreferenced numbers
-  detection/      daily series, detectors, versioned thresholds, incidents, pipeline CLI
-  causes/         exact two-level Shapley attribution of net profit changes
+  detection/      daily series, detectors, versioned thresholds, incidents, materiality, pipeline
+  causes/         exact two-level Shapley attribution of net profit changes, noise bands
+  settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
 backend/migrations/  Alembic (schema, row-level security, grants)
 backend/tests/       golden, property-based, RLS and audit tests
 bench/generator/     deterministic synthetic store generator
-bench/faults/        fault catalogue with ground-truth labels
-bench/scenarios/     committed scenario manifests (dev and test suites) and their builder
+bench/faults/        fault catalogue and non-fault conditions with ground-truth labels
+bench/scenarios/     committed scenario manifests (dev, test_v2, golden) and their builder
+bench/golden/        golden question set and scenarios it references that are still pending
 bench/runner/        benchmark runner, scoring, reports
-bench/reports/       committed benchmark reports (latest.md = test suite)
+bench/reports/       committed benchmark reports (latest.md = test_v2 suite)
 docs/adr/            architecture decision records
+docs/product/        product specification
 ```
 
 ## Built during the hackathon
@@ -103,3 +109,15 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - Exact two-level Shapley attribution of net profit changes, stored as facts with lineage.
   - Benchmark runner with top-1/top-3 accuracy, detection rate and delay, false alerts,
     attribution check and runtime; reports in `bench/reports/`. ADRs 0005-0007.
+- **Day 2 - precision and product spec**
+  - Product specification and golden question set.
+  - Per-store settings (materiality, alert budget, quiet hours, schedules, autonomy, spending
+    caps) with row-level security, defaults and audited saves.
+  - Economic materiality: expected monthly impact of each incident (P10/P50/P90 by block
+    bootstrap over Shapley contributions); alerts gated on absolute and relative thresholds,
+    with critical / high / normal levels and a watchlist. ADR 0008.
+  - Benjamini-Hochberg correction across entities; noise bands marking significant profit
+    drivers; CPA drift told from a tracking break by the shape of the change; baselines that end
+    before the change point.
+  - Benchmark protocol v2: larger dev suite, a fresh `test_v2` hold-out run once, golden
+    scenarios, alert precision and alerts per healthy store-month.

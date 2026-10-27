@@ -41,12 +41,33 @@ Business rules (from the task):
 | --- | --- | --- |
 | `campaign_profit_negative` | attributed contribution - spend < 0 over 14 days, 3 days | profitability |
 | `product_cover_below_lead_time` | units on hand / (28-day units / 28) < supplier lead time, with promoting spend in the last 7 days, 4 days | profitability |
-| `product_refund_rate_band` | refunds per order line over 14 days >= 1.5x the product's history since day 21 and conditional binomial p < 0.001, 3 days | profitability |
-| `campaign_attribution_collapse` | attributed / promoted revenue <= 0.5x baseline over 14 days, promoted sales within 15%, the sales drop explains < 30% of the attributed drop, and that drop exceeds 2 sigma of promoted sales, 3 days | data quality |
+| `product_refund_rate_band` | refund events per exposed line over 14 days >= 1.5x the product's history since day 21 and conditional binomial p < 0.001 (BH-corrected), 3 days; exposure of a day = average lines sold 2-20 days before it (the refund lag) | profitability |
+| `campaign_attribution_collapse` | a step down in attributed purchases per click (see below), clicks within 25%, promoted sales within 15%, the attributed drop beyond 2 sigma of promoted sales and real sales explaining at most 30% of it plus 1 sigma, 5 days | data quality |
 | `campaign_incrementality` | attributed purchases +35% over 14 days vs the 28 before, promoted units within 10%, campaign active throughout, 5 days | profitability |
 
 A campaign with an attribution collapse has its attributed-metric symptoms (CPA, campaign profit,
 incrementality) re-classified as data quality: a tracking break is never a profitability alert.
+
+### v1 revisions (Task 2b)
+
+- **Multiple testing.** Per detector and per day, the p-values of all entities (two-sided normal
+  tail of the robust z; conditional binomial for refunds) go through Benjamini-Hochberg at
+  FDR q = 0.05 (`[multiple_testing]`). A day counts only if it passes both the threshold and BH;
+  persistence rules then apply on top.
+- **CPA drift vs tracking break by shape.** The change point of attributed purchases per click
+  (the split with the largest two-sample z for a drop, using data up to each day) splits the
+  history. Tracking break = a step: over the 5 days before the change point (skipping one day
+  each side for location error) the rate is >= 75% of the baseline with >= 10 purchases, over
+  the 5 days after it it is <= 50% of that, and clicks continue. A gradual decline, or real sales
+  that follow the attributed drop, stays a CPA drift. The campaign CPA CUSUM uses k = 0.25.
+- **Baselines end before the change point.** Symptoms with a change point (CUSUM start, collapse
+  step) take their baseline window before it, so the fault does not leak into the baseline.
+- **Grouping.** A store-level symptom joins an incident only when a product symptom in it can
+  explain it (gross margin rate by a unit cost change); otherwise it is its own incident. When
+  a promoted product is out of stock, the CPA, campaign profit and units symptoms it causes vote
+  for the stockout (at half weight) instead of a CPA drift.
+- **Out of stock.** The cover rule notes when stock is zero on the confirmation day; promoting
+  spend on an out-of-stock product is a critical alert (ADR 0008).
 
 All numbers live in `app/detection/thresholds_v1.toml` (versioned; the version is recorded in
 every detection audit entry and benchmark report). They were tuned on the `dev` suite only.
@@ -58,8 +79,11 @@ every detection audit entry and benchmark report). They were tuned on the `dev` 
 - Statistical tests were chosen for the noise each signal has: robust z for step changes, CUSUM
   for slow drifts, a conditional binomial for small refund counts (plugging in a baseline rate
   estimated from a handful of refunds produced false alarms), Poisson residuals for purchases.
-- Known blind spots (see the benchmark report): subtle drifts below the CUSUM allowance, refund
-  spikes on small products (14-day windows plus refund lag delay detection by ~3 weeks), and a
-  CPA drift on a campaign that is a small share of its products' sales, which is
-  indistinguishable from a partial tracking break without order-level attribution.
-- Any threshold change bumps the file version and must be re-tuned on `dev`, never on `test`.
+- Known blind spots (see the benchmark report): subtle drifts below the CUSUM allowance; refund
+  spikes on products with a high base refund rate, where the expanding baseline also absorbs
+  the post-fault days; store-level margin CUSUMs that fire on healthy demand drift and outrank
+  the real incident; and a step-like CPA drift on a campaign that is a small share of its
+  products' sales, which is indistinguishable from a partial tracking break without order-level
+  attribution. When ambiguous, the rule reads it as data quality, the safer error: it blocks
+  spend actions instead of recommending them.
+- Any threshold change bumps the file version and must be re-tuned on `dev`, never on `test_v2`.
