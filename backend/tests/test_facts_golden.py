@@ -225,6 +225,44 @@ def test_golden_4_ads_and_profit(app_engine: Engine) -> None:
     }
 
 
+def test_golden_7_campaign_profit_mer_attribution_and_refund_rates(app_engine: Engine) -> None:
+    # Same store as golden 4 (January):
+    #   campaign_profit = attributed_contribution − ad_spend = 41.25 − 100.00 = −58.75
+    #   mer = revenue ÷ ad_spend = 260 / 100 = 2.6
+    #   attribution_ratio (campaign) = 150 / promoted revenue 200 = 0.75
+    #   attribution_ratio (store) = 150 / 260 = 0.576923… → 0.5769 to 4 places
+    #   refund_rate (store) = 50 / 260 = 0.192307… → 0.1923
+    #   refund_rate (A) = 50 / 200 = 0.25; refund_rate (B) = 0 / 60 = 0
+    store, campaign, a = _ads_store(app_engine)
+    c = facts_for(
+        app_engine, store, JAN, Scope.campaign(campaign), "campaign_profit", "attribution_ratio"
+    )
+    assert values(c) == {"campaign_profit": D("-58.75"), "attribution_ratio": D("0.75")}
+    s = facts_for(app_engine, store, JAN, Scope.store(), "mer", "attribution_ratio", "refund_rate")
+    assert s["mer"].value == D("2.6")
+    assert round_for_display(s["attribution_ratio"].value or D(0), 4) == D("0.5769")
+    assert round_for_display(s["refund_rate"].value or D(0), 4) == D("0.1923")
+    assert facts_for(app_engine, store, JAN, Scope.product(a), "refund_rate")[
+        "refund_rate"
+    ].value == D("0.25")
+    with tenant_transaction(app_engine, store) as conn:
+        b = conn.exec_driver_sql(
+            "SELECT id FROM products WHERE price = 30 AND store_id = %(s)s", {"s": store}
+        ).scalar_one()
+    assert facts_for(app_engine, store, JAN, Scope.product(b), "refund_rate")[
+        "refund_rate"
+    ].value == D(0)
+
+    # Zero denominators: no sales, no ad spend, no promoted sales in March.
+    march = Period.days(date(2026, 3, 1), date(2026, 4, 1))
+    empty = facts_for(app_engine, store, march, Scope.store(), "mer", "refund_rate")
+    assert empty["mer"].undefined_reason == "ad_spend is zero"
+    assert empty["refund_rate"].undefined_reason == "revenue is zero"
+    feb = Period.days(date(2026, 2, 1), date(2026, 3, 1))
+    ratio = facts_for(app_engine, store, feb, Scope.campaign(campaign), "attribution_ratio")
+    assert ratio["attribution_ratio"].undefined_reason == "promoted_revenue is zero"
+
+
 def test_golden_5_fixed_cost_proration(app_engine: Engine) -> None:
     # Period Jan 22 – Feb 8 (17 days: 10 in January, 7 in February).
     #   item 1: 310.00 over January (31 days, 10.00/day) → 10 × 10 = 100.00

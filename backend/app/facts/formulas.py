@@ -214,6 +214,25 @@ def _ratio_of(numerator: str, denominator: str, *, money: bool) -> ComputeFn:
     return compute
 
 
+def _campaign_profit(ctx: FactContext, scope: Scope, period: Period) -> Computed:
+    return derive(
+        ctx,
+        _same(
+            scope,
+            period,
+            ("attributed_contribution", "attributed_contribution"),
+            ("ad_spend", "ad_spend"),
+        ),
+        lambda v: exact_sub(v["attributed_contribution"], v["ad_spend"]),
+        money=True,
+    )
+
+
+def _attribution_ratio(ctx: FactContext, scope: Scope, period: Period) -> Computed:
+    sales = "promoted_revenue" if scope.kind is ScopeKind.CAMPAIGN else "revenue"
+    return _ratio_of("attributed_revenue", sales, money=False)(ctx, scope, period)
+
+
 # --- store-level profit ------------------------------------------------------------------------
 
 
@@ -447,6 +466,38 @@ def build_registry() -> FormulaRegistry:
         f"units_on_hand ÷ (units sold in [end − {INVENTORY_TRAILING_DAYS}d, end) ÷ "
         f"{INVENTORY_TRAILING_DAYS})",
         inputs=("units_on_hand", "units"),
+    )
+    add(
+        "campaign_profit",
+        Unit.MONEY,
+        CAMPAIGN,
+        _campaign_profit,
+        "attributed_contribution − ad_spend",
+        inputs=("attributed_contribution", "ad_spend"),
+    )
+    add(
+        "mer",
+        Unit.RATIO,
+        STORE,
+        _ratio_of("revenue", "ad_spend", money=False),
+        "revenue ÷ ad_spend (marketing efficiency ratio)",
+        inputs=("revenue", "ad_spend"),
+    )
+    add(
+        "attribution_ratio",
+        Unit.RATIO,
+        STORE_CAMPAIGN,
+        _attribution_ratio,
+        "campaign: attributed_revenue ÷ promoted_revenue; store: attributed_revenue ÷ revenue",
+        inputs=("attributed_revenue", "promoted_revenue", "revenue"),
+    )
+    add(
+        "refund_rate",
+        Unit.RATIO,
+        STORE_PRODUCT,
+        _ratio_of("refunds", "revenue", money=False),
+        "refunds (by refund date) ÷ revenue (by order date)",
+        inputs=("refunds", "revenue"),
     )
     return registry
 
