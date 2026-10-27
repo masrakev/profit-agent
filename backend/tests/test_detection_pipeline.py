@@ -34,6 +34,9 @@ def test_daily_series_reconcile_with_facts(app_engine: Engine) -> None:
             == engine.fact("revenue", Scope.product(a), window).value
         )
         assert sum(series.total("cogs")[lo:hi]) == engine.fact("cogs", Scope.store(), window).value
+        fixed = engine.fact("fixed_costs", Scope.store(), window).value
+        assert fixed == 0
+        assert sum(series.fixed_costs[lo:hi]) == fixed
         assert series.campaigns_promoting(a) == []
     empty = create_store(app_engine)
     with tenant_transaction(app_engine, empty) as conn:

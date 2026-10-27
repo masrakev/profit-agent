@@ -11,7 +11,7 @@ baseline and the current period. Contributions are exact facts too (`method = sh
 All carry the current period as `period` and the baseline as `baseline`.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from fractions import Fraction
@@ -24,6 +24,7 @@ from app.causes.drivers import (
     ProductFigures,
     decompose,
 )
+from app.causes.noise import is_significant
 from app.causes.shapley import round_to_grid
 from app.domain.hashing import canonical_json, sha256_hex
 from app.facts import sql
@@ -56,6 +57,7 @@ class Contribution:
     scope: Scope
     value: Decimal
     fact_id: int
+    significant: bool | None = None  # outside the driver's noise band (level 1 only)
 
 
 @dataclass(frozen=True)
@@ -108,6 +110,7 @@ def _comparison_fact(
     value: Decimal,
     parents: Sequence[tuple[str, Fact]],
     method: str | None,
+    significant: bool | None = None,
 ) -> Fact:
     inputs_hash = sha256_hex(canonical_json(sorted([role, f.fact_hash] for role, f in parents)))
     fact = Fact(
@@ -123,6 +126,7 @@ def _comparison_fact(
         unit=Unit.MONEY,
         currency=engine.currency,
         method=method,
+        significant=significant,
         inputs_hash=inputs_hash,
         lineage=Lineage(
             parents=tuple(ParentRef(role=role, fact_hash=f.fact_hash) for role, f in parents)
@@ -138,9 +142,16 @@ def _quantum(delta: Decimal) -> Decimal:
 
 
 def attribute_profit_change(
-    engine: FactEngine, baseline: Period, current: Period
+    engine: FactEngine,
+    baseline: Period,
+    current: Period,
+    noise: Mapping[Driver, tuple[float, float]] | None = None,
 ) -> ProfitAttribution:
-    """Decompose net_profit(current) - net_profit(baseline) and persist every contribution."""
+    """Decompose net_profit(current) - net_profit(baseline) and persist every contribution.
+
+    With a `noise` band per driver (see `causes.noise`), level-1 facts are flagged `significant`
+    when their contribution lies outside it.
+    """
     if baseline.end > current.start:
         raise ValueError("the baseline must precede the current period")
     base_figures, base_facts = _figures(engine, baseline)
@@ -190,6 +201,7 @@ def attribute_profit_change(
             )
             children.append((f"{kind}:{entity_id}", fact))
             contributions.append(Contribution(scope, value, fact.id or 0))
+        flag = None if noise is None else is_significant(float(rounded_l1[driver]), noise[driver])
         top = _comparison_fact(
             engine,
             f"profit_driver.{driver}",
@@ -199,8 +211,9 @@ def attribute_profit_change(
             rounded_l1[driver],
             children or both("fixed_costs"),
             METHOD,
+            flag,
         )
-        level1[driver] = Contribution(Scope.store(), rounded_l1[driver], top.id or 0)
+        level1[driver] = Contribution(Scope.store(), rounded_l1[driver], top.id or 0, flag)
         level2[driver] = sorted(contributions, key=lambda c: (c.value, str(c.scope.id)))
     return ProfitAttribution(
         baseline=baseline,

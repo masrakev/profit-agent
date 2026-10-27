@@ -117,6 +117,8 @@ class Fact(_Frozen):
     p50: Decimal | None = None
     p90: Decimal | None = None
     method: str | None = None
+    # Comparison facts: whether the value lies outside its noise band (None: not assessed).
+    significant: bool | None = None
     inputs_hash: str
     lineage: Lineage = Lineage()
     id: int | None = None
@@ -164,6 +166,8 @@ class Fact(_Frozen):
         if self.baseline is not None:
             content["baseline_start"] = self.baseline.start
             content["baseline_end"] = self.baseline.end
+        if self.significant is not None:
+            content["significant"] = self.significant
         return sha256_hex(canonical_json(content))
 
     @property

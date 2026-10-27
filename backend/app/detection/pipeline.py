@@ -10,10 +10,13 @@ import json
 import sys
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
+from decimal import Decimal
 from uuid import UUID
 
+import numpy as np
 from sqlalchemy import Engine
 
+from app.causes.noise import DailyFigures, FloatArray, noise_band
 from app.causes.profit import (
     AttributionUnavailableError,
     ProfitAttribution,
@@ -27,6 +30,7 @@ from app.detection.incidents import EntityGraph, build_incidents
 from app.detection.models import Incident, Severity, Symptom
 from app.detection.series import StoreSeries, load_series
 from app.domain.audit import append_audit
+from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.engine import FactEngine
 from app.facts.model import Period
 from app.observability import configure_logging, get_logger
@@ -87,6 +91,31 @@ def _symptom(
     )
 
 
+def daily_figures(series: StoreSeries) -> DailyFigures:
+    """Series as float arrays for the noise band (statistics, not facts)."""
+
+    def rows(values: list[list[Decimal]], width: int) -> FloatArray:
+        if not values:
+            return np.zeros((0, width))
+        return np.array([[float(x) for x in v] for v in values], dtype=np.float64)
+
+    products = list(series.products.values())
+    n = series.days
+    return DailyFigures(
+        revenue=rows([p.revenue for p in products], n),
+        units=rows([p.units for p in products], n),
+        cogs=rows([p.cogs for p in products], n),
+        fees=rows([p.fees for p in products], n),
+        refunds=rows([p.refunds for p in products], n),
+        spend=rows([c.spend for c in series.campaigns.values()], n),
+        fixed=np.array([float(x) for x in series.fixed_costs] or [0.0] * n, dtype=np.float64),
+    )
+
+
+def _seed(store_id: UUID, *parts: object) -> int:
+    return int(sha256_hex(canonical_json([str(store_id), *map(str, parts)]))[:16], 16)
+
+
 def attribution_windows(
     series: StoreSeries, first_seen: date | None, cfg: DetectionConfig
 ) -> tuple[Period, Period]:
@@ -128,9 +157,19 @@ def run_pipeline(
         attributions: list[ProfitAttribution] = []
 
         def attribution_for(group: list[Symptom]) -> ProfitAttribution | None:
-            baseline, current = attribution_windows(series, min(s.first_seen for s in group), cfg)
+            first_seen = min(s.first_seen for s in group)
+            baseline, current = attribution_windows(series, first_seen, cfg)
+            band = noise_band(
+                daily_figures(series),
+                length=(current.end - current.start).days,
+                history_end=series.index(baseline.end.date()),
+                rng=np.random.default_rng(_seed(store_id, "noise", first_seen)),
+                resamples=cfg.noise_band.resamples,
+                min_pairs=cfg.noise_band.min_pairs,
+                quantiles=(cfg.noise_band.low_percentile, cfg.noise_band.high_percentile),
+            )
             try:
-                attributions.append(attribute_profit_change(facts, baseline, current))
+                attributions.append(attribute_profit_change(facts, baseline, current, band))
             except AttributionUnavailableError:
                 return None
             return attributions[0]

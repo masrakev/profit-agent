@@ -49,6 +49,13 @@ class ProductFigures:
     fees: Decimal = Decimal(0)
     refunds: Decimal = Decimal(0)
 
+    def __post_init__(self) -> None:
+        # Every order line has a positive quantity, so revenue, COGS and fees exist only with
+        # units sold. (Refunds may arrive in a period without sales.) The per-unit factors of the
+        # decomposition rely on this.
+        if self.units == 0 and (self.revenue or self.cogs or self.fees):
+            raise ValueError("figures with no units sold cannot carry revenue, COGS or fees")
+
 
 @dataclass(frozen=True)
 class PeriodFigures:

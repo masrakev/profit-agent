@@ -172,6 +172,12 @@ def test_only_unit_cost_changes(figures: ProductFigures, extra_cost_cents: int) 
     assert all(v == 0 for k, v in d.level1.items() if k is not Driver.UNIT_COST)
 
 
+def test_figures_without_units_cannot_carry_sales() -> None:
+    with pytest.raises(ValueError, match="no units sold"):
+        ProductFigures(fees=Decimal(1))
+    assert ProductFigures(refunds=Decimal(5)).refunds == 5  # refunds alone are fine
+
+
 def test_hand_computed_volume_and_mix() -> None:
     # One product, 10 -> 12 units at $10, cost $4, fee $1: margin $5/unit, delta = 2 x 5 = 10,
     # all volume (the product is 100% of the mix in both periods).

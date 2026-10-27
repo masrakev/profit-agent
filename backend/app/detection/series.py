@@ -56,6 +56,7 @@ class StoreSeries:
     days: int
     products: dict[UUID, ProductSeries] = field(default_factory=dict)
     campaigns: dict[UUID, CampaignSeries] = field(default_factory=dict)
+    fixed_costs: list[Decimal] = field(default_factory=list)  # prorated per day
 
     def day(self, index: int) -> date:
         return self.start + timedelta(days=index)
@@ -161,6 +162,19 @@ def load_series(conn: Connection, store_id: UUID) -> StoreSeries:
         i = (row.snapshot_date - start).days
         if 0 <= i < n:
             series.products[row.product_id].on_hand[i] = int(row.units_on_hand)
+
+    series.fixed_costs = _days(n)
+    for row in conn.execute(
+        text(
+            "SELECT d::date AS day, sum(c.amount / (c.period_end - c.period_start)) AS amount "
+            "FROM cost_items c, generate_series(c.period_start, c.period_end - 1, "
+            "interval '1 day') d WHERE c.store_id = :sid AND c.kind = 'fixed' GROUP BY 1"
+        ),
+        params,
+    ):
+        i = (row.day - start).days
+        if 0 <= i < n:
+            series.fixed_costs[i] = row.amount
 
     promoted: dict[UUID, list[UUID]] = defaultdict(list)
     for row in conn.execute(

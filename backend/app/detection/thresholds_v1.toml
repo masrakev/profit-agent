@@ -95,3 +95,12 @@ max_window_days = 42
 pre_incident_gap_days = 7
 bonus = 1.5                    # added to the candidate matching the largest negative driver
 min_driver_share = 0.25        # ... when it explains at least this share of the profit drop
+
+[noise_band]
+# Normal variation of each profit driver between equal-length healthy windows of the store's
+# history (adjacent pairs stepping by a week; seeded block bootstrap with 7-day blocks when the
+# history gives fewer than `min_pairs` pairs). Outside P5-P95 = significant.
+resamples = 500
+min_pairs = 20
+low_percentile = 5.0
+high_percentile = 95.0

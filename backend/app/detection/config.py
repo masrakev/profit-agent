@@ -107,6 +107,13 @@ class Attribution(_Section):
     min_driver_share: float
 
 
+class NoiseBand(_Section):
+    resamples: int
+    min_pairs: int
+    low_percentile: float
+    high_percentile: float
+
+
 class DetectionConfig(_Section):
     version: int
     robust_z: RobustZ
@@ -125,6 +132,7 @@ class DetectionConfig(_Section):
     severity: SeverityBands
     incidents: Incidents
     attribution: Attribution
+    noise_band: NoiseBand
 
 
 def load_config(path: Path | None = None) -> DetectionConfig:
