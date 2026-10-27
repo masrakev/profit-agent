@@ -27,8 +27,10 @@ cp .env.example .env
 make up                                   # PostgreSQL 16 + Redis, then migrations
 uv run python -m bench.generator --seed 42
 uv run python -m app.facts.recompute --store <store_id printed above>
+uv run python -m app.detection.pipeline --store <store_id>   # symptoms, incidents, attribution
 make test
 make lint
+make eval                                 # detection benchmark (test suite), ~2 minutes
 ```
 
 ### Run without make
@@ -43,7 +45,9 @@ Each Makefile target runs these commands:
 | `make test` | `uv run pytest` |
 | `make lint` | `uv run ruff check .` then `uv run ruff format --check .` then `uv run mypy` |
 | `make format` | `uv run ruff check --fix .` then `uv run ruff format .` |
-| `make eval` | placeholder until the evaluation suite lands (prints a message) |
+| `make eval` | `uv run python -m bench.runner` (test suite; writes `bench/reports/`) |
+| `make eval-dev` | `uv run python -m bench.runner --suite dev` (tuning suite) |
+| `make scenarios` | `uv run python -m bench.scenarios.build` (rebuild scenario manifests) |
 
 The compose stack publishes PostgreSQL on port 55432 and Redis on 56379 to avoid clashing with
 local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them).
@@ -55,10 +59,16 @@ backend/app/
   domain/         Pydantic models, SQL schema, repositories, hash-chained audit log
   facts/          fact engine: formula registry, SQL aggregations, lineage, recompute CLI
   verifier/       render {{F<id>}} references; reject unreferenced numbers
+  detection/      daily series, detectors, versioned thresholds, incidents, pipeline CLI
+  causes/         exact two-level Shapley attribution of net profit changes
   observability/  structlog JSON logging
 backend/migrations/  Alembic (schema, row-level security, grants)
 backend/tests/       golden, property-based, RLS and audit tests
 bench/generator/     deterministic synthetic store generator
+bench/faults/        fault catalogue with ground-truth labels
+bench/scenarios/     committed scenario manifests (dev and test suites) and their builder
+bench/runner/        benchmark runner, scoring, reports
+bench/reports/       committed benchmark reports (latest.md = test suite)
 docs/adr/            architecture decision records
 ```
 
@@ -81,7 +91,15 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - Deterministic synthetic store generator (seasonality, saturating ad response, refunds,
     inventory with supplier lead times) and a `Fault` protocol for fault injection.
   - ADRs 0001-0004.
-
-
-- Never push. The human reviews and pushes every commit.
-- Commit messages contain no Co-Authored-By trailer and no AI attribution of any kind.
+- **Day 2 - faults, detection, attribution, benchmark**
+  - Eight fault types (CPA drift, cannibalization, stockout on a promoted product, supplier cost
+    increase, refund spike, mix shift, fee increase, tracking break) as pure, seeded
+    transformations with ground-truth labels; 50-scenario test suite and 30-scenario dev suite.
+  - New facts: campaign profit, MER, attribution ratio, refund rate (golden tests).
+  - Detectors: robust z-scores and CUSUMs on daily series, business rules (negative campaign
+    profit, cover below lead time, refund rate, attribution collapse as data quality,
+    incrementality); every symptom backed by persisted facts; thresholds in one versioned file.
+  - Incidents grouping symptoms over the entity graph, with ranked root-cause candidates.
+  - Exact two-level Shapley attribution of net profit changes, stored as facts with lineage.
+  - Benchmark runner with top-1/top-3 accuracy, detection rate and delay, false alerts,
+    attribution check and runtime; reports in `bench/reports/`. ADRs 0005-0007.
