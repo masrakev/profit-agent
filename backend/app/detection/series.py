@@ -48,6 +48,8 @@ class CampaignSeries:
     spend: list[Decimal]
     attributed_purchases: list[Decimal]
     attributed_revenue: list[Decimal]
+    clicks: list[Decimal] = field(default_factory=list)
+    impressions: list[Decimal] = field(default_factory=list)
 
 
 @dataclass
@@ -186,12 +188,18 @@ def load_series(conn: Connection, store_id: UUID) -> StoreSeries:
         text("SELECT id FROM ad_campaigns WHERE store_id = :sid ORDER BY id"), params
     ):
         series.campaigns[row.id] = CampaignSeries(
-            row.id, tuple(sorted(promoted[row.id], key=str)), _days(n), _days(n), _days(n)
+            row.id,
+            tuple(sorted(promoted[row.id], key=str)),
+            _days(n),
+            _days(n),
+            _days(n),
+            _days(n),
+            _days(n),
         )
     for row in conn.execute(
         text(
-            "SELECT metric_date, campaign_id, spend, attributed_purchases, attributed_revenue "
-            "FROM ad_metrics_daily WHERE store_id = :sid"
+            "SELECT metric_date, campaign_id, spend, attributed_purchases, attributed_revenue, "
+            "clicks, impressions FROM ad_metrics_daily WHERE store_id = :sid"
         ),
         params,
     ):
@@ -199,4 +207,6 @@ def load_series(conn: Connection, store_id: UUID) -> StoreSeries:
         c.spend[i] = row.spend
         c.attributed_purchases[i] = Decimal(row.attributed_purchases)
         c.attributed_revenue[i] = row.attributed_revenue
+        c.clicks[i] = Decimal(row.clicks)
+        c.impressions[i] = Decimal(row.impressions)
     return series

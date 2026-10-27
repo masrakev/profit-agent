@@ -16,9 +16,11 @@ from app.detection.stats import (
     benjamini_hochberg,
     binomial_sf,
     cusum_path,
+    cusum_start,
     episodes,
     normal_sf,
     poisson_residuals,
+    rate_drop_change_point,
     rate_increase_p_value,
     ratio_series,
     robust_scale,
@@ -74,6 +76,7 @@ def campaign(
     spend: list[Decimal] | None = None,
     purchases: list[Decimal] | None = None,
     revenue: list[Decimal] | None = None,
+    clicks: list[Decimal] | None = None,
 ) -> CampaignSeries:
     p = purchases if purchases is not None else noisy(10, 99)
     return CampaignSeries(
@@ -82,6 +85,8 @@ def campaign(
         spend=spend if spend is not None else flat(50),
         attributed_purchases=p,
         attributed_revenue=revenue if revenue is not None else [x * 10 for x in p],
+        clicks=clicks if clicks is not None else flat(200),
+        impressions=flat(10_000),
     )
 
 
@@ -224,17 +229,49 @@ def test_refund_rate_band() -> None:
     assert not d.refund_rate_band(store(p), CFG)
 
 
-def test_attribution_collapse_only_when_sales_hold() -> None:
+def step(before: float, after: float, at: int = 70) -> list[Decimal]:
+    return [D(str(before)) if t < at else D(str(after)) for t in range(DAYS)]
+
+
+def test_tracking_break_is_an_abrupt_step_with_clicks_and_sales_holding() -> None:
     p = product(units=flat(20))
-    revenue = [D(150) if t < 70 else D(10) for t in range(DAYS)]
-    collapsed = d.attribution_collapse(store(p, campaigns=(campaign(revenue=revenue),)), CFG)
-    assert collapsed
-    assert collapsed[0].category is SymptomCategory.DATA_QUALITY
-    # Attributed revenue 150 -> 60/day while real sales fall 30/day (within the stability band):
-    # the sales drop explains more than 30% of the attributed drop, so purchases were really lost.
-    lost = product(units=[D(20) if t < 70 else D(17) for t in range(DAYS)])
-    partial = [D(150) if t < 70 else D(60) for t in range(DAYS)]
-    assert not d.attribution_collapse(store(lost, campaigns=(campaign(revenue=partial),)), CFG)
+    broken = campaign(purchases=step(15, 1), revenue=step(150, 10))
+    found = d.attribution_collapse(store(p, campaigns=(broken,)), CFG)
+    assert found
+    assert found[0].category is SymptomCategory.DATA_QUALITY
+    assert found[0].change_point == 70  # baseline facts will end before the break
+    assert 70 <= found[0].episode.confirmed < 76
+
+
+def test_gradual_declines_and_real_losses_are_not_tracking_breaks() -> None:
+    p = product(units=flat(20))
+    # Same end point, reached over three weeks: a CPA drift, not a tracking break.
+    ramp = [D(str(max(1.0, 15 - 14 * min(1.0, max(0, t - 70) / 21)))) for t in range(DAYS)]
+    gradual = campaign(purchases=ramp, revenue=[x * 10 for x in ramp])
+    assert not d.attribution_collapse(store(p, campaigns=(gradual,)), CFG)
+    # Clicks collapse too: the campaign stopped delivering, which is not a tracking problem.
+    dark = campaign(purchases=step(15, 1), revenue=step(150, 10), clicks=step(200, 20))
+    assert not d.attribution_collapse(store(p, campaigns=(dark,)), CFG)
+    # Real sales fall 30/day while attributed revenue falls 90/day: purchases were really lost.
+    lost = product(units=step(20, 17))
+    partial = campaign(purchases=step(15, 6), revenue=step(150, 60))
+    assert not d.attribution_collapse(store(lost, campaigns=(partial,)), CFG)
+    no_clicks = campaign(purchases=step(15, 1), revenue=step(150, 10), clicks=[])
+    assert not d.attribution_collapse(store(p, campaigns=(no_clicks,)), CFG)
+
+
+def test_change_point_estimators() -> None:
+    events = step(10, 2, at=40)[:60]
+    assert rate_drop_change_point(events, flat(100, 60), 0, 60, min_before=14, min_after=3) == 40
+    assert (
+        rate_drop_change_point(flat(5, 60), flat(100, 60), 0, 60, min_before=14, min_after=3)
+        is None
+    )
+    assert (
+        rate_drop_change_point(flat(5, 60), flat(0, 60), 0, 60, min_before=14, min_after=3) is None
+    )
+    assert cusum_start([0.0, 0.0, 1.0, 2.0, 9.0], 4) == 2
+    assert cusum_start([1.0, 2.0], 1) == 0
 
 
 def test_incrementality() -> None:
@@ -249,9 +286,7 @@ def test_incrementality() -> None:
 
 def test_attributed_symptoms_are_reclassified_by_a_collapse() -> None:
     p = product(units=flat(20))
-    revenue = [D(150) if t < 70 else D(10) for t in range(DAYS)]
-    purchases = [D(15) if t < 70 else D(1) for t in range(DAYS)]
-    c = campaign(revenue=revenue, purchases=purchases)
+    c = campaign(revenue=step(150, 10), purchases=step(15, 1))
     findings = d.run_detectors(store(p, campaigns=(c,)), CFG)
     attributed = [f for f in findings if f.detector_id in d.ATTRIBUTED_METRIC_DETECTORS]
     assert attributed

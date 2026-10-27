@@ -19,9 +19,11 @@ from app.detection.stats import (
     as_floats,
     benjamini_hochberg,
     cusum_path,
+    cusum_start,
     episodes,
     normal_sf,
     poisson_residuals,
+    rate_drop_change_point,
     rate_increase_p_value,
     ratio_series,
     robust_z,
@@ -59,6 +61,8 @@ class Finding:
     baseline_days: int
     facts: tuple[FactRef, ...]
     note: str | None = None
+    # Estimated day the change started; when set, the baseline facts end before it.
+    change_point: int | None = None
 
 
 def _scope(entity: EntityRef) -> Scope:
@@ -193,6 +197,7 @@ def _cusum_findings(
             c.current_days,
             c.reference_days,
             facts,
+            change_point=cusum_start(path, e.start),
         )
         for e in episodes(path, limit, 1)
     ]
@@ -541,67 +546,110 @@ def refund_rate_band(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]
 
 
 def attribution_collapse(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]:
-    """Attributed revenue collapses while real sales of the promoted products do not follow:
-    a data-quality problem. If real sales fell by a comparable amount, the purchases were really
-    lost (a profitability problem such as CPA drift), and this rule stays silent. It also stays
-    silent when the attributed drop is within the noise of the promoted products' sales
-    (compound-Poisson sigma), since then real sales could not show whether purchases were lost."""
+    """Tracking break (data quality): attributed purchases per click step down toward zero.
+
+    The shape tells it from a CPA drift. At each day, the change point of the conversion rate
+    (attributed purchases per click) is estimated from data up to that day. A tracking break is
+    an abrupt step: over the `abrupt_days` before the change point the rate is still at least
+    `stable_before_ratio` of the baseline, and over the `abrupt_days` after it it is already
+    below `max_ratio_of_baseline` of the days just before, while clicks continue and the real
+    sales of the promoted products do not follow the attributed revenue down (a drop beyond
+    2 sigma of promoted sales that real sales explain less than `max_explained_share` of).
+    A CPA drift is gradual (its early rate is still close to the baseline) or real sales fall
+    with it. Baselines always end before the change point.
+    """
     r = cfg.attribution_collapse
-    w, b = r.window_days, r.baseline_days
+    b = r.baseline_days
     out: list[Finding] = []
     for c in series.campaigns.values():
         revenue = _promoted(series, c, "revenue")
         lines = _promoted(series, c, "lines")
+        active = next((i for i, s in enumerate(c.spend) if s > 0), None)
+        if active is None or not c.clicks:
+            continue
 
-        def score(
+        def test(
             t: int,
             c: CampaignSeries = c,
             revenue: list[Decimal] = revenue,
             lines: list[Decimal] = lines,
-        ) -> float | None:
-            if t - w - b + 1 < 0:
+            active: int = active,
+        ) -> tuple[float, int] | None:
+            lo = max(active, t - r.lookback_days + 1)
+            k = rate_drop_change_point(
+                c.attributed_purchases,
+                c.clicks,
+                lo,
+                t + 1,
+                min_before=r.min_before_days,
+                min_after=r.abrupt_days,
+            )
+            if k is None:
                 return None
-            sales = _sum(revenue, t - w + 1, t + 1)
-            base_sales = _sum(revenue, t - w - b + 1, t - w + 1)
-            base_attr = _sum(c.attributed_revenue, t - w - b + 1, t - w + 1)
-            if sales <= 0 or base_sales <= 0 or base_attr <= 0:
+            pre, a = max(lo, k - b), r.abrupt_days
+
+            def rate(start: int, stop: int, c: CampaignSeries = c) -> Decimal | None:
+                clicks = _sum(c.clicks, start, stop)
+                return _sum(c.attributed_purchases, start, stop) / clicks if clicks > 0 else None
+
+            pre_rate, post_rate = rate(pre, k), rate(k, t + 1)
+            late, early = rate(k - a, k), rate(k, k + a)
+            if not pre_rate or not late or post_rate is None or early is None:
                 return None
-            scale = Decimal(w) / Decimal(b)
-            sales_change = float(sales / (base_sales * scale)) - 1
-            if abs(sales_change) > r.orders_stable_tolerance:
+            relative = float(post_rate / pre_rate)
+            if relative > r.max_ratio_of_baseline:
+                return None  # no collapse
+            # A step, not a ramp: stable right up to the change point, collapsed right after it.
+            if float(late / pre_rate) < r.stable_before_ratio:
                 return None
-            attributed = _sum(c.attributed_revenue, t - w + 1, t + 1)
-            attributed_drop = base_attr * scale - attributed
+            if float(early / late) > r.max_ratio_of_baseline:
+                return None
+            pre_clicks, post_clicks = _sum(c.clicks, pre, k), _sum(c.clicks, k, t + 1)
+            pre_days, post_days = Decimal(k - pre), Decimal(t + 1 - k)
+            scale = post_days / pre_days
+            if abs(float(post_clicks / (pre_clicks * scale)) - 1) > r.clicks_tolerance:
+                return None  # clicks changed too: a delivery problem, not tracking
+            base_sales = _sum(revenue, pre, k)
+            sales = _sum(revenue, k, t + 1)
+            base_lines = _sum(lines, pre, k)
+            if base_sales <= 0 or base_lines <= 0:
+                return None
+            if abs(float(sales / (base_sales * scale)) - 1) > r.orders_stable_tolerance:
+                return None
+            attributed_drop = _sum(c.attributed_revenue, pre, k) * scale - _sum(
+                c.attributed_revenue, k, t + 1
+            )
             sales_drop = base_sales * scale - sales
             if attributed_drop <= 0 or sales_drop > attributed_drop * Decimal(
                 str(r.max_explained_share)
             ):
                 return None
-            base_lines = _sum(lines, t - w - b + 1, t - w + 1)
-            if base_lines <= 0:
-                return None
             # Compound Poisson: Var(window sales) ~ expected sales x mean line value.
             sigma = math.sqrt(float(base_sales * scale) * float(base_sales / base_lines))
             if float(attributed_drop) < r.min_drop_sigmas * sigma:
                 return None
-            ratio_now = attributed / sales
-            ratio_before = base_attr / base_sales
-            relative = float(ratio_now / ratio_before)
-            return 2.0 - relative if relative <= r.max_ratio_of_baseline else None
+            return 2.0 - relative, k
 
+        results = [test(t) for t in range(series.days)]
+        scores = [None if x is None else x[0] for x in results]
         entity = EntityRef.campaign(c.campaign_id)
-        out += _rule_findings(
-            "campaign_attribution_collapse",
-            entity,
-            "attribution_ratio",
-            DATA_QUALITY,
-            series.days,
-            score,
-            persist=r.persist_days,
-            window=w,
-            baseline=b,
-            facts=_refs(entity, "attribution_ratio", "promoted_revenue"),
-        )
+        for e in episodes(scores, 1.0, r.persist_days):
+            found = results[e.confirmed]
+            assert found is not None
+            out.append(
+                Finding(
+                    "campaign_attribution_collapse",
+                    entity,
+                    "attribution_ratio",
+                    DATA_QUALITY,
+                    e,
+                    e.peak,
+                    r.abrupt_days,
+                    b,
+                    _refs(entity, "attribution_ratio", "promoted_revenue"),
+                    change_point=found[1],
+                )
+            )
     return out
 
 

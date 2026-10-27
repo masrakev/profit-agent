@@ -71,9 +71,13 @@ class RefundRate(_Section):
 
 
 class AttributionCollapse(_Section):
-    window_days: int
+    lookback_days: int
+    min_before_days: int
+    abrupt_days: int
     baseline_days: int
     max_ratio_of_baseline: float
+    stable_before_ratio: float
+    clicks_tolerance: float
     orders_stable_tolerance: float
     max_explained_share: float
     min_drop_sigmas: float

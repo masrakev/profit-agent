@@ -66,7 +66,11 @@ def _symptom(
     """Persist the facts behind a finding for its current window (ending on the confirmation
     day) and the baseline window just before it."""
     end = finding.episode.confirmed + 1
-    start = max(end - finding.window_days, 0)
+    if finding.change_point is not None:
+        # The baseline must not contain the change: it ends where the change started.
+        start = min(finding.change_point, end - 1)
+    else:
+        start = max(end - finding.window_days, 0)
     base_start = max(start - finding.baseline_days, 0)
     windows = {"current": _day_period(series, start, end)}
     if base_start < start:

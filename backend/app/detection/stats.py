@@ -163,6 +163,49 @@ def rate_increase_p_value(
     return binomial_sf(current_events, total, share)
 
 
+def rate_drop_change_point(
+    events: Sequence[Decimal],
+    exposure: Sequence[Decimal],
+    lo: int,
+    hi: int,
+    *,
+    min_before: int,
+    min_after: int,
+) -> int | None:
+    """Most likely day where the rate events / exposure dropped, within [lo, hi).
+
+    For each split k, a two-sample test of the rates before ([lo, k)) and after ([k, hi)):
+    z = (r1 - r2) / sqrt(pooled * (1 / x1 + 1 / x2)). Returns the k with the largest positive z
+    (None when no split has a drop). Uses only data before `hi`, so it never looks ahead.
+    """
+    ev = [0.0]
+    ex = [0.0]
+    for t in range(lo, hi):
+        ev.append(ev[-1] + float(events[t]))
+        ex.append(ex[-1] + float(exposure[t]))
+    best, best_z = None, 0.0
+    for k in range(lo + min_before, hi - min_after + 1):
+        e1, x1 = ev[k - lo], ex[k - lo]
+        e2, x2 = ev[-1] - e1, ex[-1] - x1
+        if x1 <= 0 or x2 <= 0:
+            continue
+        pooled = (e1 + e2) / (x1 + x2)
+        if pooled <= 0:
+            continue
+        z = (e1 / x1 - e2 / x2) / math.sqrt(pooled * (1 / x1 + 1 / x2))
+        if z > best_z:
+            best, best_z = k, z
+    return best
+
+
+def cusum_start(path: Sequence[float | None], episode_start: int) -> int:
+    """Change-point estimate of a CUSUM alarm: the day after the statistic was last zero."""
+    t = episode_start
+    while t > 0 and (path[t - 1] or 0.0) > 0.0:
+        t -= 1
+    return t
+
+
 def normal_sf(z: float) -> float:
     """P(Z >= z) for a standard normal Z."""
     return 0.5 * math.erfc(z / math.sqrt(2))

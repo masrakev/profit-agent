@@ -63,10 +63,16 @@ min_baseline_rate = 0.01
 persist_days = 3
 
 [attribution_collapse]
-window_days = 14
-baseline_days = 28
-max_ratio_of_baseline = 0.5    # attributed / promoted revenue falls below half its baseline ...
-orders_stable_tolerance = 0.15 # ... while promoted revenue moves less than this ...
+# Tracking break: an abrupt step of attributed purchases per click (see detectors.py).
+lookback_days = 56             # change point searched in the last 56 days (data up to today)
+min_before_days = 14           # at least 14 days before the change point ...
+abrupt_days = 3                # ... and the rate already collapsed within 3 days after it
+baseline_days = 28             # baseline: up to 28 days ending at the change point
+max_ratio_of_baseline = 0.5    # conversion per click below half its baseline, and right after
+                               # the change point below half of the days just before it,
+stable_before_ratio = 0.75     # ... which were still >= 75% of the baseline (a step, not a ramp),
+clicks_tolerance = 0.25        # ... clicks within 25% of baseline (still delivering),
+orders_stable_tolerance = 0.15 # ... promoted revenue moves less than this ...
 max_explained_share = 0.3      # ... and fell by less than 30% of the attributed revenue drop,
 min_drop_sigmas = 2.0          # ... which itself exceeds 2 sigma of the promoted sales
 persist_days = 3
