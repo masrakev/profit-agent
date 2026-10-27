@@ -2,6 +2,7 @@
 
 from datetime import date
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -38,11 +39,26 @@ class GeneratorConfig(BaseModel):
     discount_probability: Decimal = Field(default=Decimal("0.2"), ge=0, le=1)
     discount_rate: Decimal = Decimal("0.10")
     cross_sell_probability: Decimal = Field(default=Decimal("0.12"), ge=0, le=1)
+    # Share of products whose supplier cost changes once during the horizon.
+    cost_change_probability: Decimal = Field(default=Decimal("0.3"), ge=0, le=1)
+    # Initial stock, in days of base demand (low, high).
+    initial_stock_days: tuple[int, int] = (20, 45)
+    # "static": reorder on base demand with `safety_stock_days` of safety stock.
+    # "adaptive": reorder on recent actual sales (and expected ad demand), at three lead times
+    # plus `safety_stock_days` of cover, so on-hand stock stays above one lead time of demand
+    # even while an order is in transit.
+    reorder_policy: Literal["static", "adaptive"] = "static"
+    safety_stock_days: int = Field(default=7, ge=0)
+    # "random": daily budget drawn uniformly. "profit_optimal": budget set below the spend that
+    # maximises expected campaign profit, so a healthy campaign is profitable.
+    campaign_budget_policy: Literal["random", "profit_optimal"] = "random"
 
     @model_validator(mode="after")
     def _ranges(self) -> "GeneratorConfig":
         if self.products_max < self.products_min or self.campaigns_max < self.campaigns_min:
             raise ValueError("max must be >= min")
+        if self.initial_stock_days[1] < self.initial_stock_days[0]:
+            raise ValueError("initial_stock_days must be (low, high)")
         return self
 
     @property

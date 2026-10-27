@@ -73,6 +73,10 @@ class _ProductState:
     cost_schedule: list[tuple[int, Decimal]]  # (first day, unit cost)
     on_hand: int
     pipeline: list[tuple[int, int]] = field(default_factory=list)  # (arrival day, units)
+    sold_today: int = 0
+    sold_history: list[int] = field(default_factory=list)
+    # Adaptive policy: base demand plus the expected ad-driven demand of promoting campaigns.
+    planned_daily_demand: float = 0.0
 
     def cost_on(self, day: int) -> Decimal:
         cost = self.cost_schedule[0][1]
@@ -90,6 +94,7 @@ class _Builder:
     orders: list[Order] = field(default_factory=list)
     lines: list[OrderLine] = field(default_factory=list)
     refunds: list[Refund] = field(default_factory=list)
+    order_campaigns: list[tuple[UUID, UUID]] = field(default_factory=list)
     lost_sales_units: int = 0
 
     @property
@@ -122,6 +127,8 @@ def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> Generated
     index_of = {s.product.id: i for i, s in enumerate(states)}
     for link in promoted:
         promoted_by_campaign.setdefault(link.campaign_id, []).append(index_of[link.product_id])
+    if config.reorder_policy == "adaptive":
+        _plan_stock(states, campaigns, campaign_truth, promoted_by_campaign)
 
     for day in range(config.days):
         today = config.start_date + timedelta(days=day)
@@ -152,10 +159,12 @@ def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> Generated
         ad_net = {c: Decimal(0) for c in spend_today}
         for k in order:
             product_index, campaign_index = events[int(k)]
-            net = _sell(builder, states, product_index, day)
-            if net is not None and campaign_index >= 0:
+            sold = _sell(builder, states, product_index, day)
+            if sold is not None and campaign_index >= 0:
+                order_id, net = sold
                 ad_orders[campaign_index] += 1
                 ad_net[campaign_index] += net
+                builder.order_campaigns.append((order_id, campaigns[campaign_index].id))
 
         for c, spend in spend_today.items():
             truth = campaign_truth[c]
@@ -177,11 +186,12 @@ def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> Generated
             )
 
         for i, state in enumerate(states):
+            state.sold_history.append(state.sold_today)
+            state.sold_today = 0
             pipeline_units = sum(u for _, u in state.pipeline)
-            if state.on_hand + pipeline_units <= state.truth.reorder_point:
-                state.pipeline.append(
-                    (day + state.truth.lead_time_days, state.truth.reorder_quantity)
-                )
+            reorder_point, reorder_quantity = _reorder_levels(config, state)
+            if state.on_hand + pipeline_units <= reorder_point:
+                state.pipeline.append((day + state.truth.lead_time_days, reorder_quantity))
             inventory.append(
                 InventorySnapshot(
                     id=stable_id(store_id, "inventory", i, day),
@@ -206,8 +216,45 @@ def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> Generated
         product_truth=tuple(s.truth for s in states),
         campaign_truth=tuple(campaign_truth),
         lost_sales_units=builder.lost_sales_units,
+        config=config,
+        order_campaigns=tuple(builder.order_campaigns),
     )
     return apply_faults(data, faults, config.seed)
+
+
+def _plan_stock(
+    states: list[_ProductState],
+    campaigns: list[AdCampaign],
+    truths: list[CampaignTruth],
+    promoted_by_campaign: dict[UUID, list[int]],
+) -> None:
+    """Plan for ad-driven demand: scale initial stock and the reorder rate floor by it."""
+    for state in states:
+        state.planned_daily_demand = state.truth.base_daily_demand
+    for campaign, truth in zip(campaigns, truths, strict=True):
+        indexes = promoted_by_campaign[campaign.id]
+        expected = truth.a * (1.0 - math.exp(-truth.b * float(campaign.daily_budget)))
+        for i in indexes:
+            states[i].planned_daily_demand += expected / len(indexes)
+    for state in states:
+        scale = state.planned_daily_demand / state.truth.base_daily_demand
+        state.on_hand = math.ceil(state.on_hand * scale)
+
+
+def _reorder_levels(config: GeneratorConfig, state: _ProductState) -> tuple[int, int]:
+    if config.reorder_policy == "static":
+        return state.truth.reorder_point, state.truth.reorder_quantity
+    week, fortnight = state.sold_history[-7:], state.sold_history[-14:]
+    observed = max(
+        sum(week) / 7 if len(week) == 7 else 0.0,
+        sum(fortnight) / 14 if len(fortnight) == 14 else 0.0,
+    )
+    rate = max(observed, state.planned_daily_demand)
+    lead = state.truth.lead_time_days
+    return (
+        math.ceil(rate * (3 * lead + config.safety_stock_days)),
+        max(1, math.ceil(rate * (30 + lead))),
+    )
 
 
 def _products(
@@ -219,7 +266,7 @@ def _products(
         price = Decimal(int(rng.integers(9, 150))) + Decimal("0.99")
         initial_cost = money(float(price) * rng.uniform(0.25, 0.6))
         schedule = [(0, initial_cost)]
-        if rng.random() < 0.3:
+        if rng.random() < float(config.cost_change_probability):
             change_day = int(rng.integers(config.days // 4, config.days - config.days // 4))
             schedule.append((change_day, money(float(initial_cost) * rng.uniform(1.05, 1.25))))
         demand = float(rng.gamma(2.0, 1.2)) + 0.3
@@ -231,7 +278,7 @@ def _products(
             base_daily_demand=demand,
             refund_rate=float(rng.uniform(0.01, 0.12)),
             lead_time_days=lead_time,
-            reorder_point=math.ceil(demand * (lead_time + 7)),
+            reorder_point=math.ceil(demand * (lead_time + config.safety_stock_days)),
             reorder_quantity=math.ceil(demand * 30),
         )
         product = Product(
@@ -245,7 +292,8 @@ def _products(
             currency=config.currency,
             supplier_lead_time_days=lead_time,
         )
-        on_hand = math.ceil(demand * rng.uniform(20.0, 45.0))
+        low, high = config.initial_stock_days
+        on_hand = math.ceil(demand * rng.uniform(float(low), float(high)))
         states.append(_ProductState(product, truth, schedule, on_hand))
     return states
 
@@ -265,6 +313,12 @@ def _campaigns(
         size = int(rng.integers(1, min(5, len(states)) + 1))
         chosen = sorted(int(i) for i in rng.choice(len(states), size=size, replace=False))
         a = float(rng.uniform(1.5, 12.0))
+        budget = float(rng.uniform(20.0, 300.0))
+        b = float(rng.uniform(0.004, 0.03))
+        bias = round(float(rng.uniform(0.9, 1.35)), 4)
+        start_day = int(rng.integers(0, config.days // 3))
+        if config.campaign_budget_policy == "profit_optimal":
+            b, budget = _profitable_budget(config, rng, a, b, [states[i] for i in chosen])
         campaigns.append(
             AdCampaign(
                 id=campaign_id,
@@ -273,7 +327,7 @@ def _campaigns(
                 name=f"Campaign {c + 1}",
                 platform="meta",
                 currency=config.currency,
-                daily_budget=money(rng.uniform(20.0, 300.0)),
+                daily_budget=money(budget),
             )
         )
         links.extend(
@@ -286,18 +340,50 @@ def _campaigns(
             CampaignTruth(
                 campaign_id=campaign_id,
                 a=a,
-                b=float(rng.uniform(0.004, 0.03)),
+                b=b,
                 noise_sd=0.1 * a,
-                attribution_bias=round(float(rng.uniform(0.9, 1.35)), 4),
-                start_day=int(rng.integers(0, config.days // 3)),
+                attribution_bias=bias,
+                start_day=start_day,
             )
         )
     return campaigns, links, truths
 
 
-def _sell(builder: _Builder, states: list[_ProductState], first: int, day: int) -> Decimal | None:
-    """Create one order (possibly with a cross-sell line). Returns its net amount, or None when
-    the demanded product is out of stock (a lost sale)."""
+def _profitable_budget(
+    config: GeneratorConfig,
+    rng: np.random.Generator,
+    a: float,
+    b: float,
+    promoted: list[_ProductState],
+) -> tuple[float, float]:
+    """Budget below the profit-maximising spend of a * (1 - exp(-b * s)) * margin - s.
+
+    Expected profit is concave in spend and zero at zero spend, so any budget between zero and
+    the optimum s* = ln(a * b * margin) / b is profitable. `b` is raised when needed so that the
+    optimum is comfortably positive (a * b * margin >= 3).
+    """
+    fee_rate = float(config.payment_fee_rate) * (1 + float(config.tax_rate))
+    margins = [
+        (
+            float(s.product.price) * (1 - fee_rate)
+            - float(s.cost_schedule[-1][1])
+            - float(s.product.unit_fee)
+            - float(config.payment_fee_fixed)
+        )
+        - float(s.product.price) * s.truth.refund_rate
+        for s in promoted
+    ]
+    margin = max(sum(margins) / len(margins), 1.0)
+    b = max(b, 3.0 / (a * margin))
+    optimum = math.log(a * b * margin) / b
+    return b, optimum * float(rng.uniform(0.5, 0.9))
+
+
+def _sell(
+    builder: _Builder, states: list[_ProductState], first: int, day: int
+) -> tuple[UUID, Decimal] | None:
+    """Create one order (possibly with a cross-sell line). Returns its id and net amount, or None
+    when the demanded product is out of stock (a lost sale)."""
     config, rng = builder.config, builder.rng
     wanted = [first]
     if len(states) > 1 and rng.random() < float(config.cross_sell_probability):
@@ -323,6 +409,7 @@ def _sell(builder: _Builder, states: list[_ProductState], first: int, day: int) 
     for n, (index, qty) in enumerate(quantities):
         state = states[index]
         state.on_hand -= qty
+        state.sold_today += qty
         gross = state.product.price * qty
         discount = money(gross * config.discount_rate) if discounted else Decimal(0)
         net = gross - discount
@@ -374,7 +461,7 @@ def _sell(builder: _Builder, states: list[_ProductState], first: int, day: int) 
                         reason="customer_return",
                     )
                 )
-    return subtotal
+    return order_id, subtotal
 
 
 def _cost_items(

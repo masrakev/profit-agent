@@ -15,6 +15,7 @@ from app.domain.models import (
     Refund,
     Store,
 )
+from bench.generator.config import GeneratorConfig
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,9 @@ class GeneratedStore:
     product_truth: tuple[ProductTruth, ...]
     campaign_truth: tuple[CampaignTruth, ...]
     lost_sales_units: int
+    config: GeneratorConfig
+    # (order id, campaign id) for every ad-driven order: ground truth, never loaded.
+    order_campaigns: tuple[tuple[UUID, UUID], ...] = ()
 
     def counts(self) -> dict[str, int]:
         return {
