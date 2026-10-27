@@ -1,4 +1,4 @@
-.PHONY: up down migrate test lint format eval
+.PHONY: up down migrate test lint format eval eval-dev scenarios
 
 up:
 	docker compose up -d --wait
@@ -23,4 +23,10 @@ format:
 	uv run ruff format .
 
 eval:
-	@echo "Evaluation suite not implemented yet (planned for Task 2)."
+	uv run python -m bench.runner
+
+eval-dev:
+	uv run python -m bench.runner --suite dev
+
+scenarios:
+	uv run python -m bench.scenarios.build

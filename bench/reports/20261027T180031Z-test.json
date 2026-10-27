@@ -1,0 +1,5506 @@
+{
+  "suite": "test",
+  "started_at": "2026-10-27T18:00:31+00:00",
+  "thresholds_version": 1,
+  "total_runtime_s": 124.76,
+  "summary": {
+    "overall": {
+      "scenarios": 50,
+      "faulty_scenarios": 40,
+      "errors": 0,
+      "top1": 0.8,
+      "top3": 0.85,
+      "detection_rate": 0.85,
+      "mean_delay_days": 7.38,
+      "false_alert_rate": 0.3,
+      "tracking_classified_dq": 1.0,
+      "attribution_check": 0.6571,
+      "runtime_per_scenario_s": {
+        "mean": 9.58,
+        "max": 14.998
+      }
+    },
+    "per_fault_type": {
+      "cannibalization": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 0.8,
+        "mean_delay_days": 13.5,
+        "median_delay_days": 12.5,
+        "top1": 0.8,
+        "top3": 0.8,
+        "attribution_check": 0.4,
+        "false_alert_rate": null,
+        "tracking_classified_dq": null
+      },
+      "cpa_drift": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 0.6,
+        "mean_delay_days": 12.67,
+        "median_delay_days": 12,
+        "top1": 0.4,
+        "top3": 0.4,
+        "attribution_check": 0.4,
+        "false_alert_rate": null,
+        "tracking_classified_dq": null
+      },
+      "fee_increase": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 1.0,
+        "mean_delay_days": 0.8,
+        "median_delay_days": 0,
+        "top1": 1.0,
+        "top3": 1.0,
+        "attribution_check": 0.4,
+        "false_alert_rate": null,
+        "tracking_classified_dq": null
+      },
+      "healthy": {
+        "scenarios": 10,
+        "errors": 0,
+        "detection_rate": null,
+        "mean_delay_days": null,
+        "median_delay_days": null,
+        "top1": null,
+        "top3": null,
+        "attribution_check": null,
+        "false_alert_rate": 0.3,
+        "tracking_classified_dq": null
+      },
+      "mix_shift": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 0.6,
+        "mean_delay_days": 3.67,
+        "median_delay_days": 4,
+        "top1": 0.4,
+        "top3": 0.8,
+        "attribution_check": 0.8,
+        "false_alert_rate": null,
+        "tracking_classified_dq": null
+      },
+      "refund_spike": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 0.8,
+        "mean_delay_days": 27,
+        "median_delay_days": 24.5,
+        "top1": 0.8,
+        "top3": 0.8,
+        "attribution_check": 1.0,
+        "false_alert_rate": null,
+        "tracking_classified_dq": null
+      },
+      "stockout_on_promoted": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 1.0,
+        "mean_delay_days": 2.8,
+        "median_delay_days": 3,
+        "top1": 1.0,
+        "top3": 1.0,
+        "attribution_check": 1.0,
+        "false_alert_rate": null,
+        "tracking_classified_dq": null
+      },
+      "supplier_cost_increase": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 1.0,
+        "mean_delay_days": 2,
+        "median_delay_days": 2,
+        "top1": 1.0,
+        "top3": 1.0,
+        "attribution_check": 0.6,
+        "false_alert_rate": null,
+        "tracking_classified_dq": null
+      },
+      "tracking_break": {
+        "scenarios": 5,
+        "errors": 0,
+        "detection_rate": 1.0,
+        "mean_delay_days": 2.4,
+        "median_delay_days": 2,
+        "top1": 1.0,
+        "top3": 1.0,
+        "attribution_check": null,
+        "false_alert_rate": null,
+        "tracking_classified_dq": 1.0
+      }
+    }
+  },
+  "judgements": [
+    {
+      "scenario_id": "test-cannibalization-01",
+      "fault_type": "cannibalization",
+      "detected": false,
+      "delay_days": null,
+      "top1": false,
+      "top3": false,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-cannibalization-02",
+      "fault_type": "cannibalization",
+      "detected": true,
+      "delay_days": 14,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "cannibalization campaign:d2e218cc-883c-5d64-9b18-ce5a4237c01f"
+    },
+    {
+      "scenario_id": "test-cannibalization-03",
+      "fault_type": "cannibalization",
+      "detected": true,
+      "delay_days": 11,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "cannibalization campaign:acbabd40-34ef-5e9c-8d3b-3da07d8494ff"
+    },
+    {
+      "scenario_id": "test-cannibalization-04",
+      "fault_type": "cannibalization",
+      "detected": true,
+      "delay_days": 22,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "cannibalization campaign:3e40267f-b0cd-51a8-8a97-92dfdb3fb86f"
+    },
+    {
+      "scenario_id": "test-cannibalization-05",
+      "fault_type": "cannibalization",
+      "detected": true,
+      "delay_days": 7,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "cannibalization campaign:87253382-736e-54a3-ac61-d911bc3eb48b"
+    },
+    {
+      "scenario_id": "test-cpa_drift-01",
+      "fault_type": "cpa_drift",
+      "detected": false,
+      "delay_days": null,
+      "top1": false,
+      "top3": false,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-cpa_drift-02",
+      "fault_type": "cpa_drift",
+      "detected": false,
+      "delay_days": null,
+      "top1": false,
+      "top3": false,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "mix_shift store"
+    },
+    {
+      "scenario_id": "test-cpa_drift-03",
+      "fault_type": "cpa_drift",
+      "detected": true,
+      "delay_days": 15,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "cpa_drift campaign:27832651-7068-5724-8dcb-9038bde51bd3"
+    },
+    {
+      "scenario_id": "test-cpa_drift-04",
+      "fault_type": "cpa_drift",
+      "detected": true,
+      "delay_days": 12,
+      "top1": false,
+      "top3": false,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "tracking_break campaign:95888aef-a1fe-55f6-90c7-aff0892827a8"
+    },
+    {
+      "scenario_id": "test-cpa_drift-05",
+      "fault_type": "cpa_drift",
+      "detected": true,
+      "delay_days": 11,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "cpa_drift campaign:2fff28e5-6687-55ba-8914-c6e4018ce46b"
+    },
+    {
+      "scenario_id": "test-fee_increase-01",
+      "fault_type": "fee_increase",
+      "detected": true,
+      "delay_days": 0,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "fee_increase store"
+    },
+    {
+      "scenario_id": "test-fee_increase-02",
+      "fault_type": "fee_increase",
+      "detected": true,
+      "delay_days": 0,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "fee_increase store"
+    },
+    {
+      "scenario_id": "test-fee_increase-03",
+      "fault_type": "fee_increase",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "fee_increase product:077c15c6-7328-5a1f-b910-1a8b12adaf3f"
+    },
+    {
+      "scenario_id": "test-fee_increase-04",
+      "fault_type": "fee_increase",
+      "detected": true,
+      "delay_days": 0,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "fee_increase store"
+    },
+    {
+      "scenario_id": "test-fee_increase-05",
+      "fault_type": "fee_increase",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "fee_increase product:2c04d9a7-2fdb-520f-8221-8b06413033f1"
+    },
+    {
+      "scenario_id": "test-healthy-01",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": false,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-healthy-02",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": true,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "refund_spike product:52c93995-619f-5013-b7ce-64569c53fd51"
+    },
+    {
+      "scenario_id": "test-healthy-03",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": true,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "mix_shift store"
+    },
+    {
+      "scenario_id": "test-healthy-04",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": false,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-healthy-05",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": false,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-healthy-06",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": false,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-healthy-07",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": false,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-healthy-08",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": false,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-healthy-09",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": false,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-healthy-10",
+      "fault_type": "healthy",
+      "detected": null,
+      "delay_days": null,
+      "top1": null,
+      "top3": null,
+      "false_alert": true,
+      "tracking_classified_dq": null,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "refund_spike product:0b054fce-15b7-54d9-9b56-ea0a7502bd1a"
+    },
+    {
+      "scenario_id": "test-mix_shift-01",
+      "fault_type": "mix_shift",
+      "detected": false,
+      "delay_days": null,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "mix_shift store"
+    },
+    {
+      "scenario_id": "test-mix_shift-02",
+      "fault_type": "mix_shift",
+      "detected": false,
+      "delay_days": null,
+      "top1": false,
+      "top3": false,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-mix_shift-03",
+      "fault_type": "mix_shift",
+      "detected": true,
+      "delay_days": 5,
+      "top1": false,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "stockout_on_promoted product:6c24b005-f5d4-54fe-a1db-2dbef5d35358"
+    },
+    {
+      "scenario_id": "test-mix_shift-04",
+      "fault_type": "mix_shift",
+      "detected": true,
+      "delay_days": 4,
+      "top1": false,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "stockout_on_promoted product:11490bf1-c1a1-57fc-b2fa-5e000166bf9f"
+    },
+    {
+      "scenario_id": "test-mix_shift-05",
+      "fault_type": "mix_shift",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "mix_shift store"
+    },
+    {
+      "scenario_id": "test-refund_spike-01",
+      "fault_type": "refund_spike",
+      "detected": false,
+      "delay_days": null,
+      "top1": false,
+      "top3": false,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": null
+    },
+    {
+      "scenario_id": "test-refund_spike-02",
+      "fault_type": "refund_spike",
+      "detected": true,
+      "delay_days": 28,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "refund_spike product:ad0b6925-0c50-5390-bae9-47e23dc58116"
+    },
+    {
+      "scenario_id": "test-refund_spike-03",
+      "fault_type": "refund_spike",
+      "detected": true,
+      "delay_days": 43,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "refund_spike product:78f1180c-a26f-58e3-9456-75938b3db984"
+    },
+    {
+      "scenario_id": "test-refund_spike-04",
+      "fault_type": "refund_spike",
+      "detected": true,
+      "delay_days": 21,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "refund_spike product:6bec8ead-e014-5e68-846c-6b85629f9a50"
+    },
+    {
+      "scenario_id": "test-refund_spike-05",
+      "fault_type": "refund_spike",
+      "detected": true,
+      "delay_days": 16,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "refund_spike product:71b55fc6-0359-5e5c-8a66-a9b9bbcae806"
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-01",
+      "fault_type": "stockout_on_promoted",
+      "detected": true,
+      "delay_days": 3,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "stockout_on_promoted product:4262bc5f-62c7-55b4-a9e4-1e99bb0897b5"
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-02",
+      "fault_type": "stockout_on_promoted",
+      "detected": true,
+      "delay_days": 3,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "stockout_on_promoted product:73127bcc-71f4-5f24-a3af-e158178b4160"
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-03",
+      "fault_type": "stockout_on_promoted",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "stockout_on_promoted product:fb76a84f-8a16-52a1-8885-082c2214ba8f"
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-04",
+      "fault_type": "stockout_on_promoted",
+      "detected": true,
+      "delay_days": 3,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "stockout_on_promoted product:9401e3cb-e5d9-5fa6-973e-0d946e535d86"
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-05",
+      "fault_type": "stockout_on_promoted",
+      "detected": true,
+      "delay_days": 3,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "stockout_on_promoted product:b60d350a-98c9-592c-b073-48f2c2ff5a71"
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-01",
+      "fault_type": "supplier_cost_increase",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "supplier_cost_increase product:0ac43d29-fed1-57f9-945c-26b65530ff04"
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-02",
+      "fault_type": "supplier_cost_increase",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": false,
+      "error": false,
+      "primary": "supplier_cost_increase product:715f5814-8038-5158-80b2-9d795285cc6f"
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-03",
+      "fault_type": "supplier_cost_increase",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "supplier_cost_increase product:8f483fa4-1e48-5036-9691-c2e9f959e8a0"
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-04",
+      "fault_type": "supplier_cost_increase",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "supplier_cost_increase product:e4d316de-0245-54ca-b1cf-1fb444f9e3e9"
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-05",
+      "fault_type": "supplier_cost_increase",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": null,
+      "attribution_ok": true,
+      "error": false,
+      "primary": "supplier_cost_increase product:471c39cd-c703-5113-9d89-8e5e5d317bc3"
+    },
+    {
+      "scenario_id": "test-tracking_break-01",
+      "fault_type": "tracking_break",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": true,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "tracking_break campaign:55dbc26d-4b49-5a01-820d-59709595b134"
+    },
+    {
+      "scenario_id": "test-tracking_break-02",
+      "fault_type": "tracking_break",
+      "detected": true,
+      "delay_days": 4,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": true,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "tracking_break campaign:285c0ca6-5681-5cf4-8d49-8b5b8d1980ba"
+    },
+    {
+      "scenario_id": "test-tracking_break-03",
+      "fault_type": "tracking_break",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": true,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "tracking_break campaign:f0aba06e-465f-52dc-b013-a9c3beea32a1"
+    },
+    {
+      "scenario_id": "test-tracking_break-04",
+      "fault_type": "tracking_break",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": true,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "tracking_break campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606"
+    },
+    {
+      "scenario_id": "test-tracking_break-05",
+      "fault_type": "tracking_break",
+      "detected": true,
+      "delay_days": 2,
+      "top1": true,
+      "top3": true,
+      "false_alert": null,
+      "tracking_classified_dq": true,
+      "attribution_ok": null,
+      "error": false,
+      "primary": "tracking_break campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "test-cannibalization-01",
+      "description": "cannibalization (subtle) magnitude 0.30 from day 77 (2026-08-17)",
+      "labels": [
+        {
+          "fault_type": "cannibalization",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "266fc2bc-dfe5-5509-ab30-cfdfcce62c20"
+            }
+          ],
+          "start_day": 77,
+          "magnitude": "0.30",
+          "category": "profitability",
+          "expected_driver": "ad_spend"
+        }
+      ],
+      "store_id": "55f4409b-4628-5e7e-9ba1-3647f5ccb232",
+      "runtime_s": 9.881,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-1247.4696989247311828",
+        "level1": {
+          "volume": "-2432.7675826600977826",
+          "mix": "4025.3679107125023043",
+          "price": "-454.5658070991590021",
+          "unit_cost": "0.0000000000000000",
+          "fees": "34.7854790467544804",
+          "refunds": "-2093.7000000000000000",
+          "ad_spend": "-97.2700000000000000",
+          "fixed_costs": "-229.3196989247311828"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cannibalization-02",
+      "description": "cannibalization magnitude 0.50 from day 63 (2026-08-03)",
+      "labels": [
+        {
+          "fault_type": "cannibalization",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "d2e218cc-883c-5d64-9b18-ce5a4237c01f"
+            }
+          ],
+          "start_day": 63,
+          "magnitude": "0.50",
+          "category": "profitability",
+          "expected_driver": "ad_spend"
+        }
+      ],
+      "store_id": "e5fe8416-3b64-5b36-9584-3c8d61996c8b",
+      "runtime_s": 8.964,
+      "incidents": [
+        {
+          "incident_id": "inc-1b26a01c1c7c",
+          "category": "profitability",
+          "severity_score": 1.498452,
+          "first_seen_day": 77,
+          "last_seen_day": 82,
+          "entities": [
+            "campaign:d2e218cc-883c-5d64-9b18-ce5a4237c01f"
+          ],
+          "detectors": [
+            "campaign_incrementality"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_incrementality",
+              "entity": "campaign:d2e218cc-883c-5d64-9b18-ce5a4237c01f",
+              "category": "profitability",
+              "first_seen_day": 77,
+              "score": 1.498452
+            }
+          ],
+          "candidates": [
+            {
+              "family": "cannibalization",
+              "entity": "campaign:d2e218cc-883c-5d64-9b18-ce5a4237c01f",
+              "score": 3.118514,
+              "evidence": [
+                "attribution:ad_spend",
+                "campaign_incrementality"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          28,
+          70
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "2399.3599354838709677",
+        "level1": {
+          "volume": "3946.2262036885679960",
+          "mix": "972.1208253537286523",
+          "price": "155.6680031033365054",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-3.9750321456331537",
+          "refunds": "-894.5400000000000000",
+          "ad_spend": "-1552.7900000000000000",
+          "fixed_costs": "-223.3500645161290323"
+        },
+        "largest_negative": "ad_spend"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cannibalization-03",
+      "description": "cannibalization magnitude 0.80 from day 70 (2026-08-10)",
+      "labels": [
+        {
+          "fault_type": "cannibalization",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "acbabd40-34ef-5e9c-8d3b-3da07d8494ff"
+            }
+          ],
+          "start_day": 70,
+          "magnitude": "0.80",
+          "category": "profitability",
+          "expected_driver": "ad_spend"
+        }
+      ],
+      "store_id": "42bfdc2b-80d3-5577-9d33-c03d8e73e26f",
+      "runtime_s": 13.785,
+      "incidents": [
+        {
+          "incident_id": "inc-94519fec49d4",
+          "category": "profitability",
+          "severity_score": 1.729084,
+          "first_seen_day": 81,
+          "last_seen_day": 92,
+          "entities": [
+            "campaign:acbabd40-34ef-5e9c-8d3b-3da07d8494ff"
+          ],
+          "detectors": [
+            "campaign_incrementality"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_incrementality",
+              "entity": "campaign:acbabd40-34ef-5e9c-8d3b-3da07d8494ff",
+              "category": "profitability",
+              "first_seen_day": 81,
+              "score": 1.729084
+            }
+          ],
+          "candidates": [
+            {
+              "family": "cannibalization",
+              "entity": "campaign:acbabd40-34ef-5e9c-8d3b-3da07d8494ff",
+              "score": 2.593626,
+              "evidence": [
+                "campaign_incrementality"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:f5476100-d0cc-53bf-af84-96ece7b81714",
+              "score": 0.655353,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          39,
+          74
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "406.5042365591397851",
+        "level1": {
+          "volume": "4875.0325152690854940",
+          "mix": "-1081.4986479290095831",
+          "price": "-88.7585475446994679",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-0.9453197953764430",
+          "refunds": "-1952.3100000000000000",
+          "ad_spend": "-1161.9900000000000000",
+          "fixed_costs": "-183.0257634408602149"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cannibalization-04",
+      "description": "cannibalization magnitude 1.00 from day 56 (2026-07-27)",
+      "labels": [
+        {
+          "fault_type": "cannibalization",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "3e40267f-b0cd-51a8-8a97-92dfdb3fb86f"
+            }
+          ],
+          "start_day": 56,
+          "magnitude": "1.00",
+          "category": "profitability",
+          "expected_driver": "ad_spend"
+        }
+      ],
+      "store_id": "6b53d6fb-0a72-5488-82c3-d526b2b5e114",
+      "runtime_s": 6.422,
+      "incidents": [
+        {
+          "incident_id": "inc-f1847a7d9323",
+          "category": "profitability",
+          "severity_score": 3.403646,
+          "first_seen_day": 41,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:3e40267f-b0cd-51a8-8a97-92dfdb3fb86f",
+            "store"
+          ],
+          "detectors": [
+            "campaign_incrementality",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 41,
+              "score": 4.5031
+            },
+            {
+              "detector_id": "campaign_incrementality",
+              "entity": "campaign:3e40267f-b0cd-51a8-8a97-92dfdb3fb86f",
+              "category": "profitability",
+              "first_seen_day": 78,
+              "score": 1.614583
+            }
+          ],
+          "candidates": [
+            {
+              "family": "cannibalization",
+              "entity": "campaign:3e40267f-b0cd-51a8-8a97-92dfdb3fb86f",
+              "score": 3.277587,
+              "evidence": [
+                "attribution:ad_spend",
+                "campaign_incrementality"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.8,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-dfbce9a7fd09",
+          "category": "profitability",
+          "severity_score": 1.05234,
+          "first_seen_day": 115,
+          "last_seen_day": 115,
+          "entities": [
+            "campaign:3e40267f-b0cd-51a8-8a97-92dfdb3fb86f"
+          ],
+          "detectors": [
+            "campaign_cpa_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:3e40267f-b0cd-51a8-8a97-92dfdb3fb86f",
+              "category": "profitability",
+              "first_seen_day": 115,
+              "score": 1.05234
+            }
+          ],
+          "candidates": [
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:3e40267f-b0cd-51a8-8a97-92dfdb3fb86f",
+              "score": 1.05234,
+              "evidence": [
+                "campaign_cpa_cusum"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          6,
+          34
+        ],
+        "current": [
+          92,
+          120
+        ],
+        "delta": "23038.4306666666666667",
+        "level1": {
+          "volume": "39263.9317474387670890",
+          "mix": "-976.8291998126227387",
+          "price": "588.7688881006686151",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-9.2414357268129654",
+          "refunds": "-6216.1100000000000000",
+          "ad_spend": "-9592.1200000000000000",
+          "fixed_costs": "-19.9693333333333333"
+        },
+        "largest_negative": "ad_spend"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cannibalization-05",
+      "description": "cannibalization magnitude 1.50 from day 84 (2026-08-24)",
+      "labels": [
+        {
+          "fault_type": "cannibalization",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "87253382-736e-54a3-ac61-d911bc3eb48b"
+            }
+          ],
+          "start_day": 84,
+          "magnitude": "1.50",
+          "category": "profitability",
+          "expected_driver": "ad_spend"
+        }
+      ],
+      "store_id": "84032632-8df0-58f8-957f-60b12e6c8fea",
+      "runtime_s": 8.951,
+      "incidents": [
+        {
+          "incident_id": "inc-6af357628e5b",
+          "category": "profitability",
+          "severity_score": 2.429731,
+          "first_seen_day": 91,
+          "last_seen_day": 111,
+          "entities": [
+            "campaign:87253382-736e-54a3-ac61-d911bc3eb48b"
+          ],
+          "detectors": [
+            "campaign_incrementality"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_incrementality",
+              "entity": "campaign:87253382-736e-54a3-ac61-d911bc3eb48b",
+              "category": "profitability",
+              "first_seen_day": 91,
+              "score": 1.583333
+            },
+            {
+              "detector_id": "campaign_incrementality",
+              "entity": "campaign:87253382-736e-54a3-ac61-d911bc3eb48b",
+              "category": "profitability",
+              "first_seen_day": 98,
+              "score": 2.033898
+            }
+          ],
+          "candidates": [
+            {
+              "family": "cannibalization",
+              "entity": "campaign:87253382-736e-54a3-ac61-d911bc3eb48b",
+              "score": 5.425847,
+              "evidence": [
+                "campaign_incrementality"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:b56fe0e2-7c6d-5957-9ace-056e6accc751",
+              "score": 0.368759,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:86bec6a4-c19f-5560-beea-d33575ad586f",
+              "score": 0.368759,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          56,
+          84
+        ],
+        "current": [
+          92,
+          120
+        ],
+        "delta": "-5120.3729892473118280",
+        "level1": {
+          "volume": "-3446.4154489268084607",
+          "mix": "-2271.8605836132293158",
+          "price": "202.9799979663974975",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-5.8039654263597210",
+          "refunds": "1686.1400000000000000",
+          "ad_spend": "-1080.8200000000000000",
+          "fixed_costs": "-204.5929892473118280"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cpa_drift-01",
+      "description": "cpa_drift (subtle) magnitude 0.20 from day 84 (2026-08-24)",
+      "labels": [
+        {
+          "fault_type": "cpa_drift",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "76b403ad-49d3-59b0-b6b0-c220898217e9"
+            }
+          ],
+          "start_day": 84,
+          "magnitude": "0.20",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "cce1c1b9-8c3e-5ff3-acd1-0168e56f5971",
+      "runtime_s": 9.784,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-1194.7657204301075270",
+        "level1": {
+          "volume": "-921.1956790294593797",
+          "mix": "1110.3501898112537687",
+          "price": "-350.2862419604340403",
+          "unit_cost": "0.0000000000000000",
+          "fees": "9.2617311786396513",
+          "refunds": "-745.3300000000000000",
+          "ad_spend": "-141.6000000000000000",
+          "fixed_costs": "-155.9657204301075270"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cpa_drift-02",
+      "description": "cpa_drift magnitude 0.35 from day 56 (2026-07-27)",
+      "labels": [
+        {
+          "fault_type": "cpa_drift",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "0b93532f-379d-513b-b269-413ed5495d79"
+            }
+          ],
+          "start_day": 56,
+          "magnitude": "0.35",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "547b8f66-172b-5d0a-a516-9b61fe909ac1",
+      "runtime_s": 8.232,
+      "incidents": [
+        {
+          "incident_id": "inc-1f10b75df67b",
+          "category": "profitability",
+          "severity_score": 1.880356,
+          "first_seen_day": 86,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 86,
+              "score": 1.880356
+            }
+          ],
+          "candidates": [
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.128214,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          51,
+          79
+        ],
+        "current": [
+          92,
+          120
+        ],
+        "delta": "1343.1005161290322582",
+        "level1": {
+          "volume": "1374.9988950722650703",
+          "mix": "-85.4082017163644559",
+          "price": "246.7698638188567273",
+          "unit_cost": "0.0000000000000000",
+          "fees": "3.8694428252426583",
+          "refunds": "-17.0100000000000000",
+          "ad_spend": "-2.5200000000000000",
+          "fixed_costs": "-177.5994838709677418"
+        },
+        "largest_negative": "fixed_costs"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cpa_drift-03",
+      "description": "cpa_drift magnitude 0.50 from day 70 (2026-08-10)",
+      "labels": [
+        {
+          "fault_type": "cpa_drift",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "27832651-7068-5724-8dcb-9038bde51bd3"
+            }
+          ],
+          "start_day": 70,
+          "magnitude": "0.50",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "2824a611-cdd1-5e37-81bb-ec0c246d4f50",
+      "runtime_s": 10.563,
+      "incidents": [
+        {
+          "incident_id": "inc-9c96e0c47861",
+          "category": "profitability",
+          "severity_score": 3.0,
+          "first_seen_day": 85,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:27832651-7068-5724-8dcb-9038bde51bd3"
+          ],
+          "detectors": [
+            "campaign_cpa_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:27832651-7068-5724-8dcb-9038bde51bd3",
+              "category": "profitability",
+              "first_seen_day": 85,
+              "score": 4.237727
+            }
+          ],
+          "candidates": [
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:27832651-7068-5724-8dcb-9038bde51bd3",
+              "score": 3.0,
+              "evidence": [
+                "campaign_cpa_cusum"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          43,
+          78
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "11718.4039569892473119",
+        "level1": {
+          "volume": "7275.9738987418281298",
+          "mix": "2671.7083583533788684",
+          "price": "60.2468800768232727",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-4.6691371720302709",
+          "refunds": "1957.6000000000000000",
+          "ad_spend": "-10.6600000000000000",
+          "fixed_costs": "-231.7960430107526881"
+        },
+        "largest_negative": "fixed_costs"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cpa_drift-04",
+      "description": "cpa_drift magnitude 0.65 from day 63 (2026-08-03)",
+      "labels": [
+        {
+          "fault_type": "cpa_drift",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "95888aef-a1fe-55f6-90c7-aff0892827a8"
+            }
+          ],
+          "start_day": 63,
+          "magnitude": "0.65",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "62d34ae6-55c6-5fbe-9ac7-8eece1059cc9",
+      "runtime_s": 10.613,
+      "incidents": [
+        {
+          "incident_id": "inc-58b3402fd3e9",
+          "category": "data_quality",
+          "severity_score": 4.529964,
+          "first_seen_day": 75,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:95888aef-a1fe-55f6-90c7-aff0892827a8"
+          ],
+          "detectors": [
+            "campaign_attribution_collapse",
+            "campaign_cpa_cusum",
+            "campaign_profit_negative"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:95888aef-a1fe-55f6-90c7-aff0892827a8",
+              "category": "data_quality",
+              "first_seen_day": 75,
+              "score": 1.666276
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:95888aef-a1fe-55f6-90c7-aff0892827a8",
+              "category": "data_quality",
+              "first_seen_day": 86,
+              "score": 1.613944
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:95888aef-a1fe-55f6-90c7-aff0892827a8",
+              "category": "data_quality",
+              "first_seen_day": 87,
+              "score": 2.870838
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:95888aef-a1fe-55f6-90c7-aff0892827a8",
+              "category": "data_quality",
+              "first_seen_day": 91,
+              "score": 1.570551
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:95888aef-a1fe-55f6-90c7-aff0892827a8",
+              "category": "data_quality",
+              "first_seen_day": 95,
+              "score": 1.785731
+            }
+          ],
+          "candidates": [
+            {
+              "family": "tracking_break",
+              "entity": "campaign:95888aef-a1fe-55f6-90c7-aff0892827a8",
+              "score": 14.573291,
+              "evidence": [
+                "campaign_attribution_collapse",
+                "campaign_cpa_cusum",
+                "campaign_profit_negative"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-37e2c40af69b",
+          "category": "profitability",
+          "severity_score": 3.31684,
+          "first_seen_day": 48,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 48,
+              "score": 1.267359
+            },
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 56,
+              "score": 5.489186
+            }
+          ],
+          "candidates": [
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 2.560415,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:77d36c08-3c97-5fb0-812b-e1aced363b8a",
+              "score": 0.952155,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          6,
+          41
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "-122.4139354838709679",
+        "level1": {
+          "volume": "9836.0403998246591789",
+          "mix": "1070.7331162025723667",
+          "price": "-148.6110447219774911",
+          "unit_cost": "0.0000000000000000",
+          "fees": "13.4075286947459455",
+          "refunds": "-7009.5100000000000000",
+          "ad_spend": "-3851.2000000000000000",
+          "fixed_costs": "-33.2739354838709679"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-cpa_drift-05",
+      "description": "cpa_drift magnitude 0.80 from day 77 (2026-08-17)",
+      "labels": [
+        {
+          "fault_type": "cpa_drift",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "2fff28e5-6687-55ba-8914-c6e4018ce46b"
+            }
+          ],
+          "start_day": 77,
+          "magnitude": "0.80",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "38321480-7bde-5f60-a70e-fb822efabfdd",
+      "runtime_s": 7.236,
+      "incidents": [
+        {
+          "incident_id": "inc-ee3f764a8a67",
+          "category": "profitability",
+          "severity_score": 3.447605,
+          "first_seen_day": 88,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:2fff28e5-6687-55ba-8914-c6e4018ce46b"
+          ],
+          "detectors": [
+            "campaign_cpa_cusum",
+            "campaign_profit_negative"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:2fff28e5-6687-55ba-8914-c6e4018ce46b",
+              "category": "profitability",
+              "first_seen_day": 88,
+              "score": 5.670731
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:2fff28e5-6687-55ba-8914-c6e4018ce46b",
+              "category": "profitability",
+              "first_seen_day": 91,
+              "score": 1.790421
+            }
+          ],
+          "candidates": [
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:2fff28e5-6687-55ba-8914-c6e4018ce46b",
+              "score": 3.895211,
+              "evidence": [
+                "campaign_cpa_cusum",
+                "campaign_profit_negative"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:016dc03a-d23e-5f5e-9291-66fd7b713fbe",
+              "score": 0.651717,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:afaa4bcf-f1a9-5d15-b9da-d5fbeed97023",
+              "score": 0.651717,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:4fc64bda-3ab6-5431-8105-9e58133915da",
+              "score": 0.651717,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "cannibalization",
+              "entity": "campaign:2fff28e5-6687-55ba-8914-c6e4018ce46b",
+              "score": 0.537126,
+              "evidence": [
+                "campaign_profit_negative"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          53,
+          81
+        ],
+        "current": [
+          92,
+          120
+        ],
+        "delta": "-5889.0720645161290322",
+        "level1": {
+          "volume": "-6321.3344619812853393",
+          "mix": "1372.7534937853133034",
+          "price": "-181.1298982642538940",
+          "unit_cost": "0.0000000000000000",
+          "fees": "12.8008664602259299",
+          "refunds": "-600.4100000000000000",
+          "ad_spend": "-23.8100000000000000",
+          "fixed_costs": "-147.9420645161290322"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-fee_increase-01",
+      "description": "fee_increase (subtle) magnitude 0.15 from day 79 (2026-08-19)",
+      "labels": [
+        {
+          "fault_type": "fee_increase",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 79,
+          "magnitude": "0.15",
+          "category": "profitability",
+          "expected_driver": "fees"
+        }
+      ],
+      "store_id": "c103c065-6202-5eae-9867-1f2141086c98",
+      "runtime_s": 11.764,
+      "incidents": [
+        {
+          "incident_id": "inc-ede8630868e6",
+          "category": "profitability",
+          "severity_score": 3.75,
+          "first_seen_day": 79,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_payment_fee_rate_cusum",
+            "store_payment_fee_rate_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 79,
+              "score": 77.071946
+            },
+            {
+              "detector_id": "store_payment_fee_rate_z",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 81,
+              "score": 4.029388
+            }
+          ],
+          "candidates": [
+            {
+              "family": "fee_increase",
+              "entity": "store",
+              "score": 4.5,
+              "evidence": [
+                "store_payment_fee_rate_z"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:37e4e4fa-ad62-5c8e-8b92-0866f419f269",
+              "score": 0.330895,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:9ed71da3-a588-5cde-b98d-8cde7c909bc9",
+              "score": 0.330895,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          37,
+          72
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "-8773.5091182795698925",
+        "level1": {
+          "volume": "-4407.7207275847521630",
+          "mix": "498.7499964527625788",
+          "price": "589.4627502890687039",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-1909.4620191570791197",
+          "refunds": "-3497.6200000000000000",
+          "ad_spend": "128.7300000000000000",
+          "fixed_costs": "-175.6491182795698925"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-fee_increase-02",
+      "description": "fee_increase magnitude 0.30 from day 61 (2026-08-01)",
+      "labels": [
+        {
+          "fault_type": "fee_increase",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 61,
+          "magnitude": "0.30",
+          "category": "profitability",
+          "expected_driver": "fees"
+        }
+      ],
+      "store_id": "50550dca-61a0-561f-9ae5-57d8b9a11ca8",
+      "runtime_s": 13.613,
+      "incidents": [
+        {
+          "incident_id": "inc-05aa1631d292",
+          "category": "profitability",
+          "severity_score": 3.75,
+          "first_seen_day": 61,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_payment_fee_rate_cusum",
+            "store_payment_fee_rate_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 61,
+              "score": 224.503597
+            },
+            {
+              "detector_id": "store_payment_fee_rate_z",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 63,
+              "score": 8.629858
+            }
+          ],
+          "candidates": [
+            {
+              "family": "fee_increase",
+              "entity": "store",
+              "score": 5.234036,
+              "evidence": [
+                "attribution:fees",
+                "store_payment_fee_rate_z"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          12,
+          54
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "808.4062365591397851",
+        "level1": {
+          "volume": "11680.0087616723033837",
+          "mix": "377.5179109005311727",
+          "price": "-922.7181927308097333",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-5504.8384798420248231",
+          "refunds": "-1629.8800000000000000",
+          "ad_spend": "-3135.4600000000000000",
+          "fixed_costs": "-56.2237634408602149"
+        },
+        "largest_negative": "fees"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-fee_increase-03",
+      "description": "fee_increase magnitude 0.50 from day 69 (2026-08-09)",
+      "labels": [
+        {
+          "fault_type": "fee_increase",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "077c15c6-7328-5a1f-b910-1a8b12adaf3f"
+            }
+          ],
+          "start_day": 69,
+          "magnitude": "0.50",
+          "category": "profitability",
+          "expected_driver": "fees"
+        }
+      ],
+      "store_id": "eac9a545-0e5e-5665-894f-9da1723800e9",
+      "runtime_s": 7.428,
+      "incidents": [
+        {
+          "incident_id": "inc-a9b8bd78c5bf",
+          "category": "profitability",
+          "severity_score": 3.75,
+          "first_seen_day": 71,
+          "last_seen_day": 83,
+          "entities": [
+            "product:077c15c6-7328-5a1f-b910-1a8b12adaf3f"
+          ],
+          "detectors": [
+            "product_unit_fee_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_unit_fee_z",
+              "entity": "product:077c15c6-7328-5a1f-b910-1a8b12adaf3f",
+              "category": "profitability",
+              "first_seen_day": 71,
+              "score": 14.285714
+            },
+            {
+              "detector_id": "product_unit_fee_z",
+              "entity": "product:077c15c6-7328-5a1f-b910-1a8b12adaf3f",
+              "category": "profitability",
+              "first_seen_day": 80,
+              "score": 14.285714
+            }
+          ],
+          "candidates": [
+            {
+              "family": "fee_increase",
+              "entity": "product:077c15c6-7328-5a1f-b910-1a8b12adaf3f",
+              "score": 9.0,
+              "evidence": [
+                "product_unit_fee_z"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:ddd19126-0172-5235-9f5a-7750d897316f",
+              "score": 1.033935,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          22,
+          64
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "1906.6379569892473119",
+        "level1": {
+          "volume": "904.0370529612915548",
+          "mix": "3120.0483970411674721",
+          "price": "702.3241376081364286",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-335.0395876105954555",
+          "refunds": "-1943.6400000000000000",
+          "ad_spend": "-397.7800000000000000",
+          "fixed_costs": "-143.3120430107526881"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-fee_increase-04",
+      "description": "fee_increase magnitude 0.60 from day 65 (2026-08-05)",
+      "labels": [
+        {
+          "fault_type": "fee_increase",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 65,
+          "magnitude": "0.60",
+          "category": "profitability",
+          "expected_driver": "fees"
+        }
+      ],
+      "store_id": "a05b57ff-d4ef-579e-9ec1-e04da14ad742",
+      "runtime_s": 10.175,
+      "incidents": [
+        {
+          "incident_id": "inc-6850f912d0b0",
+          "category": "profitability",
+          "severity_score": 3.75,
+          "first_seen_day": 65,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_payment_fee_rate_cusum",
+            "store_payment_fee_rate_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 65,
+              "score": 402.105931
+            },
+            {
+              "detector_id": "store_payment_fee_rate_z",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 67,
+              "score": 17.196773
+            }
+          ],
+          "candidates": [
+            {
+              "family": "fee_increase",
+              "entity": "store",
+              "score": 5.347448,
+              "evidence": [
+                "attribution:fees",
+                "store_payment_fee_rate_z"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          16,
+          58
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-1305.7624301075268817",
+        "level1": {
+          "volume": "9481.9806054682463028",
+          "mix": "3930.2397693425365965",
+          "price": "-757.4043089513842872",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-8315.1460658593986121",
+          "refunds": "-2625.0100000000000000",
+          "ad_spend": "-2939.6200000000000000",
+          "fixed_costs": "-80.8024301075268817"
+        },
+        "largest_negative": "fees"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-fee_increase-05",
+      "description": "fee_increase magnitude 1.00 from day 72 (2026-08-12)",
+      "labels": [
+        {
+          "fault_type": "fee_increase",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "2c04d9a7-2fdb-520f-8221-8b06413033f1"
+            }
+          ],
+          "start_day": 72,
+          "magnitude": "1.00",
+          "category": "profitability",
+          "expected_driver": "fees"
+        }
+      ],
+      "store_id": "658bcf2b-491c-54ae-b633-ac06a317e0eb",
+      "runtime_s": 10.778,
+      "incidents": [
+        {
+          "incident_id": "inc-b63a330f2011",
+          "category": "profitability",
+          "severity_score": 3.0,
+          "first_seen_day": 74,
+          "last_seen_day": 85,
+          "entities": [
+            "product:2c04d9a7-2fdb-520f-8221-8b06413033f1"
+          ],
+          "detectors": [
+            "product_unit_fee_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_unit_fee_z",
+              "entity": "product:2c04d9a7-2fdb-520f-8221-8b06413033f1",
+              "category": "profitability",
+              "first_seen_day": 74,
+              "score": 28.571429
+            }
+          ],
+          "candidates": [
+            {
+              "family": "fee_increase",
+              "entity": "product:2c04d9a7-2fdb-520f-8221-8b06413033f1",
+              "score": 4.5,
+              "evidence": [
+                "product_unit_fee_z"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:40027373-ed27-5845-9576-620a926e2d08",
+              "score": 0.766206,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          25,
+          67
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "2187.0209354838709677",
+        "level1": {
+          "volume": "9732.0065720899300051",
+          "mix": "-749.3317141776437534",
+          "price": "-597.8882769203156080",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-327.9265809919706437",
+          "refunds": "-3854.0100000000000000",
+          "ad_spend": "-1913.1400000000000000",
+          "fixed_costs": "-102.6890645161290323"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-01",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "393b687a-13f5-53e7-a92d-d0a1eff147a6",
+      "runtime_s": 9.896,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-10188.4363440860215055",
+        "level1": {
+          "volume": "-6711.9395340932014660",
+          "mix": "-1534.3495694716045045",
+          "price": "-1311.4003309444027351",
+          "unit_cost": "0.0000000000000000",
+          "fees": "20.1194345092087056",
+          "refunds": "-605.6400000000000000",
+          "ad_spend": "123.9900000000000000",
+          "fixed_costs": "-169.2163440860215055"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-02",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "9a16c155-763d-5344-82cd-a465ac365784",
+      "runtime_s": 6.584,
+      "incidents": [
+        {
+          "incident_id": "inc-074c6518dcd2",
+          "category": "profitability",
+          "severity_score": 2.613058,
+          "first_seen_day": 99,
+          "last_seen_day": 119,
+          "entities": [
+            "product:52c93995-619f-5013-b7ce-64569c53fd51",
+            "store"
+          ],
+          "detectors": [
+            "product_refund_rate_band",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 99,
+              "score": 2.238268
+            },
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:52c93995-619f-5013-b7ce-64569c53fd51",
+              "category": "profitability",
+              "first_seen_day": 109,
+              "score": 1.499159
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:52c93995-619f-5013-b7ce-64569c53fd51",
+              "score": 2.248738,
+              "evidence": [
+                "product_refund_rate_band"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.342961,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:8a2244cc-2c27-5417-9903-077578d69d19",
+              "score": 1.079474,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          71,
+          92
+        ],
+        "current": [
+          99,
+          120
+        ],
+        "delta": "-3607.3531612903225806",
+        "level1": {
+          "volume": "1555.5799418873024713",
+          "mix": "-1328.1943862629905057",
+          "price": "25.7892118500495213",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-2.7947674743614869",
+          "refunds": "-3743.6400000000000000",
+          "ad_spend": "13.3100000000000000",
+          "fixed_costs": "-127.4031612903225806"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-03",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "c1584e7a-7419-5c46-8e04-23371b3359f8",
+      "runtime_s": 7.901,
+      "incidents": [
+        {
+          "incident_id": "inc-6c57e02e2aba",
+          "category": "profitability",
+          "severity_score": 1.324658,
+          "first_seen_day": 114,
+          "last_seen_day": 117,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_payment_fee_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 114,
+              "score": 1.041638
+            },
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 116,
+              "score": 1.064248
+            }
+          ],
+          "candidates": [
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 0.993681,
+              "evidence": [
+                "attribution:mix"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "2051.9537419354838710",
+        "level1": {
+          "volume": "1992.6624018019163949",
+          "mix": "-1213.9462063529332156",
+          "price": "-381.0171249196239077",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-1.7390705293592716",
+          "refunds": "1891.7900000000000000",
+          "ad_spend": "-35.4400000000000000",
+          "fixed_costs": "-200.3562580645161290"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-04",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "7e583654-9354-50a5-b435-2fe998d3abbc",
+      "runtime_s": 7.55,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "5694.8426236559139783",
+        "level1": {
+          "volume": "4514.2056997949868368",
+          "mix": "166.1292875052277083",
+          "price": "-216.0416491953508575",
+          "unit_cost": "0.0000000000000000",
+          "fees": "14.7466618951363124",
+          "refunds": "1317.9600000000000000",
+          "ad_spend": "16.6400000000000000",
+          "fixed_costs": "-118.7973763440860217"
+        },
+        "largest_negative": "price"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-05",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "83de410b-fed2-5c43-9968-5acb4805a5e7",
+      "runtime_s": 10.439,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "5822.0700215053763441",
+        "level1": {
+          "volume": "4244.9865836334945659",
+          "mix": "2973.5578463153932573",
+          "price": "-1050.4801657608110853",
+          "unit_cost": "0.0000000000000000",
+          "fees": "34.7957358119232621",
+          "refunds": "-162.2400000000000000",
+          "ad_spend": "-57.0800000000000000",
+          "fixed_costs": "-161.4699784946236559"
+        },
+        "largest_negative": "price"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-06",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "72bc1d60-2100-597e-a8f0-48072893bb07",
+      "runtime_s": 10.96,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-1024.9828387096774196",
+        "level1": {
+          "volume": "173.2025984539522638",
+          "mix": "-1649.5830949485814051",
+          "price": "-11.6349220625003278",
+          "unit_cost": "0.0000000000000000",
+          "fees": "3.0954185571294691",
+          "refunds": "470.2800000000000000",
+          "ad_spend": "148.4000000000000000",
+          "fixed_costs": "-158.7428387096774196"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-07",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "e99d740b-23b2-5891-a362-5bc9478d2311",
+      "runtime_s": 8.588,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-1054.8696559139784946",
+        "level1": {
+          "volume": "0.0000000000000000",
+          "mix": "-384.1001555942861619",
+          "price": "-191.8696434319658326",
+          "unit_cost": "0.0000000000000000",
+          "fees": "11.3597990262519945",
+          "refunds": "-57.8700000000000000",
+          "ad_spend": "-209.6900000000000000",
+          "fixed_costs": "-222.6996559139784946"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-08",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "d95ce7ba-6be2-5628-9f08-b3c0127bb831",
+      "runtime_s": 10.309,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-505.3288172043010752",
+        "level1": {
+          "volume": "1722.4020682892167886",
+          "mix": "395.9392076297815540",
+          "price": "-463.0800028804101921",
+          "unit_cost": "0.0000000000000000",
+          "fees": "41.0787269614118495",
+          "refunds": "-1926.6800000000000000",
+          "ad_spend": "-82.2600000000000000",
+          "fixed_costs": "-192.7288172043010752"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-09",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "75d8c510-ef8c-52c4-b65a-377b08aef67f",
+      "runtime_s": 8.228,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-16361.8914623655913980",
+        "level1": {
+          "volume": "-10538.5892946015144802",
+          "mix": "-1007.5715531037352573",
+          "price": "-9.0744253351646392",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-17.1347269595856233",
+          "refunds": "-4647.1600000000000000",
+          "ad_spend": "75.0200000000000000",
+          "fixed_costs": "-217.3814623655913980"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-healthy-10",
+      "description": "healthy store, no fault",
+      "labels": [],
+      "store_id": "2d919fd1-900d-54b3-90aa-f689acf6f9db",
+      "runtime_s": 10.784,
+      "incidents": [
+        {
+          "incident_id": "inc-10ab2f564581",
+          "category": "profitability",
+          "severity_score": 3.253605,
+          "first_seen_day": 60,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_payment_fee_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 60,
+              "score": 1.014422
+            },
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 62,
+              "score": 3.075498
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:0b054fce-15b7-54d9-9b56-ea0a7502bd1a",
+              "score": 0.73075,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          11,
+          53
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "5094.0765806451612902",
+        "level1": {
+          "volume": "9523.0377814730754675",
+          "mix": "-1429.9567872214679099",
+          "price": "-53.2034931486861649",
+          "unit_cost": "0.0000000000000000",
+          "fees": "0.6724988970786073",
+          "refunds": "-2157.9700000000000000",
+          "ad_spend": "-725.9900000000000000",
+          "fixed_costs": "-62.5134193548387098"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-mix_shift-01",
+      "description": "mix_shift (subtle) magnitude 0.15 from day 82 (2026-08-22)",
+      "labels": [
+        {
+          "fault_type": "mix_shift",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 82,
+          "magnitude": "0.15",
+          "category": "profitability",
+          "expected_driver": "mix"
+        }
+      ],
+      "store_id": "d86daa6c-7bc5-547c-aa77-f5f3d218d024",
+      "runtime_s": 11.259,
+      "incidents": [
+        {
+          "incident_id": "inc-94bd826bf22d",
+          "category": "profitability",
+          "severity_score": 3.0,
+          "first_seen_day": 55,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 55,
+              "score": 7.361624
+            }
+          ],
+          "candidates": [
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 2.779846,
+              "evidence": [
+                "attribution:mix",
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-114e8f3a08b0",
+          "category": "profitability",
+          "severity_score": 1.081026,
+          "first_seen_day": 45,
+          "last_seen_day": 45,
+          "entities": [
+            "product:1ac766a3-54c0-512a-8aa3-94c97f08a766"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:1ac766a3-54c0-512a-8aa3-94c97f08a766",
+              "category": "profitability",
+              "first_seen_day": 45,
+              "score": 1.081026
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:1ac766a3-54c0-512a-8aa3-94c97f08a766",
+              "score": 2.162052,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          6,
+          48
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "2135.3989462365591398",
+        "level1": {
+          "volume": "31425.1548962585180014",
+          "mix": "-19680.8341818778349723",
+          "price": "747.8739284107353460",
+          "unit_cost": "0.0000000000000000",
+          "fees": "90.8353572085816249",
+          "refunds": "-6342.5000000000000000",
+          "ad_spend": "-4072.7000000000000000",
+          "fixed_costs": "-32.4310537634408602"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-mix_shift-02",
+      "description": "mix_shift magnitude 0.25 from day 59 (2026-07-30)",
+      "labels": [
+        {
+          "fault_type": "mix_shift",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 59,
+          "magnitude": "0.25",
+          "category": "profitability",
+          "expected_driver": "mix"
+        }
+      ],
+      "store_id": "e9488482-971a-57d3-9036-569f3353cffc",
+      "runtime_s": 5.598,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-3741.4212043010752689",
+        "level1": {
+          "volume": "979.6271912509217302",
+          "mix": "-607.0659713319468899",
+          "price": "231.9511265022758344",
+          "unit_cost": "0.0000000000000000",
+          "fees": "8.0376535787493253",
+          "refunds": "-4315.1200000000000000",
+          "ad_spend": "222.9500000000000000",
+          "fixed_costs": "-261.8012043010752689"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-mix_shift-03",
+      "description": "mix_shift magnitude 0.35 from day 66 (2026-08-06)",
+      "labels": [
+        {
+          "fault_type": "mix_shift",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 66,
+          "magnitude": "0.35",
+          "category": "profitability",
+          "expected_driver": "mix"
+        }
+      ],
+      "store_id": "7f4a5a9e-f6ef-50b6-be83-009e198799c1",
+      "runtime_s": 14.998,
+      "incidents": [
+        {
+          "incident_id": "inc-bea5cd64b621",
+          "category": "profitability",
+          "severity_score": 3.5,
+          "first_seen_day": 71,
+          "last_seen_day": 119,
+          "entities": [
+            "product:6c24b005-f5d4-54fe-a1db-2dbef5d35358",
+            "store"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 71,
+              "score": 11.656536
+            },
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:6c24b005-f5d4-54fe-a1db-2dbef5d35358",
+              "category": "profitability",
+              "first_seen_day": 88,
+              "score": 2.0
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:6c24b005-f5d4-54fe-a1db-2dbef5d35358",
+              "score": 4.0,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 3.24514,
+              "evidence": [
+                "attribution:mix",
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-fb9700f3b0eb",
+          "category": "profitability",
+          "severity_score": 1.706528,
+          "first_seen_day": 86,
+          "last_seen_day": 93,
+          "entities": [
+            "product:6c43a8d5-d200-5b7c-89fa-f254687b0cb8"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:6c43a8d5-d200-5b7c-89fa-f254687b0cb8",
+              "category": "profitability",
+              "first_seen_day": 86,
+              "score": 1.706528
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:6c43a8d5-d200-5b7c-89fa-f254687b0cb8",
+              "score": 3.413056,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-953a545f2eff",
+          "category": "profitability",
+          "severity_score": 1.571429,
+          "first_seen_day": 106,
+          "last_seen_day": 108,
+          "entities": [
+            "product:d3112aac-0acf-56ce-b142-a973d5caa174"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:d3112aac-0acf-56ce-b142-a973d5caa174",
+              "category": "profitability",
+              "first_seen_day": 106,
+              "score": 1.571429
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:d3112aac-0acf-56ce-b142-a973d5caa174",
+              "score": 3.142858,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-bbec165e0307",
+          "category": "profitability",
+          "severity_score": 1.522836,
+          "first_seen_day": 112,
+          "last_seen_day": 119,
+          "entities": [
+            "product:6c43a8d5-d200-5b7c-89fa-f254687b0cb8"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:6c43a8d5-d200-5b7c-89fa-f254687b0cb8",
+              "category": "profitability",
+              "first_seen_day": 112,
+              "score": 1.522836
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:6c43a8d5-d200-5b7c-89fa-f254687b0cb8",
+              "score": 3.045672,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          22,
+          64
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-2803.2112903225806450",
+        "level1": {
+          "volume": "43386.0567803865588390",
+          "mix": "-45863.4805268472828728",
+          "price": "1131.5372931271872643",
+          "unit_cost": "0.0000000000000000",
+          "fees": "283.7264533335367695",
+          "refunds": "-155.9900000000000000",
+          "ad_spend": "-1474.4600000000000000",
+          "fixed_costs": "-110.6012903225806450"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-mix_shift-04",
+      "description": "mix_shift magnitude 0.50 from day 73 (2026-08-13)",
+      "labels": [
+        {
+          "fault_type": "mix_shift",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 73,
+          "magnitude": "0.50",
+          "category": "profitability",
+          "expected_driver": "mix"
+        }
+      ],
+      "store_id": "73ce0155-4746-5399-8541-705d03b846ee",
+      "runtime_s": 11.125,
+      "incidents": [
+        {
+          "incident_id": "inc-a58de5068c02",
+          "category": "profitability",
+          "severity_score": 3.5,
+          "first_seen_day": 77,
+          "last_seen_day": 119,
+          "entities": [
+            "product:11490bf1-c1a1-57fc-b2fa-5e000166bf9f",
+            "store"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 77,
+              "score": 9.634637
+            },
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:11490bf1-c1a1-57fc-b2fa-5e000166bf9f",
+              "category": "profitability",
+              "first_seen_day": 92,
+              "score": 2.0
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:11490bf1-c1a1-57fc-b2fa-5e000166bf9f",
+              "score": 4.0,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 3.274151,
+              "evidence": [
+                "attribution:mix",
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-5373c88c3c15",
+          "category": "profitability",
+          "severity_score": 1.883333,
+          "first_seen_day": 100,
+          "last_seen_day": 119,
+          "entities": [
+            "product:0dce5eba-ce07-5774-99a9-8e39407648c0"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:0dce5eba-ce07-5774-99a9-8e39407648c0",
+              "category": "profitability",
+              "first_seen_day": 100,
+              "score": 1.883333
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:0dce5eba-ce07-5774-99a9-8e39407648c0",
+              "score": 3.766666,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-2a2546a11a0c",
+          "category": "profitability",
+          "severity_score": 1.465241,
+          "first_seen_day": 108,
+          "last_seen_day": 110,
+          "entities": [
+            "product:00076da6-8a6e-598d-b79a-5c6613f7648b"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:00076da6-8a6e-598d-b79a-5c6613f7648b",
+              "category": "profitability",
+              "first_seen_day": 108,
+              "score": 1.465241
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:00076da6-8a6e-598d-b79a-5c6613f7648b",
+              "score": 2.930482,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          28,
+          70
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-28525.2348817204301075",
+        "level1": {
+          "volume": "52088.1900420920299913",
+          "mix": "-80552.9221188309156186",
+          "price": "1071.8635727108373989",
+          "unit_cost": "0.0000000000000000",
+          "fees": "280.1285040280482284",
+          "refunds": "-512.5600000000000000",
+          "ad_spend": "-712.9700000000000000",
+          "fixed_costs": "-186.9648817204301075"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-mix_shift-05",
+      "description": "mix_shift magnitude 0.65 from day 61 (2026-08-01)",
+      "labels": [
+        {
+          "fault_type": "mix_shift",
+          "entities": [
+            {
+              "kind": "store",
+              "id": null
+            }
+          ],
+          "start_day": 61,
+          "magnitude": "0.65",
+          "category": "profitability",
+          "expected_driver": "mix"
+        }
+      ],
+      "store_id": "8a1c33ac-f6a0-5f3e-b2ac-ff6fc5d46686",
+      "runtime_s": 12.862,
+      "incidents": [
+        {
+          "incident_id": "inc-940ab8460661",
+          "category": "profitability",
+          "severity_score": 3.823405,
+          "first_seen_day": 63,
+          "last_seen_day": 119,
+          "entities": [
+            "product:0d151e0e-2396-52dd-b510-c64179cc8455",
+            "store"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time",
+            "store_gross_margin_rate_cusum",
+            "store_gross_margin_rate_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 63,
+              "score": 24.885786
+            },
+            {
+              "detector_id": "store_gross_margin_rate_z",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 63,
+              "score": 1.978828
+            },
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:0d151e0e-2396-52dd-b510-c64179cc8455",
+              "category": "profitability",
+              "first_seen_day": 116,
+              "score": 1.314794
+            }
+          ],
+          "candidates": [
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 4.431601,
+              "evidence": [
+                "attribution:mix",
+                "store_gross_margin_rate_cusum",
+                "store_gross_margin_rate_z"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:0d151e0e-2396-52dd-b510-c64179cc8455",
+              "score": 2.629588,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          14,
+          56
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-25641.6058064516129032",
+        "level1": {
+          "volume": "66969.8074760700556627",
+          "mix": "-91657.8134533247972104",
+          "price": "2289.9284410278034105",
+          "unit_cost": "0.0000000000000000",
+          "fees": "290.9975362269381372",
+          "refunds": "-2610.4700000000000000",
+          "ad_spend": "-843.8700000000000000",
+          "fixed_costs": "-80.1858064516129032"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-refund_spike-01",
+      "description": "refund_spike (subtle) magnitude 0.05 from day 75 (2026-08-15)",
+      "labels": [
+        {
+          "fault_type": "refund_spike",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "f6ad5f5d-0150-58ba-a78e-9bf961c08765"
+            }
+          ],
+          "start_day": 75,
+          "magnitude": "0.05",
+          "category": "profitability",
+          "expected_driver": "refunds"
+        }
+      ],
+      "store_id": "b6e7d018-2cc8-55b6-b6a9-82bf7770b56f",
+      "runtime_s": 9.605,
+      "incidents": [],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-4822.4270322580645163",
+        "level1": {
+          "volume": "-675.3700936023368873",
+          "mix": "-772.6241271912295562",
+          "price": "-612.3873584030746612",
+          "unit_cost": "0.0000000000000000",
+          "fees": "10.0815791966411047",
+          "refunds": "-2564.7300000000000000",
+          "ad_spend": "13.4200000000000000",
+          "fixed_costs": "-220.8170322580645163"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-refund_spike-02",
+      "description": "refund_spike magnitude 0.10 from day 60 (2026-07-31)",
+      "labels": [
+        {
+          "fault_type": "refund_spike",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "ad0b6925-0c50-5390-bae9-47e23dc58116"
+            }
+          ],
+          "start_day": 60,
+          "magnitude": "0.10",
+          "category": "profitability",
+          "expected_driver": "refunds"
+        }
+      ],
+      "store_id": "615252cb-3ea9-5c99-9a5b-c4b3fd86190c",
+      "runtime_s": 7.978,
+      "incidents": [
+        {
+          "incident_id": "inc-940e3617b84c",
+          "category": "profitability",
+          "severity_score": 2.276019,
+          "first_seen_day": 82,
+          "last_seen_day": 119,
+          "entities": [
+            "product:ad0b6925-0c50-5390-bae9-47e23dc58116",
+            "store"
+          ],
+          "detectors": [
+            "product_refund_rate_band",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 82,
+              "score": 1.011216
+            },
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 85,
+              "score": 1.635046
+            },
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:ad0b6925-0c50-5390-bae9-47e23dc58116",
+              "category": "profitability",
+              "first_seen_day": 88,
+              "score": 1.552677
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:ad0b6925-0c50-5390-bae9-47e23dc58116",
+              "score": 3.160224,
+              "evidence": [
+                "attribution:refunds",
+                "product_refund_rate_band"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.587757,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-18e47a254a51",
+          "category": "profitability",
+          "severity_score": 1.038618,
+          "first_seen_day": 78,
+          "last_seen_day": 80,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 78,
+              "score": 1.038618
+            }
+          ],
+          "candidates": [
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 0.623171,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          40,
+          75
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "-2930.7156344086021506",
+        "level1": {
+          "volume": "914.0412088119183960",
+          "mix": "-1734.4542164348421189",
+          "price": "192.8811539249527531",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-4.0581463020290302",
+          "refunds": "-2322.0900000000000000",
+          "ad_spend": "152.8100000000000000",
+          "fixed_costs": "-129.8456344086021506"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-refund_spike-03",
+      "description": "refund_spike magnitude 0.15 from day 68 (2026-08-08)",
+      "labels": [
+        {
+          "fault_type": "refund_spike",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "78f1180c-a26f-58e3-9456-75938b3db984"
+            }
+          ],
+          "start_day": 68,
+          "magnitude": "0.15",
+          "category": "profitability",
+          "expected_driver": "refunds"
+        }
+      ],
+      "store_id": "26c704c7-1154-5712-8ac0-0c553b1a62e4",
+      "runtime_s": 10.683,
+      "incidents": [
+        {
+          "incident_id": "inc-543e511e3af6",
+          "category": "profitability",
+          "severity_score": 1.268137,
+          "first_seen_day": 111,
+          "last_seen_day": 112,
+          "entities": [
+            "product:78f1180c-a26f-58e3-9456-75938b3db984"
+          ],
+          "detectors": [
+            "product_refund_rate_band"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:78f1180c-a26f-58e3-9456-75938b3db984",
+              "category": "profitability",
+              "first_seen_day": 111,
+              "score": 1.268137
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:78f1180c-a26f-58e3-9456-75938b3db984",
+              "score": 2.96811,
+              "evidence": [
+                "attribution:refunds",
+                "product_refund_rate_band"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-893.9366021505376342",
+        "level1": {
+          "volume": "-275.2709777398524140",
+          "mix": "2332.4870965846996226",
+          "price": "-226.8303003969877519",
+          "unit_cost": "0.0000000000000000",
+          "fees": "9.7441815521405433",
+          "refunds": "-2299.6300000000000000",
+          "ad_spend": "-266.1000000000000000",
+          "fixed_costs": "-168.3366021505376342"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-refund_spike-04",
+      "description": "refund_spike magnitude 0.25 from day 64 (2026-08-04)",
+      "labels": [
+        {
+          "fault_type": "refund_spike",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "6bec8ead-e014-5e68-846c-6b85629f9a50"
+            }
+          ],
+          "start_day": 64,
+          "magnitude": "0.25",
+          "category": "profitability",
+          "expected_driver": "refunds"
+        }
+      ],
+      "store_id": "8a7a4a06-f457-5887-86c1-000da0e2825d",
+      "runtime_s": 7.755,
+      "incidents": [
+        {
+          "incident_id": "inc-5ff1abf29743",
+          "category": "profitability",
+          "severity_score": 3.336558,
+          "first_seen_day": 85,
+          "last_seen_day": 119,
+          "entities": [
+            "product:6bec8ead-e014-5e68-846c-6b85629f9a50"
+          ],
+          "detectors": [
+            "product_refund_rate_band"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:6bec8ead-e014-5e68-846c-6b85629f9a50",
+              "category": "profitability",
+              "first_seen_day": 85,
+              "score": 1.813415
+            },
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:6bec8ead-e014-5e68-846c-6b85629f9a50",
+              "category": "profitability",
+              "first_seen_day": 93,
+              "score": 2.006733
+            },
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:6bec8ead-e014-5e68-846c-6b85629f9a50",
+              "category": "profitability",
+              "first_seen_day": 107,
+              "score": 1.17901
+            },
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:6bec8ead-e014-5e68-846c-6b85629f9a50",
+              "category": "profitability",
+              "first_seen_day": 113,
+              "score": 2.086768
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:6bec8ead-e014-5e68-846c-6b85629f9a50",
+              "score": 11.763782,
+              "evidence": [
+                "attribution:refunds",
+                "product_refund_rate_band"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          43,
+          78
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "-12063.6737849462365592",
+        "level1": {
+          "volume": "-174.7463013083898217",
+          "mix": "-2527.3052434335293394",
+          "price": "-60.1090052869378945",
+          "unit_cost": "0.0000000000000000",
+          "fees": "11.1105500288570556",
+          "refunds": "-9171.6800000000000000",
+          "ad_spend": "47.5200000000000000",
+          "fixed_costs": "-188.4637849462365592"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-refund_spike-05",
+      "description": "refund_spike magnitude 0.40 from day 71 (2026-08-11)",
+      "labels": [
+        {
+          "fault_type": "refund_spike",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "71b55fc6-0359-5e5c-8a66-a9b9bbcae806"
+            }
+          ],
+          "start_day": 71,
+          "magnitude": "0.40",
+          "category": "profitability",
+          "expected_driver": "refunds"
+        }
+      ],
+      "store_id": "23a100b3-a1a8-5a71-8b23-137fd598f6f8",
+      "runtime_s": 7.332,
+      "incidents": [
+        {
+          "incident_id": "inc-faae214d2da0",
+          "category": "profitability",
+          "severity_score": 3.684894,
+          "first_seen_day": 87,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:a7174f29-020b-5247-b029-24d008487a02",
+            "product:71b55fc6-0359-5e5c-8a66-a9b9bbcae806"
+          ],
+          "detectors": [
+            "campaign_profit_negative",
+            "product_refund_rate_band"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:71b55fc6-0359-5e5c-8a66-a9b9bbcae806",
+              "category": "profitability",
+              "first_seen_day": 87,
+              "score": 5.364724
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:a7174f29-020b-5247-b029-24d008487a02",
+              "category": "profitability",
+              "first_seen_day": 94,
+              "score": 2.739575
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:71b55fc6-0359-5e5c-8a66-a9b9bbcae806",
+              "score": 5.603844,
+              "evidence": [
+                "attribution:refunds",
+                "product_refund_rate_band"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:a7174f29-020b-5247-b029-24d008487a02",
+              "score": 1.369787,
+              "evidence": [
+                "campaign_profit_negative"
+              ]
+            },
+            {
+              "family": "cannibalization",
+              "entity": "campaign:a7174f29-020b-5247-b029-24d008487a02",
+              "score": 0.821872,
+              "evidence": [
+                "campaign_profit_negative"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          52,
+          80
+        ],
+        "current": [
+          92,
+          120
+        ],
+        "delta": "-5035.6376989247311828",
+        "level1": {
+          "volume": "1693.2338757698691377",
+          "mix": "-1340.2568832662703925",
+          "price": "-198.4266470796745988",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-11.2103454239241464",
+          "refunds": "-4951.7500000000000000",
+          "ad_spend": "-95.6000000000000000",
+          "fixed_costs": "-131.6276989247311828"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-01",
+      "description": "stockout_on_promoted (subtle) magnitude 1 from day 88 (2026-08-28)",
+      "labels": [
+        {
+          "fault_type": "stockout_on_promoted",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "4262bc5f-62c7-55b4-a9e4-1e99bb0897b5"
+            },
+            {
+              "kind": "campaign",
+              "id": "096e9e5c-5087-54d7-970c-6732928cb51a"
+            }
+          ],
+          "start_day": 88,
+          "magnitude": "1",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "90076d2a-7ef0-54ba-82e0-acab2cbc2e3a",
+      "runtime_s": 9.872,
+      "incidents": [
+        {
+          "incident_id": "inc-4971b80a37ee",
+          "category": "profitability",
+          "severity_score": 2.88588,
+          "first_seen_day": 91,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:096e9e5c-5087-54d7-970c-6732928cb51a",
+            "product:4262bc5f-62c7-55b4-a9e4-1e99bb0897b5",
+            "store"
+          ],
+          "detectors": [
+            "campaign_profit_negative",
+            "product_cover_below_lead_time",
+            "store_payment_fee_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:4262bc5f-62c7-55b4-a9e4-1e99bb0897b5",
+              "category": "profitability",
+              "first_seen_day": 91,
+              "score": 2.0
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:096e9e5c-5087-54d7-970c-6732928cb51a",
+              "category": "profitability",
+              "first_seen_day": 101,
+              "score": 1.382041
+            },
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 107,
+              "score": 1.093958
+            },
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 119,
+              "score": 1.067519
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:4262bc5f-62c7-55b4-a9e4-1e99bb0897b5",
+              "score": 4.691021,
+              "evidence": [
+                "campaign_profit_negative",
+                "product_cover_below_lead_time"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:442c6fcb-3ffe-5062-aa6b-394ad855ab9a",
+              "score": 0.369088,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          56,
+          84
+        ],
+        "current": [
+          92,
+          120
+        ],
+        "delta": "-7614.7213548387096774",
+        "level1": {
+          "volume": "-5447.4905562556505143",
+          "mix": "-4844.7665595206901490",
+          "price": "-512.2391619866402558",
+          "unit_cost": "0.0000000000000000",
+          "fees": "9.9062777629809191",
+          "refunds": "3444.8600000000000000",
+          "ad_spend": "-79.9800000000000000",
+          "fixed_costs": "-185.0113548387096774"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-02",
+      "description": "stockout_on_promoted magnitude 1 from day 60 (2026-07-31)",
+      "labels": [
+        {
+          "fault_type": "stockout_on_promoted",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "73127bcc-71f4-5f24-a3af-e158178b4160"
+            },
+            {
+              "kind": "campaign",
+              "id": "2b03295e-16b5-5277-bdc9-595841a65ac3"
+            }
+          ],
+          "start_day": 60,
+          "magnitude": "1",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "9da960c6-8200-55bc-9b4c-571e134595cc",
+      "runtime_s": 10.301,
+      "incidents": [
+        {
+          "incident_id": "inc-a10131c05e00",
+          "category": "profitability",
+          "severity_score": 3.307144,
+          "first_seen_day": 63,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:2b03295e-16b5-5277-bdc9-595841a65ac3",
+            "product:73127bcc-71f4-5f24-a3af-e158178b4160"
+          ],
+          "detectors": [
+            "campaign_cpa_cusum",
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:73127bcc-71f4-5f24-a3af-e158178b4160",
+              "category": "profitability",
+              "first_seen_day": 63,
+              "score": 2.0
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:2b03295e-16b5-5277-bdc9-595841a65ac3",
+              "category": "profitability",
+              "first_seen_day": 76,
+              "score": 1.040671
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:2b03295e-16b5-5277-bdc9-595841a65ac3",
+              "category": "profitability",
+              "first_seen_day": 78,
+              "score": 1.066619
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:2b03295e-16b5-5277-bdc9-595841a65ac3",
+              "category": "profitability",
+              "first_seen_day": 86,
+              "score": 2.280322
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:73127bcc-71f4-5f24-a3af-e158178b4160",
+              "score": 6.193806,
+              "evidence": [
+                "campaign_cpa_cusum",
+                "product_cover_below_lead_time"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:294421bc-2f51-5ed2-a80c-00b0fb6e3f69",
+              "score": 0.348549,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:49e509d9-db7a-53fe-85d4-b3f3653406cc",
+              "score": 0.348549,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:b507ced0-759f-526a-8fb2-92b5cb1325eb",
+              "score": 0.348549,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:7256cb00-9f9e-580f-a5ee-fbc1f5b0c871",
+              "score": 0.348549,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          14,
+          56
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-5117.3134193548387098",
+        "level1": {
+          "volume": "-5355.8382841879529148",
+          "mix": "6331.5231259984829519",
+          "price": "75.7229406265179664",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-6.9177824370480035",
+          "refunds": "-1515.5600000000000000",
+          "ad_spend": "-4599.6700000000000000",
+          "fixed_costs": "-46.5734193548387098"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-03",
+      "description": "stockout_on_promoted magnitude 1 from day 70 (2026-08-10)",
+      "labels": [
+        {
+          "fault_type": "stockout_on_promoted",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "fb76a84f-8a16-52a1-8885-082c2214ba8f"
+            },
+            {
+              "kind": "campaign",
+              "id": "c380d06c-39d7-51ef-917c-168383e24dd9"
+            }
+          ],
+          "start_day": 70,
+          "magnitude": "1",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "6bad455c-ec61-51c6-ac50-0e465d562a34",
+      "runtime_s": 11.585,
+      "incidents": [
+        {
+          "incident_id": "inc-861daa8245d3",
+          "category": "profitability",
+          "severity_score": 4.744064,
+          "first_seen_day": 72,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:c380d06c-39d7-51ef-917c-168383e24dd9",
+            "product:fb76a84f-8a16-52a1-8885-082c2214ba8f",
+            "store"
+          ],
+          "detectors": [
+            "campaign_cpa_cusum",
+            "product_cover_below_lead_time",
+            "product_refund_rate_band",
+            "product_units_z",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_units_z",
+              "entity": "product:fb76a84f-8a16-52a1-8885-082c2214ba8f",
+              "category": "profitability",
+              "first_seen_day": 72,
+              "score": 1.517604
+            },
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:fb76a84f-8a16-52a1-8885-082c2214ba8f",
+              "category": "profitability",
+              "first_seen_day": 73,
+              "score": 2.0
+            },
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:fb76a84f-8a16-52a1-8885-082c2214ba8f",
+              "category": "profitability",
+              "first_seen_day": 82,
+              "score": 2.927933
+            },
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 86,
+              "score": 2.601369
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:c380d06c-39d7-51ef-917c-168383e24dd9",
+              "category": "profitability",
+              "first_seen_day": 96,
+              "score": 1.145552
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:fb76a84f-8a16-52a1-8885-082c2214ba8f",
+              "score": 5.331578,
+              "evidence": [
+                "campaign_cpa_cusum",
+                "product_cover_below_lead_time",
+                "product_units_z"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:fb76a84f-8a16-52a1-8885-082c2214ba8f",
+              "score": 4.3919,
+              "evidence": [
+                "product_refund_rate_band"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.560821,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:03f87f80-08f7-51b8-ab38-505260ca0342",
+              "score": 0.604122,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:4c887c62-4367-5922-b7d7-7f9b32c1fecc",
+              "score": 0.604122,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          23,
+          65
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-14652.7935483870967742",
+        "level1": {
+          "volume": "-12718.8225224154204068",
+          "mix": "937.8895621738398243",
+          "price": "195.9087903807068263",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-8.2158301391262438",
+          "refunds": "-2874.9200000000000000",
+          "ad_spend": "3.4700000000000000",
+          "fixed_costs": "-188.1035483870967742"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-04",
+      "description": "stockout_on_promoted magnitude 1 from day 66 (2026-08-06)",
+      "labels": [
+        {
+          "fault_type": "stockout_on_promoted",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "9401e3cb-e5d9-5fa6-973e-0d946e535d86"
+            },
+            {
+              "kind": "campaign",
+              "id": "4ee7d933-3eda-542e-b185-f8b92a1b0560"
+            }
+          ],
+          "start_day": 66,
+          "magnitude": "1",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "7ae548e0-f7ac-57dd-857b-7861d9debef7",
+      "runtime_s": 12.283,
+      "incidents": [
+        {
+          "incident_id": "inc-c7fb78d1651e",
+          "category": "profitability",
+          "severity_score": 2.0,
+          "first_seen_day": 69,
+          "last_seen_day": 119,
+          "entities": [
+            "product:9401e3cb-e5d9-5fa6-973e-0d946e535d86"
+          ],
+          "detectors": [
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:9401e3cb-e5d9-5fa6-973e-0d946e535d86",
+              "category": "profitability",
+              "first_seen_day": 69,
+              "score": 2.0
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:9401e3cb-e5d9-5fa6-973e-0d946e535d86",
+              "score": 4.0,
+              "evidence": [
+                "product_cover_below_lead_time"
+              ]
+            },
+            {
+              "family": "cpa_drift",
+              "entity": "campaign:9b7741ba-a063-5013-b08b-e053157ab2a2",
+              "score": 0.458896,
+              "evidence": [
+                "attribution:volume"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:b683659e-b860-583a-8b95-50e2d8067af8",
+              "score": 0.458896,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-17204aba86f1",
+          "category": "profitability",
+          "severity_score": 1.039321,
+          "first_seen_day": 110,
+          "last_seen_day": 110,
+          "entities": [
+            "product:f1399d07-5721-5b5c-ab5b-1351693cf18a"
+          ],
+          "detectors": [
+            "product_refund_rate_band"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:f1399d07-5721-5b5c-ab5b-1351693cf18a",
+              "category": "profitability",
+              "first_seen_day": 110,
+              "score": 1.039321
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:f1399d07-5721-5b5c-ab5b-1351693cf18a",
+              "score": 1.558981,
+              "evidence": [
+                "product_refund_rate_band"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          20,
+          62
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-8670.4513548387096775",
+        "level1": {
+          "volume": "-8854.9200683337675835",
+          "mix": "5660.1119572135107963",
+          "price": "133.8575801175993645",
+          "unit_cost": "0.0000000000000000",
+          "fees": "7.6805310026574227",
+          "refunds": "-4571.9500000000000000",
+          "ad_spend": "-945.3000000000000000",
+          "fixed_costs": "-99.9313548387096775"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-stockout_on_promoted-05",
+      "description": "stockout_on_promoted magnitude 1 from day 78 (2026-08-18)",
+      "labels": [
+        {
+          "fault_type": "stockout_on_promoted",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "b60d350a-98c9-592c-b073-48f2c2ff5a71"
+            },
+            {
+              "kind": "campaign",
+              "id": "9e2af1b1-700f-5166-af1a-89b215f47fd0"
+            }
+          ],
+          "start_day": 78,
+          "magnitude": "1",
+          "category": "profitability",
+          "expected_driver": "volume"
+        }
+      ],
+      "store_id": "14d18383-af2b-5bfa-9050-86bbd1c6a5ce",
+      "runtime_s": 8.657,
+      "incidents": [
+        {
+          "incident_id": "inc-7e0a440a781e",
+          "category": "profitability",
+          "severity_score": 2.863175,
+          "first_seen_day": 81,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:9e2af1b1-700f-5166-af1a-89b215f47fd0",
+            "product:b60d350a-98c9-592c-b073-48f2c2ff5a71"
+          ],
+          "detectors": [
+            "campaign_cpa_cusum",
+            "product_cover_below_lead_time"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_cover_below_lead_time",
+              "entity": "product:b60d350a-98c9-592c-b073-48f2c2ff5a71",
+              "category": "profitability",
+              "first_seen_day": 81,
+              "score": 2.0
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:9e2af1b1-700f-5166-af1a-89b215f47fd0",
+              "category": "profitability",
+              "first_seen_day": 92,
+              "score": 1.040856
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:9e2af1b1-700f-5166-af1a-89b215f47fd0",
+              "category": "profitability",
+              "first_seen_day": 98,
+              "score": 2.102961
+            }
+          ],
+          "candidates": [
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:b60d350a-98c9-592c-b073-48f2c2ff5a71",
+              "score": 5.571909,
+              "evidence": [
+                "campaign_cpa_cusum",
+                "product_cover_below_lead_time"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:6b2e7bfa-55c5-5cc2-9ae1-134889d78673",
+              "score": 0.390649,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          39,
+          74
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "-23784.2381290322580644",
+        "level1": {
+          "volume": "-12682.7635694473456003",
+          "mix": "-9703.3647401198506220",
+          "price": "563.3052758339820801",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-44.5269662667858578",
+          "refunds": "-1739.5500000000000000",
+          "ad_spend": "1.8700000000000000",
+          "fixed_costs": "-179.2081290322580644"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-01",
+      "description": "supplier_cost_increase (subtle) magnitude 0.05 from day 80 (2026-08-20)",
+      "labels": [
+        {
+          "fault_type": "supplier_cost_increase",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "0ac43d29-fed1-57f9-945c-26b65530ff04"
+            }
+          ],
+          "start_day": 80,
+          "magnitude": "0.05",
+          "category": "profitability",
+          "expected_driver": "unit_cost"
+        }
+      ],
+      "store_id": "3bd4e0de-8049-528a-a7f4-5244350f2342",
+      "runtime_s": 7.63,
+      "incidents": [
+        {
+          "incident_id": "inc-3afba36375f1",
+          "category": "profitability",
+          "severity_score": 1.430316,
+          "first_seen_day": 82,
+          "last_seen_day": 93,
+          "entities": [
+            "product:0ac43d29-fed1-57f9-945c-26b65530ff04"
+          ],
+          "detectors": [
+            "product_unit_cost_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_unit_cost_z",
+              "entity": "product:0ac43d29-fed1-57f9-945c-26b65530ff04",
+              "category": "profitability",
+              "first_seen_day": 82,
+              "score": 1.430316
+            }
+          ],
+          "candidates": [
+            {
+              "family": "supplier_cost_increase",
+              "entity": "product:0ac43d29-fed1-57f9-945c-26b65530ff04",
+              "score": 2.145474,
+              "evidence": [
+                "product_unit_cost_z"
+              ]
+            },
+            {
+              "family": "stockout_on_promoted",
+              "entity": "product:d366a2c0-ba91-5738-b613-e963fcce13d4",
+              "score": 0.70296,
+              "evidence": [
+                "attribution:volume"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          40,
+          75
+        ],
+        "current": [
+          85,
+          120
+        ],
+        "delta": "-4419.2868602150537634",
+        "level1": {
+          "volume": "-7180.4660017634453859",
+          "mix": "237.8827763758163645",
+          "price": "-190.1250881756589192",
+          "unit_cost": "-111.3925284762880369",
+          "fees": "-11.7991579604240225",
+          "refunds": "2847.1600000000000000",
+          "ad_spend": "156.6300000000000000",
+          "fixed_costs": "-167.1768602150537634"
+        },
+        "largest_negative": "volume"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-02",
+      "description": "supplier_cost_increase magnitude 0.10 from day 58 (2026-07-29)",
+      "labels": [
+        {
+          "fault_type": "supplier_cost_increase",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "715f5814-8038-5158-80b2-9d795285cc6f"
+            }
+          ],
+          "start_day": 58,
+          "magnitude": "0.10",
+          "category": "profitability",
+          "expected_driver": "unit_cost"
+        }
+      ],
+      "store_id": "fbd7f54c-1ea2-52a9-9e94-272bb81f85be",
+      "runtime_s": 7.138,
+      "incidents": [
+        {
+          "incident_id": "inc-e1704744fd22",
+          "category": "profitability",
+          "severity_score": 3.570515,
+          "first_seen_day": 60,
+          "last_seen_day": 71,
+          "entities": [
+            "product:715f5814-8038-5158-80b2-9d795285cc6f"
+          ],
+          "detectors": [
+            "product_unit_cost_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_unit_cost_z",
+              "entity": "product:715f5814-8038-5158-80b2-9d795285cc6f",
+              "category": "profitability",
+              "first_seen_day": 60,
+              "score": 2.856412
+            },
+            {
+              "detector_id": "product_unit_cost_z",
+              "entity": "product:715f5814-8038-5158-80b2-9d795285cc6f",
+              "category": "profitability",
+              "first_seen_day": 67,
+              "score": 2.856412
+            }
+          ],
+          "candidates": [
+            {
+              "family": "supplier_cost_increase",
+              "entity": "product:715f5814-8038-5158-80b2-9d795285cc6f",
+              "score": 8.569236,
+              "evidence": [
+                "product_unit_cost_z"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:ad92f97f-c9d4-55d5-bb01-daed9ed5bd8b",
+              "score": 1.232124,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          11,
+          53
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-4215.6863225806451613",
+        "level1": {
+          "volume": "0.0000000000000000",
+          "mix": "1783.9509986360440644",
+          "price": "171.8668800595297103",
+          "unit_cost": "-695.9800000000000000",
+          "fees": "7.2021213044262253",
+          "refunds": "-5075.2900000000000000",
+          "ad_spend": "-332.2300000000000000",
+          "fixed_costs": "-75.2063225806451613"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-03",
+      "description": "supplier_cost_increase magnitude 0.20 from day 67 (2026-08-07)",
+      "labels": [
+        {
+          "fault_type": "supplier_cost_increase",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "8f483fa4-1e48-5036-9691-c2e9f959e8a0"
+            }
+          ],
+          "start_day": 67,
+          "magnitude": "0.20",
+          "category": "profitability",
+          "expected_driver": "unit_cost"
+        }
+      ],
+      "store_id": "a7516a3b-af91-5d3f-9057-3546f2e5d25a",
+      "runtime_s": 9.075,
+      "incidents": [
+        {
+          "incident_id": "inc-74b473524823",
+          "category": "profitability",
+          "severity_score": 3.75,
+          "first_seen_day": 69,
+          "last_seen_day": 119,
+          "entities": [
+            "product:8f483fa4-1e48-5036-9691-c2e9f959e8a0",
+            "store"
+          ],
+          "detectors": [
+            "product_unit_cost_z",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_unit_cost_z",
+              "entity": "product:8f483fa4-1e48-5036-9691-c2e9f959e8a0",
+              "category": "profitability",
+              "first_seen_day": 69,
+              "score": 5.714286
+            },
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 73,
+              "score": 5.050971
+            }
+          ],
+          "candidates": [
+            {
+              "family": "supplier_cost_increase",
+              "entity": "product:8f483fa4-1e48-5036-9691-c2e9f959e8a0",
+              "score": 5.023345,
+              "evidence": [
+                "attribution:unit_cost",
+                "product_unit_cost_z"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.8,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-03557530fe0a",
+          "category": "profitability",
+          "severity_score": 1.823473,
+          "first_seen_day": 71,
+          "last_seen_day": 75,
+          "entities": [
+            "product:4ff9f674-fb67-56aa-a171-5edaa7880d6f"
+          ],
+          "detectors": [
+            "product_refund_rate_band"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:4ff9f674-fb67-56aa-a171-5edaa7880d6f",
+              "category": "profitability",
+              "first_seen_day": 71,
+              "score": 1.823473
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:4ff9f674-fb67-56aa-a171-5edaa7880d6f",
+              "score": 2.735209,
+              "evidence": [
+                "product_refund_rate_band"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          20,
+          62
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-3788.9112903225806452",
+        "level1": {
+          "volume": "-1478.2470040782307494",
+          "mix": "3075.9267372521563490",
+          "price": "169.7883078486535565",
+          "unit_cost": "-2454.3557969151477001",
+          "fees": "-39.1822441074314560",
+          "refunds": "-1920.2700000000000000",
+          "ad_spend": "-1025.4600000000000000",
+          "fixed_costs": "-117.1112903225806452"
+        },
+        "largest_negative": "unit_cost"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-04",
+      "description": "supplier_cost_increase magnitude 0.30 from day 74 (2026-08-14)",
+      "labels": [
+        {
+          "fault_type": "supplier_cost_increase",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "e4d316de-0245-54ca-b1cf-1fb444f9e3e9"
+            }
+          ],
+          "start_day": 74,
+          "magnitude": "0.30",
+          "category": "profitability",
+          "expected_driver": "unit_cost"
+        }
+      ],
+      "store_id": "2a5cb907-9e58-5877-9ec5-c17fcf8a6805",
+      "runtime_s": 9.815,
+      "incidents": [
+        {
+          "incident_id": "inc-fd24c2c0ceaa",
+          "category": "profitability",
+          "severity_score": 3.0,
+          "first_seen_day": 76,
+          "last_seen_day": 87,
+          "entities": [
+            "product:e4d316de-0245-54ca-b1cf-1fb444f9e3e9"
+          ],
+          "detectors": [
+            "product_unit_cost_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_unit_cost_z",
+              "entity": "product:e4d316de-0245-54ca-b1cf-1fb444f9e3e9",
+              "category": "profitability",
+              "first_seen_day": 76,
+              "score": 8.573621
+            }
+          ],
+          "candidates": [
+            {
+              "family": "supplier_cost_increase",
+              "entity": "product:e4d316de-0245-54ca-b1cf-1fb444f9e3e9",
+              "score": 5.106408,
+              "evidence": [
+                "attribution:unit_cost",
+                "product_unit_cost_z"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          27,
+          69
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "269.8430107526881720",
+        "level1": {
+          "volume": "8537.1268651241577212",
+          "mix": "-879.7332840404032970",
+          "price": "-211.6315588395098481",
+          "unit_cost": "-3362.2395245254020824",
+          "fees": "49.4975022811575063",
+          "refunds": "-3045.3900000000000000",
+          "ad_spend": "-657.9800000000000000",
+          "fixed_costs": "-159.8069892473118280"
+        },
+        "largest_negative": "unit_cost"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-supplier_cost_increase-05",
+      "description": "supplier_cost_increase magnitude 0.50 from day 62 (2026-08-02)",
+      "labels": [
+        {
+          "fault_type": "supplier_cost_increase",
+          "entities": [
+            {
+              "kind": "product",
+              "id": "471c39cd-c703-5113-9d89-8e5e5d317bc3"
+            }
+          ],
+          "start_day": 62,
+          "magnitude": "0.50",
+          "category": "profitability",
+          "expected_driver": "unit_cost"
+        }
+      ],
+      "store_id": "8356ace4-7369-5ca0-bf1e-58cc0ac5c13e",
+      "runtime_s": 10.411,
+      "incidents": [
+        {
+          "incident_id": "inc-082253661de4",
+          "category": "profitability",
+          "severity_score": 4.00407,
+          "first_seen_day": 64,
+          "last_seen_day": 119,
+          "entities": [
+            "product:471c39cd-c703-5113-9d89-8e5e5d317bc3",
+            "store"
+          ],
+          "detectors": [
+            "product_unit_cost_z",
+            "store_gross_margin_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_unit_cost_z",
+              "entity": "product:471c39cd-c703-5113-9d89-8e5e5d317bc3",
+              "category": "profitability",
+              "first_seen_day": 64,
+              "score": 14.285714
+            },
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 76,
+              "score": 1.016279
+            },
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 79,
+              "score": 3.172206
+            }
+          ],
+          "candidates": [
+            {
+              "family": "supplier_cost_increase",
+              "entity": "product:471c39cd-c703-5113-9d89-8e5e5d317bc3",
+              "score": 5.538164,
+              "evidence": [
+                "attribution:unit_cost",
+                "product_unit_cost_z"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 2.409767,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          15,
+          57
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "9711.3558279569892473",
+        "level1": {
+          "volume": "13296.1098446250191121",
+          "mix": "666.8561362340093675",
+          "price": "387.7520035930207924",
+          "unit_cost": "-3219.9564117673222099",
+          "fees": "13.0184273152729379",
+          "refunds": "-353.2500000000000000",
+          "ad_spend": "-1024.2700000000000000",
+          "fixed_costs": "-54.9041720430107527"
+        },
+        "largest_negative": "unit_cost"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-tracking_break-01",
+      "description": "tracking_break (subtle) magnitude 0.60 from day 81 (2026-08-21)",
+      "labels": [
+        {
+          "fault_type": "tracking_break",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "55dbc26d-4b49-5a01-820d-59709595b134"
+            }
+          ],
+          "start_day": 81,
+          "magnitude": "0.60",
+          "category": "data_quality",
+          "expected_driver": null
+        }
+      ],
+      "store_id": "5a1038f7-54ee-57aa-9996-9eaebf877ca0",
+      "runtime_s": 9.141,
+      "incidents": [
+        {
+          "incident_id": "inc-577fc32434b8",
+          "category": "data_quality",
+          "severity_score": 3.572578,
+          "first_seen_day": 94,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:55dbc26d-4b49-5a01-820d-59709595b134"
+          ],
+          "detectors": [
+            "campaign_attribution_collapse",
+            "campaign_cpa_cusum",
+            "campaign_profit_negative"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:55dbc26d-4b49-5a01-820d-59709595b134",
+              "category": "data_quality",
+              "first_seen_day": 94,
+              "score": 1.635046
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:55dbc26d-4b49-5a01-820d-59709595b134",
+              "category": "data_quality",
+              "first_seen_day": 96,
+              "score": 2.451605
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:55dbc26d-4b49-5a01-820d-59709595b134",
+              "category": "data_quality",
+              "first_seen_day": 107,
+              "score": 1.190477
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:55dbc26d-4b49-5a01-820d-59709595b134",
+              "category": "data_quality",
+              "first_seen_day": 109,
+              "score": 1.658368
+            }
+          ],
+          "candidates": [
+            {
+              "family": "tracking_break",
+              "entity": "campaign:55dbc26d-4b49-5a01-820d-59709595b134",
+              "score": 10.22891,
+              "evidence": [
+                "campaign_attribution_collapse",
+                "campaign_cpa_cusum",
+                "campaign_profit_negative"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-a9ebe1e9c648",
+          "category": "data_quality",
+          "severity_score": 2.048392,
+          "first_seen_day": 83,
+          "last_seen_day": 86,
+          "entities": [
+            "campaign:55dbc26d-4b49-5a01-820d-59709595b134"
+          ],
+          "detectors": [
+            "campaign_cpa_z"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_z",
+              "entity": "campaign:55dbc26d-4b49-5a01-820d-59709595b134",
+              "category": "data_quality",
+              "first_seen_day": 83,
+              "score": 2.048392
+            }
+          ],
+          "candidates": [
+            {
+              "family": "tracking_break",
+              "entity": "campaign:55dbc26d-4b49-5a01-820d-59709595b134",
+              "score": 2.048392,
+              "evidence": [
+                "campaign_cpa_z"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-e643f2cd9338",
+          "category": "profitability",
+          "severity_score": 1.179931,
+          "first_seen_day": 76,
+          "last_seen_day": 77,
+          "entities": [
+            "product:3ab71f9c-ed70-5c41-a15b-26b81ea8d687"
+          ],
+          "detectors": [
+            "product_refund_rate_band"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:3ab71f9c-ed70-5c41-a15b-26b81ea8d687",
+              "category": "profitability",
+              "first_seen_day": 76,
+              "score": 1.179931
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:3ab71f9c-ed70-5c41-a15b-26b81ea8d687",
+              "score": 1.769897,
+              "evidence": [
+                "product_refund_rate_band"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:90a131a2-aaa6-57b7-bd1c-e8b160d6b020",
+              "score": 1.233972,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          27,
+          69
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "2633.8090860215053764",
+        "level1": {
+          "volume": "9269.5893527253191565",
+          "mix": "1340.1054551838835223",
+          "price": "-754.3769474130523970",
+          "unit_cost": "0.0000000000000000",
+          "fees": "35.2421395038497182",
+          "refunds": "-6590.3400000000000000",
+          "ad_spend": "-490.3800000000000000",
+          "fixed_costs": "-176.0309139784946236"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-tracking_break-02",
+      "description": "tracking_break magnitude 0.80 from day 57 (2026-07-28)",
+      "labels": [
+        {
+          "fault_type": "tracking_break",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "285c0ca6-5681-5cf4-8d49-8b5b8d1980ba"
+            }
+          ],
+          "start_day": 57,
+          "magnitude": "0.80",
+          "category": "data_quality",
+          "expected_driver": null
+        }
+      ],
+      "store_id": "db8f81c0-5acc-5eec-8baa-75f4e04b2d76",
+      "runtime_s": 7.829,
+      "incidents": [
+        {
+          "incident_id": "inc-ff0d5d51f2ba",
+          "category": "data_quality",
+          "severity_score": 3.450337,
+          "first_seen_day": 61,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:285c0ca6-5681-5cf4-8d49-8b5b8d1980ba"
+          ],
+          "detectors": [
+            "campaign_attribution_collapse",
+            "campaign_cpa_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:285c0ca6-5681-5cf4-8d49-8b5b8d1980ba",
+              "category": "data_quality",
+              "first_seen_day": 61,
+              "score": 13.398711
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:285c0ca6-5681-5cf4-8d49-8b5b8d1980ba",
+              "category": "data_quality",
+              "first_seen_day": 71,
+              "score": 1.801349
+            }
+          ],
+          "candidates": [
+            {
+              "family": "tracking_break",
+              "entity": "campaign:285c0ca6-5681-5cf4-8d49-8b5b8d1980ba",
+              "score": 6.602698,
+              "evidence": [
+                "campaign_attribution_collapse",
+                "campaign_cpa_cusum"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-1116.8793118279569892",
+        "level1": {
+          "volume": "1255.2111332604595702",
+          "mix": "85.8139038654980020",
+          "price": "-180.8140177656096291",
+          "unit_cost": "0.0000000000000000",
+          "fees": "19.3189806396520569",
+          "refunds": "-2004.9400000000000000",
+          "ad_spend": "-85.3300000000000000",
+          "fixed_costs": "-206.1393118279569892"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-tracking_break-03",
+      "description": "tracking_break magnitude 0.90 from day 65 (2026-08-05)",
+      "labels": [
+        {
+          "fault_type": "tracking_break",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "f0aba06e-465f-52dc-b013-a9c3beea32a1"
+            }
+          ],
+          "start_day": 65,
+          "magnitude": "0.90",
+          "category": "data_quality",
+          "expected_driver": null
+        }
+      ],
+      "store_id": "33a93379-6119-5bb1-89af-226b5aad5b72",
+      "runtime_s": 8.994,
+      "incidents": [
+        {
+          "incident_id": "inc-570f91d0ffbc",
+          "category": "data_quality",
+          "severity_score": 4.341038,
+          "first_seen_day": 67,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:f0aba06e-465f-52dc-b013-a9c3beea32a1"
+          ],
+          "detectors": [
+            "campaign_attribution_collapse",
+            "campaign_cpa_cusum",
+            "campaign_cpa_z",
+            "campaign_profit_negative"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_z",
+              "entity": "campaign:f0aba06e-465f-52dc-b013-a9c3beea32a1",
+              "category": "data_quality",
+              "first_seen_day": 67,
+              "score": 2.038982
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:f0aba06e-465f-52dc-b013-a9c3beea32a1",
+              "category": "data_quality",
+              "first_seen_day": 68,
+              "score": 14.547139
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:f0aba06e-465f-52dc-b013-a9c3beea32a1",
+              "category": "data_quality",
+              "first_seen_day": 74,
+              "score": 1.901417
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:f0aba06e-465f-52dc-b013-a9c3beea32a1",
+              "category": "data_quality",
+              "first_seen_day": 80,
+              "score": 1.423752
+            }
+          ],
+          "candidates": [
+            {
+              "family": "tracking_break",
+              "entity": "campaign:f0aba06e-465f-52dc-b013-a9c3beea32a1",
+              "score": 10.265568,
+              "evidence": [
+                "campaign_attribution_collapse",
+                "campaign_cpa_cusum",
+                "campaign_cpa_z",
+                "campaign_profit_negative"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          36,
+          78
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-66.9986881720430109",
+        "level1": {
+          "volume": "733.4938491581972452",
+          "mix": "-245.2262568815768396",
+          "price": "790.0859285060485800",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-58.2635207826689856",
+          "refunds": "-1313.8800000000000000",
+          "ad_spend": "150.8000000000000000",
+          "fixed_costs": "-124.0086881720430109"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-tracking_break-04",
+      "description": "tracking_break magnitude 1.00 from day 72 (2026-08-12)",
+      "labels": [
+        {
+          "fault_type": "tracking_break",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "1ab6a4f6-97b4-5fd1-a346-9ced959df606"
+            }
+          ],
+          "start_day": 72,
+          "magnitude": "1.00",
+          "category": "data_quality",
+          "expected_driver": null
+        }
+      ],
+      "store_id": "c939d49e-8d59-5678-a4a6-eb9136ece674",
+      "runtime_s": 8.801,
+      "incidents": [
+        {
+          "incident_id": "inc-9c84ab80d825",
+          "category": "data_quality",
+          "severity_score": 4.838838,
+          "first_seen_day": 74,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606"
+          ],
+          "detectors": [
+            "campaign_attribution_collapse",
+            "campaign_cpa_cusum",
+            "campaign_cpa_z",
+            "campaign_profit_negative"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_z",
+              "entity": "campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606",
+              "category": "data_quality",
+              "first_seen_day": 74,
+              "score": 1.355352
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606",
+              "category": "data_quality",
+              "first_seen_day": 76,
+              "score": 9.834992
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606",
+              "category": "data_quality",
+              "first_seen_day": 82,
+              "score": 2.0
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606",
+              "category": "data_quality",
+              "first_seen_day": 83,
+              "score": 2.0
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606",
+              "category": "data_quality",
+              "first_seen_day": 96,
+              "score": 2.0
+            }
+          ],
+          "candidates": [
+            {
+              "family": "tracking_break",
+              "entity": "campaign:1ab6a4f6-97b4-5fd1-a346-9ced959df606",
+              "score": 14.355352,
+              "evidence": [
+                "campaign_attribution_collapse",
+                "campaign_cpa_cusum",
+                "campaign_cpa_z",
+                "campaign_profit_negative"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-93505f13d416",
+          "category": "profitability",
+          "severity_score": 3.696022,
+          "first_seen_day": 63,
+          "last_seen_day": 119,
+          "entities": [
+            "store"
+          ],
+          "detectors": [
+            "store_gross_margin_rate_cusum",
+            "store_payment_fee_rate_cusum"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "store_gross_margin_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 63,
+              "score": 2.371867
+            },
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 70,
+              "score": 1.175021
+            },
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 80,
+              "score": 1.106231
+            },
+            {
+              "detector_id": "store_payment_fee_rate_cusum",
+              "entity": "store",
+              "category": "profitability",
+              "first_seen_day": 86,
+              "score": 2.532742
+            }
+          ],
+          "candidates": [
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.42312,
+              "evidence": [
+                "store_gross_margin_rate_cusum"
+              ]
+            },
+            {
+              "family": "refund_spike",
+              "entity": "product:7a9e4b08-8508-5469-b1d2-6d8b3861cb59",
+              "score": 0.636016,
+              "evidence": [
+                "attribution:refunds"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          14,
+          56
+        ],
+        "current": [
+          78,
+          120
+        ],
+        "delta": "-1610.1803225806451612",
+        "level1": {
+          "volume": "10929.0947153882115935",
+          "mix": "-3845.4486211549380963",
+          "price": "-75.7905724300116848",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-20.4955218032618124",
+          "refunds": "-5316.7900000000000000",
+          "ad_spend": "-3201.4600000000000000",
+          "fixed_costs": "-79.2903225806451612"
+        },
+        "largest_negative": "refunds"
+      },
+      "error": null
+    },
+    {
+      "scenario_id": "test-tracking_break-05",
+      "description": "tracking_break magnitude 1.00 from day 60 (2026-07-31)",
+      "labels": [
+        {
+          "fault_type": "tracking_break",
+          "entities": [
+            {
+              "kind": "campaign",
+              "id": "01412bdf-a716-5b74-9d32-5d63fbac8f00"
+            }
+          ],
+          "start_day": 60,
+          "magnitude": "1.00",
+          "category": "data_quality",
+          "expected_driver": null
+        }
+      ],
+      "store_id": "7c7041a3-bbe7-5985-9b7b-abc4fa358e53",
+      "runtime_s": 8.605,
+      "incidents": [
+        {
+          "incident_id": "inc-59f3d8e7af4e",
+          "category": "data_quality",
+          "severity_score": 5.25,
+          "first_seen_day": 62,
+          "last_seen_day": 119,
+          "entities": [
+            "campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00"
+          ],
+          "detectors": [
+            "campaign_attribution_collapse",
+            "campaign_cpa_cusum",
+            "campaign_cpa_z",
+            "campaign_profit_negative"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "campaign_cpa_z",
+              "entity": "campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00",
+              "category": "data_quality",
+              "first_seen_day": 62,
+              "score": 3.473301
+            },
+            {
+              "detector_id": "campaign_cpa_cusum",
+              "entity": "campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00",
+              "category": "data_quality",
+              "first_seen_day": 63,
+              "score": 17.197907
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00",
+              "category": "data_quality",
+              "first_seen_day": 68,
+              "score": 2.0
+            },
+            {
+              "detector_id": "campaign_profit_negative",
+              "entity": "campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00",
+              "category": "data_quality",
+              "first_seen_day": 73,
+              "score": 2.0
+            },
+            {
+              "detector_id": "campaign_attribution_collapse",
+              "entity": "campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00",
+              "category": "data_quality",
+              "first_seen_day": 89,
+              "score": 2.0
+            }
+          ],
+          "candidates": [
+            {
+              "family": "tracking_break",
+              "entity": "campaign:01412bdf-a716-5b74-9d32-5d63fbac8f00",
+              "score": 16.0,
+              "evidence": [
+                "campaign_attribution_collapse",
+                "campaign_cpa_cusum",
+                "campaign_cpa_z",
+                "campaign_profit_negative"
+              ]
+            }
+          ]
+        },
+        {
+          "incident_id": "inc-ccfd26ac9cdb",
+          "category": "profitability",
+          "severity_score": 1.865528,
+          "first_seen_day": 90,
+          "last_seen_day": 94,
+          "entities": [
+            "product:81e9d417-62ac-5b42-b83f-e52dbbb6e4c9"
+          ],
+          "detectors": [
+            "product_refund_rate_band"
+          ],
+          "symptoms": [
+            {
+              "detector_id": "product_refund_rate_band",
+              "entity": "product:81e9d417-62ac-5b42-b83f-e52dbbb6e4c9",
+              "category": "profitability",
+              "first_seen_day": 90,
+              "score": 1.865528
+            }
+          ],
+          "candidates": [
+            {
+              "family": "refund_spike",
+              "entity": "product:81e9d417-62ac-5b42-b83f-e52dbbb6e4c9",
+              "score": 2.798292,
+              "evidence": [
+                "product_refund_rate_band"
+              ]
+            },
+            {
+              "family": "mix_shift",
+              "entity": "store",
+              "score": 1.248345,
+              "evidence": [
+                "attribution:mix"
+              ]
+            }
+          ]
+        }
+      ],
+      "attribution": {
+        "baseline": [
+          55,
+          83
+        ],
+        "current": [
+          92,
+          120
+        ],
+        "delta": "1029.4275913978494624",
+        "level1": {
+          "volume": "-81.8324482522893044",
+          "mix": "-1790.8947179201004008",
+          "price": "-137.1451642532846792",
+          "unit_cost": "0.0000000000000000",
+          "fees": "-9.6076695743256156",
+          "refunds": "3160.3200000000000000",
+          "ad_spend": "21.0300000000000000",
+          "fixed_costs": "-132.4424086021505376"
+        },
+        "largest_negative": "mix"
+      },
+      "error": null
+    }
+  ]
+}
