@@ -240,7 +240,8 @@ def test_tracking_break_is_an_abrupt_step_with_clicks_and_sales_holding() -> Non
     assert found
     assert found[0].category is SymptomCategory.DATA_QUALITY
     assert found[0].change_point == 70  # baseline facts will end before the break
-    assert 70 <= found[0].episode.confirmed < 76
+    # Confirmed once the step held for the abrupt window and the persistence days.
+    assert 70 <= found[0].episode.confirmed < 80
 
 
 def test_gradual_declines_and_real_losses_are_not_tracking_breaks() -> None:

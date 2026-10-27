@@ -21,6 +21,8 @@ abs_floor = 1e-9
 
 [campaign_cpa]
 min_reference_purchases = 30   # attributed purchases in the reference period
+cusum_k = 0.25                 # allowance of the purchases CUSUM: small drifts accumulate (the
+                               # materiality gate keeps noise-driven campaign incidents off alerts)
 
 [product_units]
 min_baseline_units = 5         # daily units, baseline median
@@ -57,6 +59,8 @@ spend_window_days = 7          # the product must have promoting spend in this w
 window_days = 14
 baseline_days = 28             # minimum history before the window
 warmup_days = 21               # refunds lag sales by up to 20 days: skip the first weeks
+lag_min_days = 2               # refunds arrive 2-20 days after the sale: exposure of a day is the
+lag_max_days = 20              # average lines sold over that lag range before it
 ratio = 1.5                    # current rate >= ratio * baseline rate ...
 alpha = 0.001                  # ... and conditional binomial p < alpha
 min_baseline_rate = 0.01
@@ -66,16 +70,19 @@ persist_days = 3
 # Tracking break: an abrupt step of attributed purchases per click (see detectors.py).
 lookback_days = 56             # change point searched in the last 56 days (data up to today)
 min_before_days = 14           # at least 14 days before the change point ...
-abrupt_days = 3                # ... and the rate already collapsed within 3 days after it
+abrupt_days = 5                # ... and the rate already collapsed within 5 days after it
+change_point_guard_days = 1    # ... skipping 1 day each side of the change point (location error)
 baseline_days = 28             # baseline: up to 28 days ending at the change point
 max_ratio_of_baseline = 0.5    # conversion per click below half its baseline, and right after
                                # the change point below half of the days just before it,
 stable_before_ratio = 0.75     # ... which were still >= 75% of the baseline (a step, not a ramp),
+min_purchases_before = 10      # ... with at least 10 purchases in those days (enough to tell),
 clicks_tolerance = 0.25        # ... clicks within 25% of baseline (still delivering),
 orders_stable_tolerance = 0.15 # ... promoted revenue moves less than this ...
 max_explained_share = 0.3      # ... and fell by less than 30% of the attributed revenue drop,
+explained_noise_sigmas = 1.0   # ... give or take 1 sigma of sales noise,
 min_drop_sigmas = 2.0          # ... which itself exceeds 2 sigma of the promoted sales
-persist_days = 3
+persist_days = 5
 
 [incrementality]
 window_days = 14

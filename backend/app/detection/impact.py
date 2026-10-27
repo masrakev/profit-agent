@@ -3,8 +3,9 @@
 Impact = the incident's Shapley contributions over the current window, scaled to 30 days:
 - entities: the incident's products, the products its campaigns promote, and its campaigns
   (all their level-2 contributions: volume, mix, price, unit cost, fees, refunds, ad spend);
-- store-level symptoms add the drivers they implicate, over every product (payment fee rate:
-  fees; gross margin rate: mix, price, unit cost).
+- an incident made only of store-level symptoms uses the drivers they implicate, over every
+  product (payment fee rate: fees; gross margin rate: mix, price, unit cost). When it also
+  names products or campaigns, those explain the store symptom and store drivers are not added.
 
 Uncertainty: a seeded block bootstrap (7-day blocks, resampled within each window) of the daily
 figures, repeating the decomposition per resample. P10/P50/P90 of the 30-day scaled impact.
@@ -71,6 +72,10 @@ def impact_scope(symptoms: Iterable[Symptom], graph: EntityGraph) -> ImpactScope
             products |= graph.promoted.get(entity.id, frozenset())
         else:
             drivers |= STORE_DRIVERS.get(s.detector_id, frozenset())
+    if products or campaigns:
+        # A store-level symptom grouped with products or campaigns is explained by them;
+        # adding store-wide drivers would count every other product's noise as impact.
+        drivers = set()
     return ImpactScope(frozenset(products), frozenset(campaigns), frozenset(drivers))
 
 

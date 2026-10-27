@@ -85,17 +85,22 @@ def test_grouping_by_graph_time_and_category() -> None:
         1,
         category=SymptomCategory.DATA_QUALITY,
     )
-    store_hit = sym("store_gross_margin_rate_z", EntityRef.store(), 3, score=0.5)
-    lonely_store = sym("store_payment_fee_rate_z", EntityRef.store(), 80)
-    groups = group_symptoms([a, b, far, other, dq, store_hit, lonely_store], GRAPH, CFG)
-    as_sets = sorted(sorted(s.detector_id + str(s.first_seen) for s in g) for g in groups)
-    assert len(groups) == 5
+    cost = sym("product_unit_cost_z", EntityRef.product(P3), 2)  # explains a margin drop
+    margin = sym("store_gross_margin_rate_z", EntityRef.store(), 3, score=0.5)
+    margin_alone = sym("store_gross_margin_rate_cusum", EntityRef.store(), 60)
+    fee_rate = sym("store_payment_fee_rate_z", EntityRef.store(), 4)
+    symptoms = [a, b, far, other, cost, dq, margin, margin_alone, fee_rate]
+    groups = group_symptoms(symptoms, GRAPH, CFG)
     together = next(g for g in groups if a in g)
     assert b in together
     assert dq not in together
-    assert store_hit in together or store_hit in next(g for g in groups if other in g)
-    assert [lonely_store] in groups
-    assert as_sets  # deterministic ordering is exercised
+    # The margin drop joins the unit-cost incident that explains it, not the campaign one that
+    # merely overlaps in time; the fee-rate symptom has no product-level explanation.
+    assert margin in next(g for g in groups if cost in g)
+    assert margin not in together
+    assert [fee_rate] in groups
+    assert [margin_alone] in groups
+    assert len(groups) == 6
 
 
 def test_ranking_votes_and_explaining_away() -> None:

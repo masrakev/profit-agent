@@ -236,7 +236,16 @@ def campaign_cpa(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]:
             None if t < stop or s <= 0 else rate * float(s) for t, s in enumerate(c.spend)
         ]
         residuals = poisson_residuals(c.attributed_purchases, expected)
-        out += _cusum_findings(cfg, "campaign_cpa_cusum", entity, "cpa", residuals, DOWN, facts)
+        out += _cusum_findings(
+            cfg,
+            "campaign_cpa_cusum",
+            entity,
+            "cpa",
+            residuals,
+            DOWN,
+            facts,
+            k=cfg.campaign_cpa.cusum_k,
+        )
     return out
 
 
@@ -386,6 +395,15 @@ def _rule_findings(
     ]
 
 
+def lagged_exposure(lines: Sequence[Decimal], lag_min: int, lag_max: int) -> list[Decimal]:
+    """Average lines sold `lag_min`..`lag_max` days before each day (refund exposure)."""
+    span = Decimal(lag_max - lag_min + 1)
+    return [
+        _sum(lines, t - lag_max, t - lag_min + 1) / span if t - lag_min >= 0 else ZERO
+        for t in range(len(lines))
+    ]
+
+
 def _promoted(series: StoreSeries, c: CampaignSeries, metric: str) -> list[Decimal]:
     return series.total(metric, c.promoted)
 
@@ -497,21 +515,25 @@ def inventory_cover_below_lead_time(series: StoreSeries, cfg: DetectionConfig) -
 def refund_rate_band(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]:
     """Refunds per order line in the window are significantly above the product's own history.
 
-    Events, not units, so the counting model holds when lines carry several units. The baseline
-    is every day from the warm-up to the window start (refunds lag sales by up to 20 days, hence
-    the warm-up). A day counts when the rate is at least `ratio` times the baseline rate, the
+    Events, not units, so the counting model holds when lines carry several units. Refunds
+    arrive `lag_min_days`-`lag_max_days` after the sale, so the exposure of a day is the average
+    number of lines sold over that lag range before it (counting both on the same day would make
+    any sales dip look like a refund spike). The baseline is every day from the warm-up to the
+    window start. A day counts when the rate is at least `ratio` times the baseline rate, the
     conditional binomial test gives p < `alpha`, and the test survives Benjamini-Hochberg across
     products that day.
     """
     r = cfg.refund_rate
     w = r.window_days
 
-    def test(p: ProductSeries, t: int) -> tuple[float | None, float | None]:
+    def test(
+        p: ProductSeries, exposure: list[Decimal], t: int
+    ) -> tuple[float | None, float | None]:
         base_start, base_end = r.warmup_days, t - w + 1
         if base_end - base_start < r.baseline_days:
             return None, None
-        base_sold = _sum(p.lines, base_start, base_end)
-        current_sold = _sum(p.lines, base_end, t + 1)
+        base_sold = _sum(exposure, base_start, base_end)
+        current_sold = _sum(exposure, base_end, t + 1)
         if base_sold <= 0 or current_sold <= 0:
             return None, None
         base_refunds = int(_sum(p.refund_events, base_start, base_end))
@@ -527,7 +549,8 @@ def refund_rate_band(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]
     scores: dict[UUID, list[float | None]] = {}
     p_values: dict[UUID, list[float | None]] = {}
     for p in series.products.values():
-        results = [test(p, t) for t in range(series.days)]
+        exposure = lagged_exposure(p.lines, r.lag_min_days, r.lag_max_days)
+        results = [test(p, exposure, t) for t in range(series.days)]
         scores[p.product_id] = [score for score, _ in results]
         p_values[p.product_id] = [pv for _, pv in results]
     out: list[Finding] = []
@@ -559,7 +582,8 @@ def attribution_collapse(series: StoreSeries, cfg: DetectionConfig) -> list[Find
     `stable_before_ratio` of the baseline, and over the `abrupt_days` after it it is already
     below `max_ratio_of_baseline` of the days just before, while clicks continue and the real
     sales of the promoted products do not follow the attributed revenue down (a drop beyond
-    2 sigma of promoted sales that real sales explain less than `max_explained_share` of).
+    2 sigma of promoted sales, of which real sales explain at most `max_explained_share` give
+    or take `explained_noise_sigmas` sigma of their own noise).
     A CPA drift is gradual (its early rate is still close to the baseline) or real sales fall
     with it. Baselines always end before the change point.
     """
@@ -587,20 +611,24 @@ def attribution_collapse(series: StoreSeries, cfg: DetectionConfig) -> list[Find
                 lo,
                 t + 1,
                 min_before=r.min_before_days,
-                min_after=r.abrupt_days,
+                min_after=r.abrupt_days + r.change_point_guard_days,
             )
             if k is None:
                 return None
-            pre, a = max(lo, k - b), r.abrupt_days
+            pre, a, g = max(lo, k - b), r.abrupt_days, r.change_point_guard_days
 
             def rate(start: int, stop: int, c: CampaignSeries = c) -> Decimal | None:
                 clicks = _sum(c.clicks, start, stop)
                 return _sum(c.attributed_purchases, start, stop) / clicks if clicks > 0 else None
 
             pre_rate, post_rate = rate(pre, k), rate(k, t + 1)
-            late, early = rate(k - a, k), rate(k, k + a)
+            # The change point is located to within a day or so: the step test skips `g` days on
+            # each side of it so a one-day error does not blur the before/after windows.
+            late, early = rate(k - g - a, k - g), rate(k + g, k + g + a)
             if not pre_rate or not late or post_rate is None or early is None:
                 return None
+            if _sum(c.attributed_purchases, k - g - a, k - g) < Decimal(r.min_purchases_before):
+                return None  # too few purchases to tell a step from a ramp
             relative = float(post_rate / pre_rate)
             if relative > r.max_ratio_of_baseline:
                 return None  # no collapse
@@ -625,13 +653,13 @@ def attribution_collapse(series: StoreSeries, cfg: DetectionConfig) -> list[Find
                 c.attributed_revenue, k, t + 1
             )
             sales_drop = base_sales * scale - sales
-            if attributed_drop <= 0 or sales_drop > attributed_drop * Decimal(
-                str(r.max_explained_share)
-            ):
-                return None
             # Compound Poisson: Var(window sales) ~ expected sales x mean line value.
             sigma = math.sqrt(float(base_sales * scale) * float(base_sales / base_lines))
-            if float(attributed_drop) < r.min_drop_sigmas * sigma:
+            if attributed_drop <= 0 or float(attributed_drop) < r.min_drop_sigmas * sigma:
+                return None
+            # Real sales follow the attributed drop beyond what their own noise allows.
+            explained = float(attributed_drop) * r.max_explained_share
+            if float(sales_drop) > explained + r.explained_noise_sigmas * sigma:
                 return None
             return 2.0 - relative, k
 

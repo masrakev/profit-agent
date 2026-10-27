@@ -32,6 +32,7 @@ class Cusum(_Section):
 
 class CampaignCpa(_Section):
     min_reference_purchases: float
+    cusum_k: float
 
 
 class ProductUnits(_Section):
@@ -64,6 +65,8 @@ class RefundRate(_Section):
     window_days: int
     baseline_days: int
     warmup_days: int
+    lag_min_days: int
+    lag_max_days: int
     ratio: float
     alpha: float
     min_baseline_rate: float
@@ -74,12 +77,15 @@ class AttributionCollapse(_Section):
     lookback_days: int
     min_before_days: int
     abrupt_days: int
+    change_point_guard_days: int
     baseline_days: int
     max_ratio_of_baseline: float
     stable_before_ratio: float
+    min_purchases_before: int
     clicks_tolerance: float
     orders_stable_tolerance: float
     max_explained_share: float
+    explained_noise_sigmas: float
     min_drop_sigmas: float
     persist_days: int
 

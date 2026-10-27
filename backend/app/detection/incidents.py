@@ -2,8 +2,9 @@
 
 Grouping: two product/campaign symptoms belong together when their entities are linked in the
 entity graph (same entity, or campaign <-> promoted product, at most one campaign hop apart) and
-their active intervals overlap within `gap_days`. Store-level symptoms connect to everything, so
-each one joins the most severe time-overlapping group; otherwise store symptoms group together.
+their active intervals overlap within `gap_days`. A store-level symptom joins the most severe
+time-overlapping group that contains a symptom explaining it (see STORE_EXPLAINED_BY); otherwise
+store symptoms group together into a store incident.
 
 Ranking: every symptom votes for (fault family, entity) candidates with a fixed weight times its
 capped score. The profit attribution adds a bonus to the candidate implied by the largest
@@ -52,6 +53,13 @@ VOTES: dict[str, tuple[tuple[FaultFamily, str, float], ...]] = {
     "store_gross_margin_rate_cusum": ((F.MIX_SHIFT, STORE, 0.6),),
 }
 DATA_QUALITY_VOTE = 1.0
+# A store-level symptom joins a product/campaign incident only if that incident has a symptom
+# that explains it (a unit cost increase lowers the store's gross margin rate). Otherwise store
+# symptoms form their own incident: grouping by time alone attached them to unrelated problems.
+STORE_EXPLAINED_BY: dict[str, frozenset[str]] = {
+    "store_gross_margin_rate_z": frozenset({"product_unit_cost_z"}),
+    "store_gross_margin_rate_cusum": frozenset({"product_unit_cost_z"}),
+}
 # Campaign and product-sales symptoms that a stockout on a promoted product explains away.
 STOCKOUT_EXPLAINS = frozenset(
     {"campaign_cpa_z", "campaign_cpa_cusum", "campaign_profit_negative", "product_units_z"}
@@ -122,10 +130,13 @@ def group_symptoms(
     result = list(groups.values())
     orphans: list[Symptom] = []
     for s in (s for s in symptoms if s.entity.kind is ScopeKind.STORE):
+        explainers = STORE_EXPLAINED_BY.get(s.detector_id, frozenset())
         overlapping = [
             g
             for g in result
-            if g[0].category is s.category and any(_overlap(s, other, gap) for other in g)
+            if g[0].category is s.category
+            and any(other.detector_id in explainers for other in g)
+            and any(_overlap(s, other, gap) for other in g)
         ]
         if overlapping:
             max(overlapping, key=lambda g: severity_score(g, cfg)).append(s)

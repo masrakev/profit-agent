@@ -68,7 +68,9 @@ def test_scope_expands_campaigns_and_maps_store_symptoms() -> None:
     )
     assert scope.products == {P1}
     assert scope.campaigns == {C1}
-    assert scope.store_drivers == {Driver.FEES}
+    assert scope.store_drivers == set()  # the campaign explains the store symptom
+    fees = impact_scope([sym("store_payment_fee_rate_z", EntityRef.store())], GRAPH)
+    assert fees.store_drivers == {Driver.FEES}
     margin = impact_scope([sym("store_gross_margin_rate_cusum", EntityRef.store())], GRAPH)
     assert margin.store_drivers == {Driver.MIX, Driver.PRICE, Driver.UNIT_COST}
 
@@ -172,7 +174,7 @@ def test_materiality_comes_from_store_settings(app_engine: Engine) -> None:
     default = pipeline.run_pipeline(app_engine, store)
     alerts = [i for i in default.incidents if i.is_alert]
     assert alerts
-    assert alerts[0].candidates[0].family.value == "mix_shift"
+    assert any(a.candidates[0].family.value == "mix_shift" for a in alerts)
     with tenant_transaction(app_engine, store) as conn:
         impacts = get_facts(conn, store, [alerts[0].monthly_impact_fact_id or 0], with_lineage=True)
         fact = next(iter(impacts.values()))
