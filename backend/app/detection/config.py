@@ -107,6 +107,10 @@ class Attribution(_Section):
     min_driver_share: float
 
 
+class MultipleTesting(_Section):
+    fdr: float
+
+
 class NoiseBand(_Section):
     resamples: int
     min_pairs: int
@@ -133,6 +137,7 @@ class DetectionConfig(_Section):
     incidents: Incidents
     attribution: Attribution
     noise_band: NoiseBand
+    multiple_testing: MultipleTesting
 
 
 def load_config(path: Path | None = None) -> DetectionConfig:

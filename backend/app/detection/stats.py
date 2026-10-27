@@ -163,6 +163,26 @@ def rate_increase_p_value(
     return binomial_sf(current_events, total, share)
 
 
+def normal_sf(z: float) -> float:
+    """P(Z >= z) for a standard normal Z."""
+    return 0.5 * math.erfc(z / math.sqrt(2))
+
+
+def benjamini_hochberg(p_values: Sequence[float], q: float) -> list[bool]:
+    """Which hypotheses are rejected at false discovery rate `q` (Benjamini-Hochberg step-up)."""
+    m = len(p_values)
+    order = sorted(range(m), key=lambda i: p_values[i])
+    cutoff = -1
+    for rank, i in enumerate(order, start=1):
+        if p_values[i] <= q * rank / m:
+            cutoff = rank
+    rejected = [False] * m
+    for rank, i in enumerate(order, start=1):
+        if rank <= cutoff:
+            rejected[i] = True
+    return rejected
+
+
 def episodes(scores: Sequence[float | None], threshold: float, persist: int) -> list[Episode]:
     """Runs of consecutive days with score >= threshold lasting at least `persist` days."""
     found: list[Episode] = []

@@ -13,12 +13,14 @@ from uuid import UUID
 
 from app.detection.config import DetectionConfig
 from app.detection.models import EntityRef, SymptomCategory
-from app.detection.series import CampaignSeries, StoreSeries
+from app.detection.series import CampaignSeries, ProductSeries, StoreSeries
 from app.detection.stats import (
     Episode,
     as_floats,
+    benjamini_hochberg,
     cusum_path,
     episodes,
+    normal_sf,
     poisson_residuals,
     rate_increase_p_value,
     ratio_series,
@@ -77,22 +79,16 @@ def _sum(values: Sequence[Decimal], start: int, end: int) -> Decimal:
 # something. Ratios of daily sums cancel the weekly seasonality.
 
 
-def _z_findings(
+def _z_scores(
     cfg: DetectionConfig,
-    detector_id: str,
-    entity: EntityRef,
-    metric: str,
     series: Sequence[float | None],
     direction: int,
-    facts: tuple[FactRef, ...],
     *,
     rel_floor: float | None = None,
-    threshold: float | None = None,
     min_level: float = 0.0,
-) -> list[Finding]:
+) -> list[float | None]:
     z_cfg = cfg.robust_z
-    limit = threshold or z_cfg.threshold
-    scores = robust_z(
+    return robust_z(
         series,
         window=1,
         baseline=z_cfg.baseline_days,
@@ -101,6 +97,18 @@ def _z_findings(
         abs_floor=z_cfg.abs_floor,
         min_baseline_level=min_level,
     )
+
+
+def _z_episode_findings(
+    cfg: DetectionConfig,
+    detector_id: str,
+    entity: EntityRef,
+    metric: str,
+    scores: Sequence[float | None],
+    facts: tuple[FactRef, ...],
+    limit: float,
+) -> list[Finding]:
+    z_cfg = cfg.robust_z
     return [
         Finding(
             detector_id,
@@ -115,6 +123,48 @@ def _z_findings(
         )
         for e in episodes(scores, limit, z_cfg.persist_days)
     ]
+
+
+def _z_findings(
+    cfg: DetectionConfig,
+    detector_id: str,
+    entity: EntityRef,
+    metric: str,
+    series: Sequence[float | None],
+    direction: int,
+    facts: tuple[FactRef, ...],
+    *,
+    rel_floor: float | None = None,
+    threshold: float | None = None,
+    min_level: float = 0.0,
+) -> list[Finding]:
+    scores = _z_scores(cfg, series, direction, rel_floor=rel_floor, min_level=min_level)
+    limit = threshold or cfg.robust_z.threshold
+    return _z_episode_findings(cfg, detector_id, entity, metric, scores, facts, limit)
+
+
+def bh_gate(
+    scores: dict[UUID, list[float | None]],
+    p_values: dict[UUID, list[float | None]],
+    q: float,
+) -> dict[UUID, list[float | None]]:
+    """Benjamini-Hochberg across entities, day by day: a score survives only on days when its
+    entity's test is rejected at false discovery rate `q` among that day's tests."""
+    gated = {key: list(values) for key, values in scores.items()}
+    days = max((len(v) for v in scores.values()), default=0)
+    for t in range(days):
+        tested = [(key, p[t]) for key, p in p_values.items() if p[t] is not None]
+        if not tested:
+            continue
+        rejected = benjamini_hochberg([p for _, p in tested if p is not None], q)
+        for (key, _), keep in zip(tested, rejected, strict=True):
+            if not keep:
+                gated[key][t] = None
+    return gated
+
+
+def _z_p_values(scores: Sequence[float | None]) -> list[float | None]:
+    return [None if z is None else normal_sf(z) for z in scores]
 
 
 def _cusum_findings(
@@ -185,41 +235,68 @@ def campaign_cpa(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]:
     return out
 
 
+def _daily_units(p: ProductSeries) -> list[float | None]:
+    return as_floats(p.units)
+
+
+def _daily_unit_cost(p: ProductSeries) -> list[float | None]:
+    return ratio_series(p.cogs, p.units)
+
+
+def _daily_unit_fee(p: ProductSeries) -> list[float | None]:
+    return ratio_series(p.unit_fees, p.units)
+
+
 def product_metrics(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]:
-    out: list[Finding] = []
-    for p in series.products.values():
-        entity = EntityRef.product(p.product_id)
-        out += _z_findings(
-            cfg,
+    """Per-product z-tests, corrected across products with Benjamini-Hochberg each day."""
+    tests = (
+        (
             "product_units_z",
-            entity,
             "units",
-            as_floats(p.units),
+            _daily_units,
             DOWN,
-            _refs(entity, "units"),
-            threshold=cfg.product_units.threshold,
-            min_level=cfg.product_units.min_baseline_units,
-        )
-        out += _z_findings(
-            cfg,
+            ("units",),
+            None,
+            cfg.product_units.threshold,
+            cfg.product_units.min_baseline_units,
+        ),
+        (
             "product_unit_cost_z",
-            entity,
             "unit_cost",
-            ratio_series(p.cogs, p.units),
+            _daily_unit_cost,
             UP,
-            _refs(entity, "cogs", "units"),
-            rel_floor=cfg.product_unit_cost.rel_floor,
-        )
-        out += _z_findings(
-            cfg,
+            ("cogs", "units"),
+            cfg.product_unit_cost.rel_floor,
+            cfg.robust_z.threshold,
+            0.0,
+        ),
+        (
             "product_unit_fee_z",
-            entity,
             "unit_fee",
-            ratio_series(p.unit_fees, p.units),
+            _daily_unit_fee,
             UP,
-            _refs(entity, "fees", "units"),
-            rel_floor=cfg.product_unit_fee.rel_floor,
+            ("fees", "units"),
+            cfg.product_unit_fee.rel_floor,
+            cfg.robust_z.threshold,
+            0.0,
+        ),
+    )
+    out: list[Finding] = []
+    for detector, metric, values_of, direction, formulas, rel_floor, limit, min_level in tests:
+        scores = {
+            p.product_id: _z_scores(
+                cfg, values_of(p), direction, rel_floor=rel_floor, min_level=min_level
+            )
+            for p in series.products.values()
+        }
+        gated = bh_gate(
+            scores, {k: _z_p_values(v) for k, v in scores.items()}, cfg.multiple_testing.fdr
         )
+        for pid, values in gated.items():
+            entity = EntityRef.product(pid)
+            out += _z_episode_findings(
+                cfg, detector, entity, metric, values, _refs(entity, *formulas), limit
+            )
     return out
 
 
@@ -412,49 +489,54 @@ def refund_rate_band(series: StoreSeries, cfg: DetectionConfig) -> list[Finding]
 
     Events, not units, so the counting model holds when lines carry several units. The baseline
     is every day from the warm-up to the window start (refunds lag sales by up to 20 days, hence
-    the warm-up). Fires when the rate is at least `ratio` times the baseline rate and the
-    conditional binomial test gives p < `alpha`.
+    the warm-up). A day counts when the rate is at least `ratio` times the baseline rate, the
+    conditional binomial test gives p < `alpha`, and the test survives Benjamini-Hochberg across
+    products that day.
     """
     r = cfg.refund_rate
     w = r.window_days
-    out: list[Finding] = []
-    for p in series.products.values():
 
-        def score(
-            t: int, refunded: list[Decimal] = p.refund_events, sold: list[Decimal] = p.lines
-        ) -> float | None:
-            base_start, base_end = r.warmup_days, t - w + 1
-            if base_end - base_start < r.baseline_days:
-                return None
-            base_sold = _sum(sold, base_start, base_end)
-            current_sold = _sum(sold, base_end, t + 1)
-            if base_sold <= 0 or current_sold <= 0:
-                return None
-            base_refunds = int(_sum(refunded, base_start, base_end))
-            current_refunds = int(_sum(refunded, base_end, t + 1))
-            base_rate = max(base_refunds / float(base_sold), r.min_baseline_rate)
-            if current_refunds < r.ratio * base_rate * float(current_sold):
-                return None
-            p_value = rate_increase_p_value(
-                current_refunds, float(current_sold), base_refunds, float(base_sold)
-            )
-            if p_value >= r.alpha:
-                return None
-            return math.log10(1 / max(p_value, 1e-300)) / math.log10(1 / r.alpha)
-
-        entity = EntityRef.product(p.product_id)
-        out += _rule_findings(
-            "product_refund_rate_band",
-            entity,
-            "refund_rate",
-            PROFIT,
-            series.days,
-            score,
-            persist=r.persist_days,
-            window=w,
-            baseline=r.baseline_days,
-            facts=_refs(entity, "refund_rate"),
+    def test(p: ProductSeries, t: int) -> tuple[float | None, float | None]:
+        base_start, base_end = r.warmup_days, t - w + 1
+        if base_end - base_start < r.baseline_days:
+            return None, None
+        base_sold = _sum(p.lines, base_start, base_end)
+        current_sold = _sum(p.lines, base_end, t + 1)
+        if base_sold <= 0 or current_sold <= 0:
+            return None, None
+        base_refunds = int(_sum(p.refund_events, base_start, base_end))
+        current_refunds = int(_sum(p.refund_events, base_end, t + 1))
+        p_value = rate_increase_p_value(
+            current_refunds, float(current_sold), base_refunds, float(base_sold)
         )
+        base_rate = max(base_refunds / float(base_sold), r.min_baseline_rate)
+        if current_refunds < r.ratio * base_rate * float(current_sold) or p_value >= r.alpha:
+            return None, p_value
+        return math.log10(1 / max(p_value, 1e-300)) / math.log10(1 / r.alpha), p_value
+
+    scores: dict[UUID, list[float | None]] = {}
+    p_values: dict[UUID, list[float | None]] = {}
+    for p in series.products.values():
+        results = [test(p, t) for t in range(series.days)]
+        scores[p.product_id] = [score for score, _ in results]
+        p_values[p.product_id] = [pv for _, pv in results]
+    out: list[Finding] = []
+    for pid, values in bh_gate(scores, p_values, cfg.multiple_testing.fdr).items():
+        entity = EntityRef.product(pid)
+        out += [
+            Finding(
+                "product_refund_rate_band",
+                entity,
+                "refund_rate",
+                PROFIT,
+                e,
+                e.peak,
+                w,
+                r.baseline_days,
+                _refs(entity, "refund_rate"),
+            )
+            for e in episodes(values, 1.0, r.persist_days)
+        ]
     return out
 
 

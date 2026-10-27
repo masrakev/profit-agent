@@ -104,3 +104,9 @@ resamples = 500
 min_pairs = 20
 low_percentile = 5.0
 high_percentile = 95.0
+
+[multiple_testing]
+# Benjamini-Hochberg across products, per detector and evaluation day (units, unit cost, unit fee
+# and refund tests). A day counts only if its test survives at this false discovery rate AND
+# meets the detector's own threshold; persistence rules then apply as usual.
+fdr = 0.05

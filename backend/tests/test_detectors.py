@@ -13,9 +13,11 @@ from app.detection.models import SymptomCategory
 from app.detection.series import CampaignSeries, ProductSeries, StoreSeries
 from app.detection.stats import (
     as_floats,
+    benjamini_hochberg,
     binomial_sf,
     cusum_path,
     episodes,
+    normal_sf,
     poisson_residuals,
     rate_increase_p_value,
     ratio_series,
@@ -260,3 +262,41 @@ def test_attributed_symptoms_are_reclassified_by_a_collapse() -> None:
 def test_thresholds_file_is_versioned(tmp_path: object) -> None:
     assert CFG.version == 1
     assert load_config().robust_z == CFG.robust_z
+
+
+# --- multiple testing --------------------------------------------------------------------------
+
+
+def test_benjamini_hochberg_step_up() -> None:
+    # Classic example: m = 5, q = 0.05 -> thresholds 0.01, 0.02, 0.03, 0.04, 0.05.
+    p = [0.04, 0.001, 0.03, 0.2, 0.012]
+    assert benjamini_hochberg(p, 0.05) == [True, True, True, False, True]
+    assert benjamini_hochberg([0.5, 0.6], 0.05) == [False, False]
+    assert benjamini_hochberg([], 0.05) == []
+    assert normal_sf(0.0) == pytest.approx(0.5)
+    assert normal_sf(3.0) == pytest.approx(0.00135, rel=1e-2)
+
+
+def test_bh_gate_keeps_strong_and_drops_borderline_scores() -> None:
+    # Day 0: one entity at z ~ 5 among 20 nulls survives; day 1: a lone z ~ 2.5 among 20 nulls
+    # (p ~ 0.006 > 0.05 / 21) does not.
+    strong, borderline = UUID(int=100), UUID(int=101)
+    scores = {strong: [5.0, None], borderline: [None, 2.5]}
+    p_values = {strong: [normal_sf(5.0), None], borderline: [None, normal_sf(2.5)]}
+    for i in range(20):
+        scores[UUID(int=i + 200)] = [None, None]
+        p_values[UUID(int=i + 200)] = [0.6, 0.6]
+    gated = d.bh_gate(scores, p_values, 0.05)
+    assert gated[strong] == [5.0, None]
+    assert gated[borderline] == [None, None]
+    alone = d.bh_gate({borderline: [2.5]}, {borderline: [normal_sf(2.5)]}, 0.05)
+    assert alone[borderline] == [2.5]
+
+
+def test_one_product_step_survives_correction_among_many() -> None:
+    products = [product(UUID(int=i + 1)) for i in range(25)]
+    products[0].cogs = [
+        u * (D(4) if t < 80 else D("4.40")) for t, u in enumerate(products[0].units)
+    ]
+    found = fired(d.product_metrics(store(*products), CFG), "product_unit_cost_z")
+    assert [f.entity.id for f in found] == [products[0].product_id]
