@@ -135,6 +135,6 @@ def write_reports(
     md = render_markdown(
         suite, started, summary, judgements, outcomes, total_runtime_s, thresholds_version
     )
-    md_path = out_dir / ("latest.md" if suite == "test" else f"latest-{suite}.md")
+    md_path = out_dir / ("latest.md" if suite == "test_v2" else f"latest-{suite}.md")
     md_path.write_text(md, encoding="utf-8", newline="\n")
     return json_path, md_path

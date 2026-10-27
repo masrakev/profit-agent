@@ -1,6 +1,6 @@
 """Run a benchmark suite end to end and write reports.
 
-    uv run python -m bench.runner                  # test suite (what `make eval` runs)
+    uv run python -m bench.runner                  # test_v2 suite (what `make eval` runs)
     uv run python -m bench.runner --suite dev      # tuning suite
 
 Uses a dedicated database (`profit_bench`), recreated and migrated on every run, and runs
@@ -55,8 +55,8 @@ def prepare_database() -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the detection benchmark")
-    parser.add_argument("--suite", choices=["dev", "test"], default="test")
-    parser.add_argument("--workers", type=int, default=min(4, os.cpu_count() or 1))
+    parser.add_argument("--suite", choices=["dev", "test_v2", "golden"], default="test_v2")
+    parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
     parser.add_argument("--only", nargs="*", help="scenario ids to run")
     parser.add_argument("--out", type=Path, default=REPORT_DIR)
     args = parser.parse_args(argv)

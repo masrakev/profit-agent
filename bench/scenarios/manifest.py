@@ -1,4 +1,5 @@
-"""Scenario manifests: generator config + seed + faults + ground-truth labels, stored as JSON."""
+"""Scenario manifests: generator config + seed + faults (and conditions) + ground-truth labels,
+stored as JSON."""
 
 import json
 from pathlib import Path
@@ -7,10 +8,15 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from bench.faults import AnyFault, FaultLabel
+from bench.faults.conditions import AnyCondition, ConditionLabel
 from bench.generator import GeneratedStore, GeneratorConfig, generate
+from bench.generator.faults import fault_rng
 
 SCENARIO_DIR = Path(__file__).resolve().parent
-Suite = Literal["dev", "test"]
+# dev: tuning only. test_v2: reported once thresholds are frozen. golden: named scenarios for
+# the golden question set (bench/golden/questions.yaml).
+Suite = Literal["dev", "test_v2", "golden"]
+CONDITION_STREAM = 100  # random streams of conditions start after those of faults
 
 
 class ScenarioManifest(BaseModel):
@@ -22,13 +28,19 @@ class ScenarioManifest(BaseModel):
     config: GeneratorConfig
     faults: tuple[AnyFault, ...] = ()
     labels: tuple[FaultLabel, ...] = ()
+    conditions: tuple[AnyCondition, ...] = ()
+    condition_labels: tuple[ConditionLabel, ...] = ()
 
     @property
     def is_healthy(self) -> bool:
         return not self.faults
 
     def generate(self) -> GeneratedStore:
-        return generate(self.config, faults=self.faults)
+        data = generate(self.config, faults=self.faults)
+        for index, condition in enumerate(self.conditions):
+            rng = fault_rng(self.config.seed, CONDITION_STREAM + index, condition)
+            data = condition.apply(data, rng)
+        return data
 
     def to_json(self) -> str:
         return json.dumps(self.model_dump(mode="json"), indent=2, sort_keys=True) + "\n"

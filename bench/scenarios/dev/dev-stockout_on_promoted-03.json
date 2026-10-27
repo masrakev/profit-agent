@@ -1,4 +1,6 @@
 {
+  "condition_labels": [],
+  "conditions": [],
   "config": {
     "campaign_budget_policy": "profit_optimal",
     "campaigns_max": 8,

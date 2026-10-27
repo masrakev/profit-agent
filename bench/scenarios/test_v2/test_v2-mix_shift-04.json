@@ -1,0 +1,65 @@
+{
+  "condition_labels": [],
+  "conditions": [],
+  "config": {
+    "campaign_budget_policy": "profit_optimal",
+    "campaigns_max": 8,
+    "campaigns_min": 3,
+    "cost_change_probability": "0",
+    "cross_sell_probability": "0.12",
+    "currency": "USD",
+    "days": 120,
+    "discount_probability": "0.2",
+    "discount_rate": "0.10",
+    "free_shipping_threshold": "75.00",
+    "initial_stock_days": [
+      45,
+      60
+    ],
+    "payment_fee_fixed": "0.30",
+    "payment_fee_rate": "0.029",
+    "products_max": 40,
+    "products_min": 15,
+    "reorder_policy": "adaptive",
+    "safety_stock_days": 7,
+    "seed": 92800,
+    "shipping_fee": "5.99",
+    "start_date": "2026-06-01",
+    "store_name": null,
+    "tax_rate": "0.08",
+    "weekly_seasonality": [
+      "0.92",
+      "0.95",
+      "0.97",
+      "1.00",
+      "1.08",
+      "1.15",
+      "0.93"
+    ]
+  },
+  "description": "mix_shift magnitude 0.50 from day 73 (2026-08-13)",
+  "faults": [
+    {
+      "magnitude": "0.50",
+      "start_day": 73,
+      "type": "mix_shift"
+    }
+  ],
+  "labels": [
+    {
+      "category": "profitability",
+      "entities": [
+        {
+          "id": null,
+          "kind": "store"
+        }
+      ],
+      "expected_driver": "mix",
+      "fault_type": "mix_shift",
+      "magnitude": "0.50",
+      "start_day": 73
+    }
+  ],
+  "scenario_id": "test_v2-mix_shift-04",
+  "suite": "test_v2"
+}

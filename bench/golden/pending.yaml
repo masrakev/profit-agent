@@ -1,0 +1,7 @@
+# Golden scenarios referenced by questions.yaml that are not pure data yet.
+# Each needs recorded decisions and outcomes, so it is deferred to the decisions task.
+pending:
+  golden-cpa_drift-with-decision: >-
+    needs a recorded budget decision on the drifting campaign and its outcome window
+  golden-short-history-decision: >-
+    needs a recorded decision with too little post-decision history to measure (abstention)
