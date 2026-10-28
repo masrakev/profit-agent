@@ -117,6 +117,7 @@ def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> Generated
         store_id=store_id,
         name=config.store_name or f"Bench store {config.seed}",
         currency=config.currency,
+        synthetic=True,
     )
     states = _products(config, rng, store_id)
     campaigns, promoted, campaign_truth = _campaigns(config, rng, store_id, states)

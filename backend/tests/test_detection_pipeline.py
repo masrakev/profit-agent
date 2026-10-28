@@ -10,7 +10,9 @@ from app.db import tenant_transaction
 from app.detection import pipeline
 from app.detection.config import default_config
 from app.detection.models import FaultFamily
+from app.detection.repository import IncidentRepository
 from app.detection.series import load_series
+from app.domain.repositories import StoreRepository
 from app.facts.engine import FactEngine
 from app.facts.model import Period, Scope
 from app.facts.repository import get_facts
@@ -76,6 +78,22 @@ def test_pipeline_finds_a_supplier_cost_increase_end_to_end(
     referenced = {i for s in result.symptoms for i in (*s.baseline_fact_ids, *s.current_fact_ids)}
     with tenant_transaction(app_engine, store) as conn:
         assert set(get_facts(conn, store, referenced)) == referenced  # every symptom is backed
+        loaded = StoreRepository(conn).get(store)
+        assert loaded is not None
+        assert loaded.synthetic  # generated benchmark stores are marked synthetic
+        repo = IncidentRepository(conn)
+        assert repo.list_ids(store) == sorted(i.incident_id for i in result.incidents)
+        stored = repo.get(store, result.incidents[0].incident_id)
+        assert stored is not None
+        assert stored.incident == result.incidents[0]
+        assert (stored.as_of, stored.thresholds_version) == (result.as_of, 1)
+        assert repo.get(store, "inc-unknown") is None
+    # A second run refreshes the same incidents instead of duplicating them.
+    again = pipeline.run_pipeline(app_engine, store)
+    with tenant_transaction(app_engine, store) as conn:
+        assert IncidentRepository(conn).list_ids(store) == sorted(
+            i.incident_id for i in again.incidents
+        )
 
     assert pipeline.main(["--store", str(store)]) == 0
     summary = json.loads(capsys.readouterr().out)
@@ -87,3 +105,8 @@ def test_pipeline_on_an_empty_store(app_engine: Engine) -> None:
     result = pipeline.run_pipeline(app_engine, store)
     assert result.incidents == []
     assert result.attribution is None
+    with tenant_transaction(app_engine, store) as conn:
+        loaded = StoreRepository(conn).get(store)
+        assert loaded is not None
+        assert not loaded.synthetic
+        assert IncidentRepository(conn).list_ids(store) == []

@@ -55,6 +55,7 @@ class StoreRepository:
                 schema.stores.c.name,
                 schema.stores.c.currency,
                 schema.stores.c.timezone,
+                schema.stores.c.synthetic,
             ).where(schema.stores.c.store_id == store_id)
         ).first()
         return None if row is None else Store.model_validate(row._asdict())

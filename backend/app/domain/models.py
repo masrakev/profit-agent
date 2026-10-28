@@ -29,6 +29,9 @@ class Store(DomainModel):
     name: str
     currency: Currency
     timezone: str = "UTC"
+    # Benchmark store built by the generator. Only synthetic data may be sent to a model in
+    # Contributor mode (ADR 0009); real stores always use Standard mode.
+    synthetic: bool = False
 
 
 class Product(DomainModel):

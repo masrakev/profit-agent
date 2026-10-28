@@ -54,6 +54,7 @@ stores = Table(
     _currency(),
     Column("timezone", Text, nullable=False),
     _ts("created_at"),
+    Column("synthetic", Boolean, nullable=False),
 )
 
 products = Table(
@@ -261,5 +262,20 @@ store_settings = Table(
     Column("max_budget_change_ratio", Numeric(9, 6), nullable=False),
     Column("max_budget_changes_per_day", Integer, nullable=False),
     Column("language", Text, nullable=False),
+    _ts("updated_at"),
+)
+
+incidents = Table(
+    "incidents",
+    metadata,
+    _store_id(),
+    Column("incident_id", Text, primary_key=True),
+    Column("as_of", Date, nullable=False),
+    Column("thresholds_version", Integer, nullable=False),
+    Column("category", Text, nullable=False),
+    Column("alert", Text, nullable=False),
+    Column("first_seen", Date, nullable=False),
+    Column("last_seen", Date, nullable=False),
+    Column("payload", JSONB, nullable=False),
     _ts("updated_at"),
 )

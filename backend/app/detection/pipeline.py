@@ -37,6 +37,7 @@ from app.detection.impact import (
 )
 from app.detection.incidents import Assessment, EntityGraph, build_incidents
 from app.detection.models import Incident, Severity, Symptom
+from app.detection.repository import IncidentRepository
 from app.detection.series import StoreSeries, load_series
 from app.domain.audit import append_audit
 from app.domain.hashing import canonical_json, sha256_hex
@@ -286,6 +287,9 @@ def run_pipeline(
             with contextlib.suppress(AttributionUnavailableError):
                 attributions.append(attribute_profit_change(facts, baseline, current))
         as_of = series.day(series.days) if series.days else date.min
+        IncidentRepository(conn).save_all(
+            store_id, incidents, as_of=as_of, thresholds_version=cfg.version
+        )
         append_audit(
             conn,
             store_id,
