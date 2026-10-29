@@ -35,22 +35,22 @@ def _with_db(url: str, database: str) -> str:
     return make_url(url).set(database=database).render_as_string(hide_password=False)
 
 
-def prepare_database() -> str:
-    """Recreate and migrate the bench database; return the app-role URL for it."""
+def prepare_database(name: str = BENCH_DB) -> str:
+    """Recreate and migrate a bench database; return the app-role URL for it."""
     settings = get_settings()
     maintenance = create_engine(
         _with_db(settings.database_url, "postgres"), isolation_level="AUTOCOMMIT"
     )
     with maintenance.connect() as conn:
-        conn.execute(text(f'DROP DATABASE IF EXISTS "{BENCH_DB}" WITH (FORCE)'))
-        conn.execute(text(f'CREATE DATABASE "{BENCH_DB}"'))
+        conn.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        conn.execute(text(f'CREATE DATABASE "{name}"'))
     maintenance.dispose()
     config = Config(str(ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(ROOT / "backend" / "migrations"))
-    config.attributes["url"] = _with_db(settings.database_url, BENCH_DB)
+    config.attributes["url"] = _with_db(settings.database_url, name)
     config.attributes["configure_logger"] = False
     command.upgrade(config, "head")
-    return _with_db(settings.app_database_url, BENCH_DB)
+    return _with_db(settings.app_database_url, name)
 
 
 def main(argv: list[str] | None = None) -> int:
