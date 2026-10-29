@@ -33,6 +33,7 @@ from app.agent.llm.errors import LLMError
 from app.agent.llm.models import DataOrigin
 from app.agent.llm.provider import LLMProvider
 from app.agent.llm.types import InputItem, LLMRequest, LLMResult, ToolCall, UserMessage
+from app.agent.opportunities import options_context
 from app.agent.origin import data_origin
 from app.agent.prompts import load_prompt
 from app.agent.session import UsageSummary, run_session, summarize
@@ -182,7 +183,7 @@ def incidents_context(
     routing: Routing,
     stages: StagesConfig,
     run_id: str,
-) -> tuple[UserMessage, set[str]]:
+) -> tuple[UserMessage, set[str], list[dict[str, Any]]]:
     """Diagnose and improve answers build on the store's incidents (watchlist included) and on
     the verified investigations of the most urgent ones (run now or from the investigation cache).
     Their facts and entities are this store's verified ones, so the answer may cite them."""
@@ -229,7 +230,7 @@ def incidents_context(
             investigations,
         ]
     )
-    return UserMessage(text=text), entities
+    return UserMessage(text=text), entities, reports
 
 
 def classification_routing(origin: DataOrigin) -> Routing:
@@ -350,11 +351,16 @@ def ask(
         items: list[InputItem] = [store_context(conn, ctx)]
         entities = {"store"}
         if question_type in INVESTIGATED:
-            context, found = incidents_context(
+            context, found, reports = incidents_context(
                 engine, ctx, registry, provider, routing, stages, run_id or str(ask_id)
             )
             items.append(context)
             entities |= found
+            if question_type is QuestionType.IMPROVE:
+                # Ranked opportunities with simulated ranges (SPEC section 8, improve).
+                options, option_entities = options_context(conn, ctx, reports)
+                items.append(options)
+                entities |= option_entities
         items.append(question_message)
         run = run_session(
             provider,

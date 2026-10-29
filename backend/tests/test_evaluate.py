@@ -8,6 +8,7 @@ from uuid import UUID
 import pytest
 from sqlalchemy import Engine
 
+from app.agent import ask as ask_module
 from app.agent.ask import AskResult, QuestionType, ask
 from app.agent.contracts import Answer, Flag
 from app.agent.evaluate import (
@@ -17,10 +18,12 @@ from app.agent.evaluate import (
     resolve,
     variants,
 )
+from app.agent.investigator import investigate
 from app.agent.llm import fake as f
 from app.decisions.verdict import Verdict, judge
 from app.twin import Action, ActionKind, Scenario
 from app.twin.model import Range, Simulation, TwinModel
+from tests import test_investigator as investigation_steps
 from tests.llm_helpers import Harness
 from tests.test_twin import CAMPAIGN, OTHER, PROMOTED
 from tests.test_twin import model as twin_model  # noqa: F401  (module fixture)
@@ -323,3 +326,56 @@ def test_an_evaluation_starts_from_the_current_facts(
     h = Harness(steps)
     out = ask(app_engine, golden_stockout["id"], "Launch one?", h.provider)
     assert (out.status, out.regenerations) == ("answered", 1)
+
+
+@pytest.mark.db
+def test_improve_answers_rank_simulated_options(
+    app_engine: Engine, golden_stockout: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    inv_harness = Harness([investigation_steps.call_sensitivity, investigation_steps.answer])
+    investigation = investigate(
+        app_engine,
+        golden_stockout["id"],
+        golden_stockout["incident"],
+        inv_harness.provider,
+        use_cache=False,
+    )
+    monkeypatch.setattr(ask_module, "investigate", lambda *a, **k: investigation)
+    seen: dict[str, Any] = {}
+
+    def recommend(body: dict[str, Any]) -> f.Reply:
+        texts = [i["content"][0]["text"] for i in body["input"] if "content" in i]
+        options_text = next(t for t in texts if t.startswith("Options generated"))
+        sets = json.loads(options_text.split("\n", 1)[1])
+        seen["sets"] = sets
+        best = next(
+            o
+            for s in sets
+            for o in s["options"]
+            if o["recommended_by_code"] and "simulated_net_profit_change" in o
+        )
+        fid = best["simulated_net_profit_change"]["fact_id"]
+        return f.structured(
+            {
+                "answer": f"Pause the promotion until restock: {{{{F{fid}}}}}.",
+                "evidence": [fid],
+                "reasoning": None,
+                "alternatives": [],
+                "uncertainty": "Simulated range.",
+                "recommendation": "Pause the campaign until the stock arrives.",
+                "would_change_my_mind": "Stock arriving earlier.",
+                "flags": [],
+                "ranked_causes": [],
+                "action_family": best["action_family"],
+            }
+        )
+
+    h = Harness([classify("improve"), recommend])
+    out = ask(app_engine, golden_stockout["id"], "What can I do to make more money?", h.provider)
+    assert (out.status, out.question_type) == ("answered", QuestionType.IMPROVE)
+    causes = [s["cause"] for s in seen["sets"]]
+    assert "stockout_on_promoted" in causes
+    stockout = next(s for s in seen["sets"] if s["cause"] == "stockout_on_promoted")
+    assert stockout["current_facts"]
+    assert any(o["kind"] == "pause_until_restock" for o in stockout["options"])
+    assert out.answer.action_family is not None
