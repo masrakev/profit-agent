@@ -11,3 +11,7 @@ Classify the owner's question into exactly one type:
 - review: asks whether a past change worked;
 - data_question: asks where data comes from or whether it can be trusted;
 - out_of_scope: anything the store's sales, costs, ads and stock cannot answer.
+
+When the owner describes a problem and asks what to do about it, the type is diagnose: the cause
+comes first. Whether a specific campaign, product or result is really good or bad is diagnose;
+data_question is about where the data comes from or whether a data source can be trusted.

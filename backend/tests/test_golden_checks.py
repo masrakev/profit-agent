@@ -188,3 +188,12 @@ def test_the_golden_set_loads_with_pending_questions() -> None:
     assert "recommend_pause_on_data_quality_issue" in q13.forbidden
     q01 = next(q for q in golden.questions if q.id == "q01")
     assert q01.must_include_fields == ["answer", "evidence", "uncertainty"]  # the defaults
+
+
+def test_exact_wording_counts_only_next_to_an_estimate() -> None:
+    fine = answer(
+        answer="The exact Shapley split shows {{F4}}. The loss is about {{F3}}.", evidence=[3, 4]
+    )
+    assert forbidden_check("estimate_presented_as_exact", fine, FACTS).passed
+    bad = answer(answer="The loss will be exactly {{F3}}.", evidence=[3])
+    assert not forbidden_check("estimate_presented_as_exact", bad, FACTS).passed

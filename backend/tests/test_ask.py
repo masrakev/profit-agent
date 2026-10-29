@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from sqlalchemy import Engine, text
 
+from app.agent import ask as ask_module
 from app.agent.ask import (
     AskResult,
     QuestionType,
@@ -15,11 +16,13 @@ from app.agent.ask import (
     contract_checks,
 )
 from app.agent.contracts import ActionFamily, Answer, Flag
+from app.agent.investigator import investigate
 from app.agent.llm import DataOrigin
 from app.agent.llm import fake as f
 from app.agent.stages import Routing
 from app.db import tenant_transaction
 from bench.scenarios.build import INJECTION_TEXT
+from tests import test_investigator as investigation_steps
 from tests.builders import Scenario
 from tests.conftest import create_store
 from tests.llm_helpers import Harness
@@ -68,6 +71,9 @@ def test_out_of_scope_and_not_available(
     assert (out.status, out.question_type) == ("out_of_scope", QuestionType.OUT_OF_SCOPE)
     assert out.answer.flags == [Flag.OUT_OF_SCOPE]
     assert len(h.transport.requests) == 1  # classification only
+    # A scope statement plus what the product can say: one fact, cited.
+    assert len(out.answer.evidence) == 1
+    assert f"{{{{F{out.answer.evidence[0]}}}}}" in out.answer.answer
     # SPEC section 16: classification uses the Contributor model on synthetic stores.
     assert h.transport.requests[0]["model"] == "muse-spark-1.3-contributor"
     assert out.classification_model == "muse-spark-1.3-contributor"
@@ -100,8 +106,20 @@ def test_a_lookup_is_answered_with_facts(
 
 
 def test_a_diagnosis_needs_causes_and_alternatives(
-    app_engine: Engine, golden_stockout: dict[str, Any]
+    app_engine: Engine, golden_stockout: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # The diagnosis builds on investigations of the most urgent incidents: one real
+    # investigation (scripted model) stands in for each of them.
+    inv_harness = Harness([investigation_steps.call_sensitivity, investigation_steps.answer])
+    investigation = investigate(
+        app_engine,
+        golden_stockout["id"],
+        golden_stockout["incident"],
+        inv_harness.provider,
+        use_cache=False,
+    )
+    monkeypatch.setattr(ask_module, "investigate", lambda *a, **k: investigation)
+
     def thin(body: dict[str, Any]) -> f.Reply:
         fid = fact_ids(body)[0]
         return f.structured(answer(f"See {{{{F{fid}}}}}.", [fid]))
@@ -131,6 +149,11 @@ def test_a_diagnosis_needs_causes_and_alternatives(
     ]
     result, h = run(app_engine, golden_stockout["id"], "Why is profit down?", steps)
     assert (result.status, result.regenerations) == ("answered", 1)
+    sent = [i["content"][0]["text"] for i in h.transport.requests[1]["input"][:3]]
+    assert sent[0].startswith("Store context")
+    assert sent[1].startswith("Incidents (result of list_incidents")
+    assert investigation.incident_id in sent[1]
+    assert sent[2].startswith("Question type: diagnose")
     feedback = h.transport.requests[3]["input"][-1]["content"][0]["text"]
     assert "rank the causes" in feedback
     assert "list the alternatives" in feedback

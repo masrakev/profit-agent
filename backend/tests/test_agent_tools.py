@@ -14,7 +14,7 @@ from sqlalchemy import Connection, Engine, insert, text
 
 from app.agent.llm.types import ToolCall
 from app.agent.tools import TOOLS, ToolContext, build_registry
-from app.agent.tools.base import PeriodInput, Tool, ToolInput, ToolResult
+from app.agent.tools.base import TRUNCATED, PeriodInput, Tool, ToolInput, ToolResult
 from app.agent.tools.readonly import WriteForbiddenError, facts_only
 from app.agent.untrusted import CLOSE, OPEN
 from app.db import tenant_transaction
@@ -92,6 +92,7 @@ def test_registry_lists_the_typed_tools() -> None:
             "get_facts",
             "get_incident",
             "list_incidents",
+            "list_products",
             "get_inventory_context",
             "get_profit_bridge",
             "get_series_summary",
@@ -438,3 +439,17 @@ def test_list_incidents(ctx: ToolContext, store: dict[str, Any]) -> None:
     assert {i["alert"] for i in alerts} <= {"critical", "high", "normal", "data_quality"}
     assert len(everything) >= len(alerts)
     assert numbers_outside_facts(everything) == []
+
+
+def test_list_products(ctx: ToolContext, store: dict[str, Any]) -> None:
+    view = call(ctx, "list_products", sort="contribution_margin")
+    products = [p for p in view["products"] if p != TRUNCATED]  # long lists are cut
+    assert products
+    margins = [p["contribution_margin_last_28_days"]["value"] for p in products]
+    defined = [Decimal(m) for m in margins if m is not None]
+    assert defined == sorted(defined, reverse=True)
+    assert all(p["product"]["name"].startswith(f"{OPEN}data kind=product_name") for p in products)
+    assert numbers_outside_facts(view) == []
+    newest = [p for p in call(ctx, "list_products", sort="newest")["products"] if p != TRUNCATED]
+    firsts = [p["first_sale"] for p in newest if p["first_sale"]]
+    assert firsts == sorted(firsts, reverse=True)

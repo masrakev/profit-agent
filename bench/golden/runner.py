@@ -64,6 +64,8 @@ def _names(engine: Engine, store_id: UUID, labels: dict[str, str]) -> dict[str, 
     with tenant_transaction(engine, store_id) as conn:
         for placeholder, ref in labels.items():
             kind, _, ident = ref.partition(":")
+            if kind not in ("product", "campaign"):
+                continue  # the store is "my store" in the owner's words
             table = "products" if kind == "product" else "ad_campaigns"
             name = conn.execute(
                 text(f"SELECT name FROM {table} WHERE store_id = :s AND id = :i"),

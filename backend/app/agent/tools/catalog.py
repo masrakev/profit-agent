@@ -185,6 +185,64 @@ def list_incidents(ctx: ToolContext, q: IncidentsQuery) -> IncidentsView:
     return IncidentsView(incidents=out)
 
 
+# --- list_products -------------------------------------------------------------------------
+
+
+class ProductsQuery(ToolInput):
+    sort: Literal["contribution_margin", "newest"] = Field(
+        description="best contribution margin first, or the most recent first sale first"
+    )
+
+
+class ProductSummary(ToolResult):
+    product: EntityView
+    first_sale: date | None
+    units_last_28_days: FactView
+    contribution_margin_last_28_days: FactView
+
+
+class ProductsView(ToolResult):
+    products: list[ProductSummary] = Field(description="in the requested order")
+
+
+def list_products(ctx: ToolContext, q: ProductsQuery) -> ProductsView:
+    recent = ctx.recent(28)
+    rows = ctx.conn.execute(
+        text(
+            "SELECT p.id, min(o.ordered_at) AS first_sale FROM products p "
+            "LEFT JOIN order_lines ol ON ol.store_id = p.store_id AND ol.product_id = p.id "
+            "LEFT JOIN orders o ON o.store_id = ol.store_id AND o.id = ol.order_id "
+            "WHERE p.store_id = :s GROUP BY p.id"
+        ),
+        {"s": ctx.store_id},
+    ).all()
+    items = []
+    for row in rows:
+        scope = Scope.product(row.id)
+        margin = _fact(ctx, "contribution_margin", scope, recent)
+        items.append((margin, row, scope))
+    if q.sort == "newest":
+        items.sort(
+            key=lambda x: (
+                x[1].first_sale is None,
+                -(x[1].first_sale.timestamp() if x[1].first_sale else 0),
+            )
+        )
+    else:
+        items.sort(key=lambda x: (x[0].value is None, -(x[0].value or 0), str(x[1].id)))
+    return ProductsView(
+        products=[
+            ProductSummary(
+                product=ctx.entity(scope),
+                first_sale=row.first_sale.date() if row.first_sale else None,
+                units_last_28_days=ctx.view(_fact(ctx, "units", scope, recent)),
+                contribution_margin_last_28_days=ctx.view(margin),
+            )
+            for margin, row, scope in items
+        ]
+    )
+
+
 # --- get_profit_bridge ---------------------------------------------------------------------
 
 
@@ -587,6 +645,14 @@ def compute_tool(ctx: ToolContext, q: ComputeQuery) -> ComputeView:
 
 
 TOOLS: list[Tool[Any, Any]] = [
+    Tool(
+        "list_products",
+        "Every product: name, first sale, units and contribution margin over "
+        "the last 28 days; sorted by margin or newest first.",
+        ProductsQuery,
+        ProductsView,
+        list_products,
+    ),
     Tool(
         "list_incidents",
         "The store's incidents, most urgent first: category, alert level, "
