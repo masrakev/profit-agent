@@ -20,6 +20,7 @@ def render_proposals(
     by_id = {o.scenario_id: o for o in outcomes}
     helped: dict[tuple[str, str, str], list[str]] = defaultdict(list)
     hurt: dict[tuple[str, str], list[str]] = defaultdict(list)
+    shared: dict[tuple[str, str], list[str]] = defaultdict(list)
     findings: Counter[tuple[str, str]] = Counter()
     unstable: Counter[str] = Counter()
     for j in judgements:
@@ -38,6 +39,8 @@ def render_proposals(
         elif j.agent_changed_top1 and not j.agent_top1:
             agent_top = o.agent.hypotheses[0].family if o.agent.hypotheses else "none"
             hurt[(j.fault_type, agent_top)].append(j.scenario_id)
+        elif j.agent_top1 is False and j.top1 is False:
+            shared[(j.fault_type, det)].append(j.scenario_id)
     lines = [
         "# Audit proposals (for human review)",
         "",
@@ -63,6 +66,15 @@ def render_proposals(
         lines.append(
             f"- {len(ids)} `{fault}` scenario(s) re-ranked to `{agent_top}`: review the "
             f"investigator prompt or routing. Scenarios: {', '.join(f'`{i}`' for i in ids)}."
+        )
+    lines += ["", "## Where the detectors and the investigation were both wrong", ""]
+    if not shared:
+        lines.append("None.")
+    for (fault, det), ids in sorted(shared.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        lines.append(
+            f"- {len(ids)} `{fault}` scenario(s) ranked `{det}` first by both. Proposal: a "
+            f"detector or symptom that separates `{fault}` from `{det}`. "
+            f"Scenarios: {', '.join(f'`{i}`' for i in ids)}."
         )
     lines += [
         "",

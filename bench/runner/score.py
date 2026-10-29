@@ -78,6 +78,9 @@ class Judgement(BaseModel):
     agent_final_violations: int = 0
     agent_rejected_violations: int = 0
     agent_error: bool = False
+    # Scored on the deterministic ranking: the agent arm ran but did not investigate (no
+    # incident, or the investigation failed), so the owner would see the pipeline's ranking.
+    agent_fallback: bool = False
 
 
 def _matches(family: str, entity: str, label: FaultLabel) -> bool:
@@ -130,11 +133,19 @@ def _alert_counts(outcome: ScenarioOutcome, label: FaultLabel | None) -> dict[st
 
 
 def _agent_fields(
-    outcome: ScenarioOutcome, label: FaultLabel | None, det_top1: bool | None
+    outcome: ScenarioOutcome,
+    label: FaultLabel | None,
+    deterministic: tuple[bool, bool, bool | None] | None,
 ) -> dict[str, object]:
+    """`deterministic` is the baseline's (top-1, top-3, tracking break as data quality)."""
     a = outcome.agent
     if a is None:
-        return {"agent_error": outcome.agent_error is not None}
+        fields: dict[str, object] = {"agent_error": outcome.agent_error is not None}
+        if outcome.agent_arm and label is not None and deterministic is not None:
+            # Same denominator as the baseline: without an investigation, the pipeline's ranking.
+            fields["agent_fallback"] = True
+            fields["agent_top1"], fields["agent_top3"], fields["agent_tracking_dq"] = deterministic
+        return fields
     ranked = list(a.hypotheses)
     top = ranked[0] if ranked else None
 
@@ -144,7 +155,7 @@ def _agent_fields(
             set(h.entities) & {str(e) for e in label.entities}
         )
 
-    fields: dict[str, object] = {
+    fields = {
         "agent_status": a.status,
         "agent_confidence": top.confidence if top else None,
         "agent_escalated": a.escalated,
@@ -168,7 +179,7 @@ def _agent_fields(
         top1 = top is not None and hit(top)
         fields["agent_top1"] = top1
         fields["agent_top3"] = any(hit(h) for h in ranked[:3])
-        fields["agent_changed_top1"] = None if det_top1 is None else top1 != det_top1
+        fields["agent_changed_top1"] = None if deterministic is None else top1 != deterministic[0]
         if label.fault_type is FaultFamily.TRACKING_BREAK:
             fields["agent_tracking_dq"] = top is not None and top.family == "tracking_break"
     return fields
@@ -209,13 +220,14 @@ def judge(outcome: ScenarioOutcome) -> Judgement:
             for i in incidents
         ) and not any(_is_profit_alert(i) and _relevant(i, label) for i in incidents)
     det_top1 = bool(ranked) and _matches(ranked[0].family, ranked[0].entity, label)
+    det_top3 = any(_matches(c.family, c.entity, label) for c in ranked[:3])
     return Judgement(
         scenario_id=outcome.scenario_id,
         fault_type=label.fault_type.value,
         detected=first is not None,
         delay_days=None if first is None else max(0, first - label.start_day),
         top1=det_top1,
-        top3=any(_matches(c.family, c.entity, label) for c in ranked[:3]),
+        top3=det_top3,
         tracking_classified_dq=tracking,
         attribution_ok=(
             None
@@ -237,7 +249,7 @@ def judge(outcome: ScenarioOutcome) -> Judgement:
         ),
         primary=shown,
         **_alert_counts(outcome, label),
-        **_agent_fields(outcome, label, det_top1),
+        **_agent_fields(outcome, label, (det_top1, det_top3, tracking)),
     )
 
 
@@ -333,7 +345,11 @@ def _mean(values: list[float | None]) -> float | None:
 
 def _mean_decimal(values: list[str | None]) -> str | None:
     known = [Decimal(v) for v in values if v is not None]
-    return format(sum(known, Decimal(0)) / len(known), "f") if known else None
+    return (
+        format((sum(known, Decimal(0)) / len(known)).quantize(Decimal("0.000001")), "f")
+        if known
+        else None
+    )
 
 
 def _sum_decimal(values: list[str | None]) -> str:
@@ -362,6 +378,9 @@ def _agent_summary(judgements: list[Judgement]) -> dict[str, object] | None:
     if not ran:
         return None
     faulty = [j for j in ran if j.fault_type != HEALTHY]
+    # System accuracy (deterministic + agent): every faulty scenario of the run, the pipeline's
+    # ranking where nothing was investigated, so it compares with the baseline one to one.
+    system = [j for j in judgements if j.fault_type != HEALTHY and j.agent_top1 is not None]
     by_confidence = {
         level: {
             "n": sum(j.agent_confidence == level for j in faulty),
@@ -379,9 +398,13 @@ def _agent_summary(judgements: list[Judgement]) -> dict[str, object] | None:
             s: sum(j.agent_status == s for j in ran)
             for s in sorted({j.agent_status for j in ran if j.agent_status})
         },
-        "top1": _rate([j.agent_top1 for j in faulty]),
-        "top3": _rate([j.agent_top3 for j in faulty]),
-        "tracking_classified_dq": _rate([j.agent_tracking_dq for j in faulty]),
+        "top1": _rate([j.agent_top1 for j in system]),
+        "top3": _rate([j.agent_top3 for j in system]),
+        "tracking_classified_dq": _rate([j.agent_tracking_dq for j in system]),
+        "scored_without_investigation": sum(j.agent_fallback for j in system),
+        "investigated_faulty": len(faulty),
+        "investigated_top1": _rate([j.agent_top1 for j in faulty]),
+        "investigated_baseline_top1": _rate([j.top1 for j in faulty]),
         "confident_errors": round(confident_wrong / len(faulty), 4) if faulty else None,
         "accuracy_by_confidence": by_confidence,
         "unstable_share": _rate([j.agent_stable is False for j in ran]),

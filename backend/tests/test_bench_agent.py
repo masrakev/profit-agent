@@ -88,12 +88,13 @@ def scenarios() -> list[object]:
     no_agent = outcome(
         "dev-cpa_drift-03", (label,), (incident("profitability", "cpa_drift", entity, 61),)
     )
-    return [
+    outcomes = [
         corrected,
         confident_wrong,
         healthy,
         no_agent.model_copy(update={"agent_error": "boom"}),
     ]
+    return [o.model_copy(update={"agent_arm": True}) for o in outcomes]
 
 
 def test_agent_scoring_and_summary() -> None:
@@ -104,11 +105,15 @@ def test_agent_scoring_and_summary() -> None:
     assert (second.top1, second.agent_top1, second.agent_confidence) == (True, False, "high")
     assert healthy.agent_top1 is None
     assert (failed.agent_status, failed.agent_error) == (None, True)
+    # Not investigated: scored on the pipeline's ranking, like the baseline.
+    assert (failed.agent_fallback, failed.agent_top1, failed.agent_top3) == (True, True, True)
     summary = summarize(judgements, outcomes)  # type: ignore[arg-type]
     a = summary["agent"]
     assert a is not None
     assert (a["investigations"], a["errors"]) == (3, 1)
-    assert (a["top1"], a["confident_errors"]) == (0.5, 0.5)
+    assert (a["top1"], a["top3"], a["confident_errors"]) == (0.6667, 0.6667, 0.5)
+    assert (a["scored_without_investigation"], a["investigated_faulty"]) == (1, 2)
+    assert (a["investigated_top1"], a["investigated_baseline_top1"]) == (0.5, 0.5)
     assert a["accuracy_by_confidence"]["high"] == {"n": 1, "accuracy": 0.0}
     assert a["accuracy_by_confidence"]["medium"] == {"n": 1, "accuracy": 1.0}
     assert (a["changed_top1"], a["changed_top1_helped"], a["changed_top1_hurt"]) == (2, 1, 1)
@@ -122,7 +127,8 @@ def test_agent_scoring_and_summary() -> None:
     assert (stage["investigations"], stage["cache_hit_rate"]) == (1, 0.6)
     md = "\n".join(agent_section(summary))
     assert "| Deterministic baseline | 67% |" in md
-    assert "| Deterministic + agent | 50% |" in md
+    assert "| Deterministic + agent | 67% |" in md
+    assert "On the 2 investigated faulty scenarios alone" in md
     assert "| escalation | 1 | 4 |" in md
 
 
@@ -132,6 +138,8 @@ def test_audit_proposals() -> None:
     text = render_proposals(STARTED, judgements, outcomes)  # type: ignore[arg-type]
     assert "1 `cpa_drift` scenario(s) where the detectors ranked `tracking_break` first" in text
     assert "re-ranked to `mix_shift`" in text
+    both_wrong = text.split("## Where the detectors and the investigation were both wrong")[1]
+    assert both_wrong.split("##")[0].strip() == "None."
     assert "| cpa_drift | weak_evidence | 2 |" in text
     assert "| cpa_drift | 1 |" in text  # one unstable conclusion
     assert summarize([], [])["agent"] is None

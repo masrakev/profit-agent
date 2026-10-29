@@ -143,6 +143,13 @@ def agent_section(summary: dict[str, Any]) -> list[str]:
         f"{_pct(agent['tracking_classified_dq'])} | {o['false_alerts']} / "
         f"{o['healthy_scenarios']} (the agent changes no alert) | n/a |",
         "",
+        "Both rows count every faulty scenario; where nothing was investigated (no incident, or "
+        f"the investigation failed: {agent['scored_without_investigation']} scenarios) the "
+        "agent row keeps the pipeline's ranking. On the "
+        f"{agent['investigated_faulty']} investigated faulty scenarios alone, top-1 is "
+        f"{_pct(agent['investigated_baseline_top1'])} for the baseline and "
+        f"{_pct(agent['investigated_top1'])} with the agent.",
+        "",
         "| Investigations | Statuses | Confident errors | Unstable conclusions | Robustness check "
         "(by agent) | Wrong conclusions downgraded | Agent changed top-1 (helped / hurt) | "
         "Escalated |",

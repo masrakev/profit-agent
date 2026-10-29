@@ -85,6 +85,7 @@ class ScenarioOutcome(BaseModel):
     incidents: tuple[IncidentView, ...] = ()
     attribution: AttributionView | None = None
     error: str | None = None
+    agent_arm: bool = False  # the run investigated primary incidents (--agent)
     agent: AgentView | None = None
     agent_error: str | None = None
 
@@ -228,6 +229,7 @@ def run_scenario(
         days=manifest.config.days,
         incidents=tuple(_incident_view(i, manifest, impacts) for i in result.incidents),
         attribution=_attribution_view(result, manifest, scope),
+        agent_arm=agent is not None,
         agent=agent_view,
         agent_error=agent_error,
     )
