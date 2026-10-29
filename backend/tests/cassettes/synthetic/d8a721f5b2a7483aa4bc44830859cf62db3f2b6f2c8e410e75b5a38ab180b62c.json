@@ -1,5 +1,5 @@
 {
-  "key": "ab1630b20f8e9292bbe94544915193aa5e56ffe67517f7f68718b638f330a9c6",
+  "key": "d8a721f5b2a7483aa4bc44830859cf62db3f2b6f2c8e410e75b5a38ab180b62c",
   "note": "SYNTHETIC: hand-written response in the documented format, not a real model output; pending live verification (record with scripts/smoke_live.py --mode record)",
   "request": {
     "body": {
@@ -16,11 +16,31 @@
           ],
           "role": "user",
           "type": "message"
+        },
+        {
+          "encrypted_content": "enc-muse-spark-1_3-contributor-1",
+          "id": "rs_muse-spark-1_3-contributor_1_0:rs_muse-spark-1_3-contributor_1_0",
+          "summary": [],
+          "type": "reasoning"
+        },
+        {
+          "arguments": "{\"fact_id\": 1}",
+          "call_id": "call_muse-spark-1_3-contributor",
+          "id": "fun_muse-spark-1_3-contributor_1_1",
+          "name": "get_fact",
+          "status": "completed",
+          "type": "function_call"
+        },
+        {
+          "call_id": "call_muse-spark-1_3-contributor",
+          "output": "{\"fact_id\": 1, \"reference\": \"{{F1}}\"}",
+          "type": "function_call_output"
         }
       ],
       "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
       "max_output_tokens": 2048,
-      "model": "muse-spark-1.3",
+      "model": "muse-spark-1.3-contributor",
+      "prompt_cache_key": "muse-spark-1.3-contributor:smoke:28a0fc81bdbadc94",
       "reasoning": {
         "effort": "low"
       },
@@ -77,24 +97,29 @@
     "body": {
       "created_at": 1793268567.0,
       "error": null,
-      "id": "resp_muse-spark-1_3_1",
+      "id": "resp_muse-spark-1_3-contributor_2",
       "incomplete_details": null,
-      "model": "muse-spark-1.3",
+      "model": "muse-spark-1.3-contributor",
       "object": "response",
       "output": [
         {
-          "encrypted_content": "enc-muse-spark-1_3-1",
-          "id": "rs_muse-spark-1_3_1_0:rs_muse-spark-1_3_1_0",
+          "encrypted_content": "enc-muse-spark-1_3-contributor-2",
+          "id": "rs_muse-spark-1_3-contributor_2_0:rs_muse-spark-1_3-contributor_2_0",
           "summary": [],
           "type": "reasoning"
         },
         {
-          "arguments": "{\"fact_id\": 1}",
-          "call_id": "call_muse-spark-1_3",
-          "id": "fun_muse-spark-1_3_1_1",
-          "name": "get_fact",
+          "content": [
+            {
+              "annotations": [],
+              "text": "{\"fact_reference\": \"{{F1}}\", \"used_tool\": true}",
+              "type": "output_text"
+            }
+          ],
+          "id": "mes_muse-spark-1_3-contributor_2_1",
+          "role": "assistant",
           "status": "completed",
-          "type": "function_call"
+          "type": "message"
         }
       ],
       "parallel_tool_calls": true,
@@ -103,15 +128,15 @@
       "tool_choice": "auto",
       "tools": [],
       "usage": {
-        "input_tokens": 212,
+        "input_tokens": 318,
         "input_tokens_details": {
-          "cached_tokens": 0
+          "cached_tokens": 192
         },
-        "output_tokens": 46,
+        "output_tokens": 37,
         "output_tokens_details": {
-          "reasoning_tokens": 28
+          "reasoning_tokens": 15
         },
-        "total_tokens": 258
+        "total_tokens": 355
       }
     },
     "headers": {

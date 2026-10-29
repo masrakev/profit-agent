@@ -137,6 +137,8 @@ def test_committed_cassettes_are_marked_and_current(tmp_path: Path) -> None:
             assert not cassette.synthetic
     # Rebuilding gives the same files: cassette keys still match what the provider sends.
     rebuilt = synthetic_build.build(tmp_path)
+    committed_synthetic = {p.name for p, _ in committed if p.parent.name == "synthetic"}
+    assert committed_synthetic == {p.name for p in rebuilt}, "unreachable synthetic cassettes"
     for path in rebuilt:
         twin = COMMITTED / "synthetic" / path.name
         assert twin.exists(), f"stale synthetic cassettes: run {synthetic_build.__file__}"

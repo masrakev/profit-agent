@@ -87,6 +87,8 @@ class LLMRequest(_Frozen):
     schema_name: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     reasoning_effort: ReasoningEffort = ReasoningEffort.LOW
     max_output_tokens: int = Field(default=4096, ge=MIN_OUTPUT_TOKENS)
+    # Routes requests sharing a prefix to the same cache. Defaults to the model, purpose and
+    # prompt version, which name the shared prefix (see `cache_key`).
     prompt_cache_key: str | None = None
     run_id: str = "default"
     purpose: str = "unspecified"  # telemetry label, e.g. "investigate" or "smoke"
@@ -123,9 +125,14 @@ class LLMRequest(_Frozen):
                     "strict": True,
                 }
             }
-        if self.prompt_cache_key:
-            body["prompt_cache_key"] = self.prompt_cache_key
+        body["prompt_cache_key"] = self.cache_key
         return body
+
+    @property
+    def cache_key(self) -> str:
+        """Measured live (2026-10-29): without a key, a follow-up turn reused the first turn's
+        cached prefix about half the time (routing); with a stable key, most of the time."""
+        return self.prompt_cache_key or (f"{self.model.value}:{self.purpose}:{self.prompt_version}")
 
     def body_bytes(self) -> int:
         return len(json.dumps(self.body(), ensure_ascii=False).encode("utf-8"))

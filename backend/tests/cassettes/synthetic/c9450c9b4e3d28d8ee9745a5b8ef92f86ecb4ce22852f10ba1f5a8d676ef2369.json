@@ -1,5 +1,5 @@
 {
-  "key": "b58a70fa3dfb77cefac70a2d01e6b488807c702790b3a3215d737a7eca25a654",
+  "key": "c9450c9b4e3d28d8ee9745a5b8ef92f86ecb4ce22852f10ba1f5a8d676ef2369",
   "note": "SYNTHETIC: hand-written response in the documented format, not a real model output; pending live verification (record with scripts/smoke_live.py --mode record)",
   "request": {
     "body": {
@@ -16,30 +16,12 @@
           ],
           "role": "user",
           "type": "message"
-        },
-        {
-          "encrypted_content": "enc-muse-spark-1_3-1",
-          "id": "rs_muse-spark-1_3_1_0:rs_muse-spark-1_3_1_0",
-          "summary": [],
-          "type": "reasoning"
-        },
-        {
-          "arguments": "{\"fact_id\": 1}",
-          "call_id": "call_muse-spark-1_3",
-          "id": "fun_muse-spark-1_3_1_1",
-          "name": "get_fact",
-          "status": "completed",
-          "type": "function_call"
-        },
-        {
-          "call_id": "call_muse-spark-1_3",
-          "output": "{\"fact_id\": 1, \"reference\": \"{{F1}}\"}",
-          "type": "function_call_output"
         }
       ],
       "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
       "max_output_tokens": 2048,
       "model": "muse-spark-1.3",
+      "prompt_cache_key": "muse-spark-1.3:smoke:28a0fc81bdbadc94",
       "reasoning": {
         "effort": "low"
       },
@@ -96,29 +78,24 @@
     "body": {
       "created_at": 1793268567.0,
       "error": null,
-      "id": "resp_muse-spark-1_3_2",
+      "id": "resp_muse-spark-1_3_1",
       "incomplete_details": null,
       "model": "muse-spark-1.3",
       "object": "response",
       "output": [
         {
-          "encrypted_content": "enc-muse-spark-1_3-2",
-          "id": "rs_muse-spark-1_3_2_0:rs_muse-spark-1_3_2_0",
+          "encrypted_content": "enc-muse-spark-1_3-1",
+          "id": "rs_muse-spark-1_3_1_0:rs_muse-spark-1_3_1_0",
           "summary": [],
           "type": "reasoning"
         },
         {
-          "content": [
-            {
-              "annotations": [],
-              "text": "{\"fact_reference\": \"{{F1}}\", \"used_tool\": true}",
-              "type": "output_text"
-            }
-          ],
-          "id": "mes_muse-spark-1_3_2_1",
-          "role": "assistant",
+          "arguments": "{\"fact_id\": 1}",
+          "call_id": "call_muse-spark-1_3",
+          "id": "fun_muse-spark-1_3_1_1",
+          "name": "get_fact",
           "status": "completed",
-          "type": "message"
+          "type": "function_call"
         }
       ],
       "parallel_tool_calls": true,
@@ -127,15 +104,15 @@
       "tool_choice": "auto",
       "tools": [],
       "usage": {
-        "input_tokens": 318,
+        "input_tokens": 212,
         "input_tokens_details": {
-          "cached_tokens": 192
+          "cached_tokens": 0
         },
-        "output_tokens": 37,
+        "output_tokens": 46,
         "output_tokens_details": {
-          "reasoning_tokens": 15
+          "reasoning_tokens": 28
         },
-        "total_tokens": 355
+        "total_tokens": 258
       }
     },
     "headers": {

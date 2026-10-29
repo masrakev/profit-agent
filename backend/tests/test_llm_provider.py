@@ -58,6 +58,10 @@ def test_request_body_follows_the_documented_shape() -> None:
     assert (fmt["type"], fmt["name"], fmt["strict"]) == ("json_schema", "Answer", True)
     assert fmt["schema"]["additionalProperties"] is False
     assert body["prompt_cache_key"] == "investigator:abc"
+    h.transport.add(f.ok([f.message("ok")]))
+    h.provider.generate(request(purpose="ask"))
+    # Without an explicit key, a stable default names the shared prefix.
+    assert h.transport.requests[1]["prompt_cache_key"] == "muse-spark-1.3:ask:test-prompt-hash"
     assert h.transport.headers[0]["authorization"] == "Bearer test-key"
 
 

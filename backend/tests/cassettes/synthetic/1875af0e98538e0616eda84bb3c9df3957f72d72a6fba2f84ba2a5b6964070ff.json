@@ -1,5 +1,5 @@
 {
-  "key": "47beaafbf5bae88d8a3f041b948f7b7c04f5b4d3fa3cd6946c20457147a856b7",
+  "key": "1875af0e98538e0616eda84bb3c9df3957f72d72a6fba2f84ba2a5b6964070ff",
   "note": "SYNTHETIC: hand-written response in the documented format, not a real model output; pending live verification (record with scripts/smoke_live.py --mode record)",
   "request": {
     "body": {
@@ -18,28 +18,29 @@
           "type": "message"
         },
         {
-          "encrypted_content": "enc-muse-wonder-1_0-1",
-          "id": "rs_muse-wonder-1_0_1_0:rs_muse-wonder-1_0_1_0",
+          "encrypted_content": "enc-muse-spark-1_3-1",
+          "id": "rs_muse-spark-1_3_1_0:rs_muse-spark-1_3_1_0",
           "summary": [],
           "type": "reasoning"
         },
         {
           "arguments": "{\"fact_id\": 1}",
-          "call_id": "call_muse-wonder-1_0",
-          "id": "fun_muse-wonder-1_0_1_1",
+          "call_id": "call_muse-spark-1_3",
+          "id": "fun_muse-spark-1_3_1_1",
           "name": "get_fact",
           "status": "completed",
           "type": "function_call"
         },
         {
-          "call_id": "call_muse-wonder-1_0",
+          "call_id": "call_muse-spark-1_3",
           "output": "{\"fact_id\": 1, \"reference\": \"{{F1}}\"}",
           "type": "function_call_output"
         }
       ],
       "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
       "max_output_tokens": 2048,
-      "model": "muse-wonder-1.0",
+      "model": "muse-spark-1.3",
+      "prompt_cache_key": "muse-spark-1.3:smoke:28a0fc81bdbadc94",
       "reasoning": {
         "effort": "low"
       },
@@ -96,14 +97,14 @@
     "body": {
       "created_at": 1793268567.0,
       "error": null,
-      "id": "resp_muse-wonder-1_0_2",
+      "id": "resp_muse-spark-1_3_2",
       "incomplete_details": null,
-      "model": "muse-wonder-1.0",
+      "model": "muse-spark-1.3",
       "object": "response",
       "output": [
         {
-          "encrypted_content": "enc-muse-wonder-1_0-2",
-          "id": "rs_muse-wonder-1_0_2_0:rs_muse-wonder-1_0_2_0",
+          "encrypted_content": "enc-muse-spark-1_3-2",
+          "id": "rs_muse-spark-1_3_2_0:rs_muse-spark-1_3_2_0",
           "summary": [],
           "type": "reasoning"
         },
@@ -115,7 +116,7 @@
               "type": "output_text"
             }
           ],
-          "id": "mes_muse-wonder-1_0_2_1",
+          "id": "mes_muse-spark-1_3_2_1",
           "role": "assistant",
           "status": "completed",
           "type": "message"
