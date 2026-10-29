@@ -12,6 +12,7 @@ Writes bench/reports/golden-<timestamp>.json and golden-latest.md.
 import argparse
 import json
 import sys
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine, select, text
 
 from app.agent.ask import AskResult, ask
 from app.agent.llm.cassette import LLMMode
@@ -29,6 +30,7 @@ from app.agent.stages import Routing
 from app.config import get_settings
 from app.db import make_engine, tenant_transaction
 from app.detection.pipeline import run_pipeline
+from app.domain.schema import investigations
 from app.facts.repository import get_facts
 from app.observability import configure_logging
 from bench.generator.load import load
@@ -144,6 +146,44 @@ def summarize(golden: GoldenSet, rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def investigation_summary(payloads: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The investigations Ask ran for diagnoses: their cost is not in the answers' usage."""
+    if not payloads:
+        return None
+    costs = [Decimal(p["usage"]["cost_usd"]) for p in payloads]
+    standard = [Decimal(p["usage"]["standard_cost_usd"]) for p in payloads]
+    models: dict[str, int] = {}
+    for p in payloads:
+        models[p["routing"]["model"]] = models.get(p["routing"]["model"], 0) + 1
+    micro = Decimal("0.000001")
+    return {
+        "n": len(payloads),
+        "escalated": sum(bool(p["routing"]["escalated"]) for p in payloads),
+        "models": dict(sorted(models.items())),
+        "statuses": dict(sorted(Counter(p["status"] for p in payloads).items())),
+        "cost_usd": str(sum(costs, Decimal(0))),
+        "cost_usd_mean": str((sum(costs, Decimal(0)) / len(costs)).quantize(micro)),
+        "cost_usd_max": str(max(costs)),
+        "standard_cost_usd_mean": str((sum(standard, Decimal(0)) / len(standard)).quantize(micro)),
+        "latency_s_mean": round(
+            sum(p["usage"]["latency_ms"] for p in payloads) / len(payloads) / 1000, 1
+        ),
+    }
+
+
+def _investigations(engine: Engine, store_ids: list[UUID]) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    for store_id in store_ids:
+        with tenant_transaction(engine, store_id) as conn:
+            payloads += [
+                row.payload
+                for row in conn.execute(
+                    select(investigations.c.payload).where(investigations.c.store_id == store_id)
+                )
+            ]
+    return payloads
+
+
 def markdown(summary: dict[str, Any], rows: list[dict[str, Any]], meta: dict[str, Any]) -> str:
     lines = [
         "# Golden questions",
@@ -162,6 +202,7 @@ def markdown(summary: dict[str, Any], rows: list[dict[str, Any]], meta: dict[str
         "| --- | --- | --- |",
         *(f"| {t} | {v['n']} | {v['passed']} |" for t, v in summary["by_type"].items()),
         "",
+        *_investigation_lines(summary.get("investigations")),
         "## Pending",
         "",
         *(f"- `{p['id']}`: {p['reason']}" for p in summary["pending"]),
@@ -177,6 +218,23 @@ def markdown(summary: dict[str, Any], rows: list[dict[str, Any]], meta: dict[str
         "",
     ]
     return "\n".join(lines)
+
+
+def _investigation_lines(inv: dict[str, Any] | None) -> list[str]:
+    if not inv:
+        return []
+    return [
+        "Investigations run for diagnoses (their cost is not in the answers' cost above):",
+        "",
+        "| Investigations | Escalated | Models | Cost USD | Mean cost USD | Max cost USD | "
+        "Mean at Standard prices USD | Mean latency (s) |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        f"| {inv['n']} | {inv['escalated']} | "
+        + ", ".join(f"{m} {n}" for m, n in inv["models"].items())
+        + f" | {inv['cost_usd']} | {inv['cost_usd_mean']} | {inv['cost_usd_max']} | "
+        f"{inv['standard_cost_usd_mean']} | {inv['latency_s_mean']} |",
+        "",
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -224,6 +282,9 @@ def main(argv: list[str] | None = None) -> int:
         rows.extend(f.result() for f in futures)
     rows.sort(key=lambda r: r["id"])
     summary = summarize(golden, rows)
+    summary["investigations"] = investigation_summary(
+        _investigations(engine, [store_id for store_id, _, _ in stores.values()])
+    )
     meta = {"started": started.isoformat(), "routing": routing.value, "mode": args.mode}
     args.out.mkdir(parents=True, exist_ok=True)
     stamp = f"{started:%Y%m%dT%H%M%SZ}"

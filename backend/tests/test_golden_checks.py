@@ -11,6 +11,7 @@ from app.agent.contracts import Answer
 from app.agent.session import UsageSummary
 from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
 from bench.golden.checks import Question, check_answer, forbidden_check, load_golden
+from bench.golden.runner import investigation_summary, markdown
 
 CAMPAIGN = UUID("1b4e28ba-2fa1-11d2-883f-0016d3cca427")
 JAN = Period.days(date(2026, 1, 1), date(2026, 2, 1))
@@ -197,3 +198,37 @@ def test_exact_wording_counts_only_next_to_an_estimate() -> None:
     assert forbidden_check("estimate_presented_as_exact", fine, FACTS).passed
     bad = answer(answer="The loss will be exactly {{F3}}.", evidence=[3])
     assert not forbidden_check("estimate_presented_as_exact", bad, FACTS).passed
+
+
+def test_golden_report_counts_the_investigations_ask_ran() -> None:
+    def payload(model: str, escalated: bool, cost: str) -> dict[str, object]:
+        usage = {"cost_usd": cost, "standard_cost_usd": cost, "latency_ms": 2000}
+        return {
+            "status": "complete",
+            "routing": {"model": model, "escalated": escalated},
+            "usage": usage,
+        }
+
+    assert investigation_summary([]) is None
+    inv = investigation_summary(
+        [payload("muse-spark-1.3", False, "0.05"), payload("muse-wonder-1.0", True, "0.15")]
+    )
+    assert inv is not None
+    assert (inv["n"], inv["escalated"], inv["cost_usd_mean"], inv["cost_usd_max"]) == (
+        2,
+        1,
+        "0.100000",
+        "0.15",
+    )
+    summary = {
+        "active": 1,
+        "passed": 1,
+        "pass_rate": 1.0,
+        "cost_usd": "0",
+        "standard_cost_usd": "0",
+        "by_type": {},
+        "pending": [],
+        "investigations": inv,
+    }
+    md = markdown(summary, [], {"started": "s", "routing": "production", "mode": "live"})
+    assert "| 2 | 1 | muse-spark-1.3 1, muse-wonder-1.0 1 | 0.20 | 0.100000 | 0.15 |" in md
