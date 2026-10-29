@@ -14,6 +14,7 @@ STAGES_FILE = Path(__file__).with_name("stages.toml")
 
 class Stage(StrEnum):
     CLASSIFICATION = "classification"
+    INTENT = "intent"
     LOOKUP = "lookup"
     INVESTIGATION = "investigation"
     ESCALATION = "escalation"

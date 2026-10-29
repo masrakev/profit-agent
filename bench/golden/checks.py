@@ -19,7 +19,7 @@ from app.facts.model import Fact, FactKind
 from app.verifier import entity_references, fact_references, verify
 
 GOLDEN_DIR = Path(__file__).resolve().parent
-PENDING_TYPES = frozenset({QuestionType.EVALUATE, QuestionType.WHAT_IF, QuestionType.REVIEW})
+PENDING_TYPES = frozenset({QuestionType.REVIEW})
 TEXT_FIELDS = ("answer", "reasoning", "uncertainty", "recommendation", "would_change_my_mind")
 EXACT_WORDS = re.compile(r"(?i)\b(?:exactly|precisely|exact)\b")
 SENTENCE = re.compile(r"(?<=[.!?;])\s+")
@@ -52,7 +52,7 @@ class GoldenSet:
         if q.scenario in self.pending_scenarios:
             return self.pending_scenarios[q.scenario]
         if q.type in PENDING_TYPES:
-            return f"{q.type.value} questions need the simulation and decisions modules"
+            return f"{q.type.value} questions need measured decisions (Task 4 part B)"
         return None
 
 
@@ -176,6 +176,10 @@ def check_answer(
     if q.root_cause is not None:
         top = answer.ranked_causes[0].cause_family.value if answer.ranked_causes else None
         out.append(CheckResult("root_cause", top == q.root_cause, f"top cause {top}"))
+    if q.verdict is not None:
+        decided = result.evaluation.verdict if result.evaluation else None
+        got_verdict = decided.value if decided else None
+        out.append(CheckResult("verdict", got_verdict in q.verdict, f"got {got_verdict}"))
     if q.action_family is not None:
         got = answer.action_family.value if answer.action_family else None
         out.append(CheckResult("action_family", got == q.action_family, f"got {got}"))

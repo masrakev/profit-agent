@@ -77,7 +77,7 @@ def test_out_of_scope_and_not_available(
     # SPEC section 16: classification uses the Contributor model on synthetic stores.
     assert h.transport.requests[0]["model"] == "muse-spark-1.3-contributor"
     assert out.classification_model == "muse-spark-1.3-contributor"
-    for kind in ("evaluate", "what_if", "review"):
+    for kind in ("review",):
         result, _ = run(app_engine, golden_stockout["id"], "What if?", [classify(kind)])
         assert result.status == "not_available_yet"
         assert result.answer.flags == [Flag.ABSTAIN_INSUFFICIENT_EVIDENCE]

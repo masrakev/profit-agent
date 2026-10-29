@@ -2,8 +2,10 @@
 
 1. Classify the question into a SPEC section 8 type (classification stage; the Contributor model
    on synthetic stores, Spark otherwise).
-2. `out_of_scope` gets a deterministic scope statement; `evaluate`, `what_if` and `review` need the
-   simulation and decisions modules and get a structured `not_available_yet` answer.
+2. `out_of_scope` gets a deterministic scope statement; `evaluate` and `what_if` go through the
+   twin (app.agent.evaluate: intent parsing, simulation, a verdict decided by code, an
+   explanation from facts); `review` needs measured decisions and gets a structured
+   `not_available_yet` answer.
 3. Other types run the shared agent loop (lookup stage) with every read-only tool, and the answer
    is verified like any model output, plus checks enforced in code: a recommendation states what
    would change the mind; a diagnosis lists alternatives and ranked causes (unless nothing
@@ -21,9 +23,10 @@ from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Engine
+from sqlalchemy import Connection, Engine
 
 from app.agent.contracts import ActionFamily, Answer, Flag, fallback_answer
+from app.agent.evaluate import Evaluation, evaluate_question
 from app.agent.guard import OutputViolation
 from app.agent.investigator import investigate, store_context
 from app.agent.llm.errors import LLMError
@@ -53,7 +56,8 @@ class QuestionType(StrEnum):
     OUT_OF_SCOPE = "out_of_scope"
 
 
-NOT_AVAILABLE_YET = frozenset({QuestionType.EVALUATE, QuestionType.WHAT_IF, QuestionType.REVIEW})
+NOT_AVAILABLE_YET = frozenset({QuestionType.REVIEW})
+SIMULATED = frozenset({QuestionType.EVALUATE, QuestionType.WHAT_IF})
 ACTION_CLAIM = re.compile(
     r"(?i)\b(?:i|we)\s+(?:have\s+)?(?:paused|stopped|increased|reduced|raised|lowered|changed|"
     r"launched|updated|cut|doubled|moved|deleted|bought|ordered)\b"
@@ -68,7 +72,9 @@ class Classification(BaseModel):
     question_type: QuestionType
 
 
-AskStatus = Literal["answered", "fallback", "partial", "not_available_yet", "out_of_scope"]
+AskStatus = Literal[
+    "answered", "fallback", "partial", "not_available_yet", "out_of_scope", "clarification"
+]
 
 
 class AskResult(BaseModel):
@@ -92,6 +98,7 @@ class AskResult(BaseModel):
     refused_tools: list[str]
     stop_reason: str | None
     created_at: datetime
+    evaluation: Evaluation | None = None  # evaluate and what-if: scenario, verdict by code
 
 
 def out_of_scope_answer(margin_fact_id: int) -> Answer:
@@ -319,6 +326,20 @@ def ask(
                 answer=not_available_answer(question_type),
                 stop_reason=None,
             )
+        if question_type in SIMULATED:
+            return _simulated_answer(
+                conn,
+                ctx,
+                provider,
+                question,
+                question_type,
+                origin,
+                routing,
+                stages,
+                run_id or str(ask_id),
+                common,
+                evaluate_prompt=load_prompt("evaluate").version,
+            )
         route = stages.route(Stage.LOOKUP, origin, routing, f"{question_type.value} question")
         cfg = stages[Stage.LOOKUP]
         registry = build_registry(stages.max_result_chars)
@@ -381,4 +402,57 @@ def ask(
         verifier_violations=run.violations,
         refused_tools=[c.name for c in registry.refused],
         stop_reason=run.stop_reason,
+    )
+
+
+def _simulated_answer(
+    conn: Connection,
+    ctx: ToolContext,
+    provider: LLMProvider,
+    question: str,
+    question_type: QuestionType,
+    origin: DataOrigin,
+    routing: Routing,
+    stages: StagesConfig,
+    run_id: str,
+    common: dict[str, Any],
+    *,
+    evaluate_prompt: str,
+) -> AskResult:
+    outcome = evaluate_question(
+        conn,
+        ctx,
+        provider,
+        question,
+        question_type.value,
+        origin=origin,
+        routing=routing,
+        stages=stages,
+        run_id=run_id,
+        store_message=store_context(conn, ctx),
+        base_checks=contract_checks(question_type),
+    )
+    answer = outcome.answer
+    if ctx.suspicious_entities and Flag.NO_INSTRUCTION_FOLLOWING_FROM_DATA not in answer.flags:
+        flags = [*answer.flags, Flag.NO_INSTRUCTION_FOLLOWING_FROM_DATA]
+        answer = answer.model_copy(update={"flags": flags})
+    run = outcome.run
+    usage = summarize([*outcome.intent_results, *(run.results if run else [])])
+    get_logger(__name__).info(
+        "agent.asked", type=question_type.value, status=outcome.status, cost_usd=str(usage.cost_usd)
+    )
+    prompts = str(common["prompt_version"]).split(":")[0]
+    return AskResult(
+        **{**common, "prompt_version": f"{prompts}:{evaluate_prompt}"},
+        status=outcome.status,
+        answer=answer,
+        model=outcome.model,
+        usage=usage,
+        tool_calls=0,
+        memo_hits=0,
+        regenerations=run.regenerations if run else 0,
+        verifier_violations=run.violations if run else 0,
+        refused_tools=[],
+        stop_reason=outcome.stop_reason,
+        evaluation=outcome.evaluation,
     )

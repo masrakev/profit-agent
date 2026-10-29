@@ -8,7 +8,9 @@ import pytest
 
 from app.agent.ask import AskResult, QuestionType
 from app.agent.contracts import Answer
+from app.agent.evaluate import Evaluation
 from app.agent.session import UsageSummary
+from app.decisions.verdict import Verdict
 from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
 from bench.golden.checks import Question, check_answer, forbidden_check, load_golden
 from bench.golden.runner import investigation_summary, markdown
@@ -184,7 +186,7 @@ def test_the_golden_set_loads_with_pending_questions() -> None:
     golden = load_golden()
     assert len(golden.questions) == 30
     pending = {q.id for q in golden.questions if golden.pending_reason(q)}
-    assert pending == {f"q{i}" for i in range(19, 27)}  # evaluate, what_if, review
+    assert pending == {"q25", "q26"}  # review: needs measured decisions (Task 4 part B)
     q13 = next(q for q in golden.questions if q.id == "q13")
     assert "recommend_pause_on_data_quality_issue" in q13.forbidden
     q01 = next(q for q in golden.questions if q.id == "q01")
@@ -232,3 +234,26 @@ def test_golden_report_counts_the_investigations_ask_ran() -> None:
     }
     md = markdown(summary, [], {"started": "s", "routing": "production", "mode": "live"})
     assert "| 2 | 1 | muse-spark-1.3 1, muse-wonder-1.0 1 | 0.20 | 0.100000 | 0.15 |" in md
+
+
+def test_the_verdict_is_the_one_code_decided() -> None:
+    q20 = Question(
+        id="q20",
+        scenario="golden-cpa_drift",
+        type=QuestionType.EVALUATE,
+        question="Double it?",
+        verdict=["avoid"],
+        must_include_fields=[],
+        forbidden=[],
+    )
+    a = answer(answer="Not worth it: {{F3}}.", evidence=[3])
+
+    def checked(verdict: Verdict | None) -> list[str]:
+        r = result(a, QuestionType.EVALUATE).model_copy(
+            update={"evaluation": Evaluation(verdict=verdict, reason="r")}
+        )
+        return [c.name for c in check_answer(q20, r, FACTS, LABELS) if not c.passed]
+
+    assert checked(Verdict.AVOID) == []
+    assert checked(Verdict.GO) == ["verdict"]
+    assert checked(None) == ["verdict"]

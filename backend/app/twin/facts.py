@@ -27,7 +27,15 @@ from app.facts.model import (
     ScopeKind,
     Unit,
 )
-from app.twin.model import METRICS, MONEY_METRICS, ActionKind, Range, Simulation, TwinModel
+from app.twin.model import (
+    METRICS,
+    MONEY_METRICS,
+    ActionKind,
+    Range,
+    Scenario,
+    Simulation,
+    TwinModel,
+)
 
 TWIN_METHOD = "twin_monte_carlo_v1"
 FORMULA_VERSION = 1
@@ -113,4 +121,53 @@ def simulation_facts(
                 lineage=lineage,
             )
             out[formula] = engine.persist(engine.adopt(fact))
+    return out
+
+
+def parameter_facts(engine: FactEngine, model: TwinModel, scenario: Scenario) -> dict[str, Fact]:
+    """The scenario's parameters as exact facts, so an answer cites them instead of writing
+    numbers: `twin.parameter.change` (ratio), `.days` (how long it lasts), `.daily_budget`
+    (a new campaign), and `.horizon_days`. Scoped to the first action's entity."""
+    period = Period.days(model.as_of, model.as_of + timedelta(days=scenario.horizon_days))
+    action = scenario.actions[0] if scenario.actions else None
+    scope = Scope.store()
+    values: list[tuple[str, Decimal, Unit]] = [
+        ("horizon_days", Decimal(scenario.horizon_days), Unit.DAYS)
+    ]
+    if action is not None:
+        if action.entity is not None:
+            kind = (
+                ScopeKind.CAMPAIGN
+                if action.kind in (ActionKind.CHANGE_BUDGET, ActionKind.PAUSE_CAMPAIGN)
+                else ScopeKind.PRODUCT
+            )
+            scope = Scope(kind=kind, id=action.entity)
+        values.append(("days", Decimal(action.days or scenario.horizon_days), Unit.DAYS))
+        if action.kind in (
+            ActionKind.CHANGE_BUDGET,
+            ActionKind.CHANGE_ALL_AD_SPEND,
+            ActionKind.CHANGE_PRICE,
+        ):
+            values.append(("change", action.change, Unit.RATIO))
+        if action.daily_budget is not None:
+            values.append(("daily_budget", action.daily_budget, Unit.MONEY))
+    out: dict[str, Fact] = {}
+    for name, value, unit in values:
+        formula = f"twin.parameter.{name}"
+        fact = Fact(
+            store_id=model.store_id,
+            formula_id=formula,
+            formula_version=FORMULA_VERSION,
+            kind=FactKind.EXACT,
+            scope=scope,
+            period=period,
+            status=FactStatus.DEFINED,
+            value=value,
+            unit=unit,
+            currency=model.currency if unit is Unit.MONEY else None,
+            inputs_hash=sha256_hex(
+                canonical_json({"formula": formula, "scenario": scenario.model_dump(mode="json")})
+            ),
+        )
+        out[formula] = engine.persist(engine.adopt(fact))
     return out

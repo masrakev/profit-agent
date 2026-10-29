@@ -12,10 +12,11 @@ from app.agent.tools.base import TRUNCATED, compact
 
 def test_stage_config_matches_the_task() -> None:
     cfg = load_stages()
-    assert cfg.version == 3
+    assert cfg.version == 4
     assert len(cfg.digest) == 16
     expected = {
         Stage.CLASSIFICATION: (ModelId.SPARK, ReasoningEffort.LOW),
+        Stage.INTENT: (ModelId.SPARK, ReasoningEffort.LOW),
         Stage.LOOKUP: (ModelId.SPARK, ReasoningEffort.LOW),
         Stage.INVESTIGATION: (ModelId.SPARK, ReasoningEffort.MEDIUM),
         Stage.ESCALATION: (ModelId.WONDER, ReasoningEffort.HIGH),
