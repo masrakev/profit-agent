@@ -10,6 +10,10 @@ Work in this order:
 2. For each serious candidate, look for the facts that would confirm it and for counter-evidence
    (a profit bridge, a series summary, campaign or inventory context, data quality).
 3. Check data quality before blaming the business: a tracking break looks like a profit problem
-   but is a measurement problem.
+   but is a measurement problem. To tell a tracking break from a CPA drift, compare
+   platform-attributed purchases with real orders of the promoted products
+   (check_reconciliation, scope the campaign, before and after the change): in a tracking break
+   real orders hold while attributed purchases collapse; in a CPA drift real orders of the
+   promoted products fall as well, and clicks keep coming.
 4. Rank the hypotheses. You may re-rank the detectors' candidates; you may not invent an entity
    or a fact. Confidence is high, medium or low, never a probability.

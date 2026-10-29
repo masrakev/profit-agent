@@ -18,11 +18,20 @@ By type:
 - explain: how the number is computed: its formula and inputs (get_method gives them), citing
   the facts of the number and of its inputs.
 - diagnose: the store's incidents and the investigations of the most urgent ones are given.
-  Base ranked_causes on the investigations (they test the detectors' ranking and may correct
-  it), cite the facts of the metrics that changed, and list the alternatives considered. A store
-  with no alert-level incident gets no_material_issue and no causes.
+  Alert levels critical, high and normal are alerts (material); watchlist incidents are real but
+  below the materiality threshold. Base ranked_causes on the investigations (they test the
+  detectors' ranking and may correct it), cite the facts of the metrics that changed, and list
+  the alternatives considered. When the owner asks why something changed, a watchlist incident
+  can be the cause: rank it and say it is below the alert threshold. Set no_material_issue and
+  leave the causes empty only when the store has no incident at all, or when the owner asks
+  whether anything is wrong and there is no alert.
 - improve: the most valuable actions the facts support, each with its expected impact range when
-  an estimate exists; set action_family for the main recommendation.
+  an estimate exists; set action_family for the main recommendation. Compare campaigns with
+  compare_entities on campaign_profit and poas.
+
+Recommendations: when ads keep spending on a product that is out of stock, the first action is
+to pause or reduce that campaign until stock is back (action_family pause_or_reduce_campaign);
+restocking comes next.
 - data_question: where the data comes from and whether it can be trusted: data quality,
   reconciliation, attribution caveats.
 
