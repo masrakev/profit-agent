@@ -7,7 +7,15 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
-from app.verifier import UnknownFactReferenceError, ViolationKind, format_fact, render, verify
+from app.verifier import (
+    UnknownFactReferenceError,
+    ViolationKind,
+    entity_references,
+    fact_references,
+    format_fact,
+    render,
+    verify,
+)
 
 PERIOD = Period.days(date(2026, 1, 1), date(2026, 2, 1))
 
@@ -279,3 +287,27 @@ def test_property_rendered_values_would_be_caught_if_copied(value: Decimal) -> N
     rendered = render("Revenue was {{F1}}.", {1: fact(str(value))})
     assert "{{" not in rendered
     assert verify(rendered)  # a model copying rendered output is still flagged
+
+
+ENTITY = "1b4e28ba-2fa1-11d2-883f-0016d3cca427"
+
+
+def test_entity_references_are_allowed_and_extracted() -> None:
+    text = f"{{{{E:product:{ENTITY}}}}} lost margin while {{{{E:store}}}} grew ({{{{F12}}}})."
+    assert verify(text) == []
+    assert entity_references(text) == {f"product:{ENTITY}", "store"}
+    assert fact_references(text) == {12}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        f"{{{{E:product:{ENTITY.upper()}}}}}",  # canonical lower-case only
+        "{{E:store:1b4e28ba-2fa1-11d2-883f-0016d3cca427}}",  # the store has no id
+        f"{{{{E:order:{ENTITY}}}}}",  # unknown kind
+        f"{{{{E:product:{ENTITY}}}}}7",  # a digit right after a reference is still a number
+        f"product {ENTITY}",  # a bare id is a run of numbers
+    ],
+)
+def test_malformed_entity_references_are_still_flagged(text: str) -> None:
+    assert verify(text)

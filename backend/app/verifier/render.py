@@ -1,4 +1,7 @@
-"""Render `{{F<id>}}` references into display values. Rounding happens here and only here."""
+"""Render `{{F<id>}}` references into display values. Rounding happens here and only here.
+
+Entity references `{{E:<kind>[:<uuid>]}}` name a store, product or campaign without writing
+its name or id in model text; they are rendered from the database, never from the model."""
 
 import re
 from collections.abc import Mapping
@@ -8,12 +11,23 @@ from app.domain.money import round_for_display
 from app.facts.model import Fact, FactKind, Unit
 
 REFERENCE = re.compile(r"\{\{F([0-9]+)\}\}")
+_UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+ENTITY_REFERENCE = re.compile(r"\{\{E:(store|(?:product|campaign):" + _UUID + r")\}\}")
 CURRENCY_SYMBOLS = {"USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥"}
 UNDEFINED_TEXT = "n/a"
 
 
 class UnknownFactReferenceError(KeyError):
     pass
+
+
+def fact_references(text: str) -> set[int]:
+    return {int(m.group(1)) for m in REFERENCE.finditer(text)}
+
+
+def entity_references(text: str) -> set[str]:
+    """Referenced entities as `store`, `product:<uuid>` or `campaign:<uuid>`."""
+    return {m.group(1) for m in ENTITY_REFERENCE.finditer(text)}
 
 
 def format_value(value: Decimal, unit: Unit, currency: str | None) -> str:

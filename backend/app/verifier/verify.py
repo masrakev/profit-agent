@@ -7,6 +7,8 @@ characters), as do English number words.
 
 Allowed, and nothing else:
 - fact references `{{F<id>}}` (ASCII digits only);
+- entity references `{{E:store}}`, `{{E:product:<uuid>}}`, `{{E:campaign:<uuid>}}` (lower-case
+  canonical UUIDs only);
 - valid ISO 8601 dates and date-times (`2026-10-27`, `2026-10-27T14:05:00Z`);
 - years 1900-2099 written as four ASCII digits after a year-context word ("in 2026",
   "since 2025", "Q3 2026", "between 2025 and 2026"), never next to a currency, unit or percent;
@@ -28,7 +30,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
 
-from app.verifier.render import REFERENCE
+from app.verifier.render import ENTITY_REFERENCE, REFERENCE
 
 
 class ViolationKind(StrEnum):
@@ -248,8 +250,9 @@ class _Masked:
 
 
 def _mask_references(text: str, masked: _Masked) -> None:
-    for match in REFERENCE.finditer(text):
-        masked.blank(match.start(), match.end())
+    for pattern in (REFERENCE, ENTITY_REFERENCE):
+        for match in pattern.finditer(text):
+            masked.blank(match.start(), match.end())
 
 
 def _mask_allowed(text: str, masked: _Masked, allowed: Iterable[str]) -> None:
