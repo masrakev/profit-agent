@@ -283,6 +283,11 @@ def _units_on_hand(ctx: FactContext, scope: Scope, period: Period) -> Computed:
     return from_aggregate(ctx, agg, money=False)
 
 
+def _orders(ctx: FactContext, scope: Scope, period: Period) -> Computed:
+    agg = sql.order_count_aggregate(ctx.conn, ctx.store_id, scope, period)
+    return from_aggregate(ctx, agg, money=False)
+
+
 def _supplier_lead_time(ctx: FactContext, scope: Scope, period: Period) -> Computed:
     """A product attribute, not a flow: the same value whatever the period."""
     assert scope.id is not None
@@ -406,6 +411,13 @@ def build_registry() -> FormulaRegistry:
         STORE_CAMPAIGN,
         _ad_metric("attributed_purchases", money=False),
         "Σ purchases attributed by the ad platform",
+    )
+    add(
+        "orders",
+        Unit.COUNT,
+        STORE | PRODUCT | CAMPAIGN,
+        _orders,
+        f"non-cancelled orders with a line in scope ({sales}); campaign: a promoted product",
     )
     add(
         "clicks",

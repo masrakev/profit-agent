@@ -389,3 +389,30 @@ def test_golden_ad_delivery_counts_and_lead_time(app_engine: Engine) -> None:
         )["supplier_lead_time_days"]
         assert (known.value, known.status) == (D(12), FactStatus.DEFINED)
         assert [s.table for s in known.lineage.sources] == ["products"]
+
+
+def test_golden_order_counts(app_engine: Engine) -> None:
+    # January: o1 = A x2, o2 = A + B, o3 = B, o4 = A but cancelled, o5 = A in February.
+    # Store: 3 orders (o1, o2, o3). Product A: 2 (o1, o2). Product B: 2 (o2, o3).
+    # Campaign promoting A: 2 orders contain A. Each order counts once, whatever its lines.
+    store = create_store(app_engine)
+    with tenant_transaction(app_engine, store) as conn:
+        s = Scenario(conn, store)
+        a = s.product("10.00", "4.00", "0")
+        b = s.product("20.00", "8.00", "0")
+        s.order("2026-01-03T10:00:00", [(a, 1, "10.00", "4.00", "0"), (a, 1, "10.00", "4.00", "0")])
+        s.order("2026-01-04T10:00:00", [(a, 1, "10.00", "4.00", "0"), (b, 1, "20.00", "8.00", "0")])
+        s.order("2026-01-05T10:00:00", [(b, 2, "20.00", "8.00", "0")])
+        s.order("2026-01-06T10:00:00", [(a, 1, "10.00", "4.00", "0")], status=OrderStatus.CANCELLED)
+        s.order("2026-02-02T10:00:00", [(a, 1, "10.00", "4.00", "0")])
+        campaign = s.campaign([a])
+    expected = {
+        Scope.store(): 3,
+        Scope.product(a): 2,
+        Scope.product(b): 2,
+        Scope.campaign(campaign): 2,
+    }
+    for scope, count in expected.items():
+        f = facts_for(app_engine, store, JAN, scope, "orders")["orders"]
+        assert (f.value, f.currency) == (D(count), None)
+        assert {src.table for src in f.lineage.sources} == {"orders"}

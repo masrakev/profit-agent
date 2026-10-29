@@ -146,7 +146,7 @@ def test_recompute_cli(app_engine: Engine, capsys: pytest.CaptureFixture[str]) -
 
 
 def test_registry_rules() -> None:
-    assert len(REGISTRY) == 31
+    assert len(REGISTRY) == 32
     assert {f.formula_id for f in REGISTRY.for_scope(ScopeKind.STORE)} >= {
         "revenue",
         "net_profit",

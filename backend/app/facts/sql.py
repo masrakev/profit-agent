@@ -117,6 +117,29 @@ def line_aggregate(
     )
 
 
+def order_count_aggregate(
+    conn: Connection, store_id: UUID, scope: Scope, period: Period
+) -> Aggregate:
+    """Non-cancelled orders placed in the period with at least one line in scope (product scope:
+    that product; campaign scope: a promoted product). Each order counts once."""
+    from_where = (
+        "FROM orders o "
+        "WHERE o.store_id = :sid AND o.status <> 'cancelled' "
+        "AND o.ordered_at >= :start AND o.ordered_at < :end "
+        "AND EXISTS (SELECT 1 FROM order_lines ol WHERE ol.store_id = o.store_id "
+        "AND ol.order_id = o.id" + _product_filter(scope, "ol.product_id") + ")"
+    )
+    return _run(
+        conn,
+        table="orders",
+        alias="o",
+        value_expr="1",
+        repr_expr=f"concat_ws(':', o.id, {_utc_text('o.ordered_at')})",
+        from_where=from_where,
+        params=_params(store_id, scope, period),
+    )
+
+
 def refund_aggregate(conn: Connection, store_id: UUID, scope: Scope, period: Period) -> Aggregate:
     """Sum of refund amounts by refund date; scoped through the refunded line's product."""
     from_where = (
