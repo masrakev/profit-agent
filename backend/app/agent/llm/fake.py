@@ -9,7 +9,7 @@ exercised end to end, SDK included, without a network or a key.
 
 import json
 from collections import deque
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from itertools import count
 from typing import Any
@@ -34,7 +34,8 @@ class Raise:
     message: str = "scripted transport failure"
 
 
-Step = Reply | Raise
+# A step may also be a function of the request body: a scripted model that reads tool results.
+Step = Reply | Raise | Callable[[dict[str, Any]], Reply]
 
 
 class FakeTransport(httpx2.BaseTransport):
@@ -59,6 +60,8 @@ class FakeTransport(httpx2.BaseTransport):
         if not self._steps:
             raise AssertionError("FakeTransport: no scripted step left for this request")
         step = self._steps.popleft()
+        if callable(step) and not isinstance(step, Reply | Raise):
+            step = step(self.requests[-1])
         if isinstance(step, Raise):
             raise step.error(step.message, request=request)
         return httpx2.Response(step.status, json=step.body, headers=step.headers, request=request)
