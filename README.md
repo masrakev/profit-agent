@@ -34,7 +34,12 @@ uv run python -m app.detection.pipeline --store <store_id>   # symptoms, inciden
 make test
 make lint
 make eval                                 # detection benchmark (test_v2 suite), ~5 minutes
+make smoke-live                           # one live call per Meta model (needs MODEL_API_KEY)
 ```
+
+Model calls run in `replay` mode by default (committed cassettes, no key, no network); set
+`LLM_MODE=live` or `record` and `MODEL_API_KEY` in `.env` to call the Meta Model API. Spending
+caps per run, per day and in total are enforced before every call (see `.env.example`).
 
 ### Run without make
 
@@ -51,6 +56,7 @@ Each Makefile target runs these commands:
 | `make eval` | `uv run python -m bench.runner` (test_v2 suite; writes `bench/reports/`) |
 | `make eval-dev` | `uv run python -m bench.runner --suite dev` (tuning suite) |
 | `make scenarios` | `uv run python -m bench.scenarios.build` (rebuild scenario manifests) |
+| `make smoke-live` | `uv run python scripts/smoke_live.py` (`--mode record` writes cassettes) |
 
 The compose stack publishes PostgreSQL on port 55432 and Redis on 56379 to avoid clashing with
 local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them).
@@ -64,10 +70,12 @@ backend/app/
   verifier/       render {{F<id>}} references; reject unreferenced numbers
   detection/      daily series, detectors, versioned thresholds, incidents, materiality, pipeline
   causes/         exact two-level Shapley attribution of net profit changes, noise bands
+  agent/          model layer (Meta Responses provider, guards, record/replay), read-only
+                  tools, output guard, versioned prompts
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
 backend/migrations/  Alembic (schema, row-level security, grants)
-backend/tests/       golden, property-based, RLS and audit tests
+backend/tests/       golden, property-based, RLS, audit and red-team tests; model cassettes
 bench/generator/     deterministic synthetic store generator
 bench/faults/        fault catalogue and non-fault conditions with ground-truth labels
 bench/scenarios/     committed scenario manifests (dev, test_v2, golden) and their builder
@@ -76,6 +84,7 @@ bench/runner/        benchmark runner, scoring, reports
 bench/reports/       committed benchmark reports (latest.md = test_v2 suite)
 docs/adr/            architecture decision records
 docs/product/        product specification
+scripts/             live smoke test of the Meta models
 ```
 
 ## Built during the hackathon
@@ -121,3 +130,17 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     before the change point.
   - Benchmark protocol v2: larger dev suite, a fresh `test_v2` hold-out run once, golden
     scenarios, alert precision and alerts per healthy store-month.
+- **Day 3-4 - model layer, tools and safety**
+  - One `LLMProvider` interface and its Meta Model API implementation (Responses API through the
+    OpenAI SDK): strict tool calling and JSON-schema structured output from Pydantic models,
+    explicit reasoning effort, stateless conversations (`store: false`), prompt cache keys.
+  - Contributor mode only for synthetic benchmark stores; a versioned price table and exact cost
+    per call; budget guard (per run, per day, total) checked before each call; retries with
+    backoff and jitter; circuit breaker; an OpenTelemetry span per call.
+  - Live, record and replay modes with committed cassettes; CI replays only. A live smoke script
+    per model.
+  - Nine read-only, typed tools whose numbers are all facts; `compute` over facts without
+    literal numbers; a write guard on the tools' connection.
+  - Store text as escaped data blocks; versioned static prompts; an output guard (verifier,
+    known facts and entities only, two regenerations, then a deterministic answer); entity
+    references in model text. Red-team suite: 0 unsafe outcomes. ADRs 0009-0010.

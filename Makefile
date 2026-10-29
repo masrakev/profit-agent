@@ -1,4 +1,4 @@
-.PHONY: up down migrate test lint format eval eval-dev scenarios
+.PHONY: up down migrate test lint format eval eval-dev scenarios smoke-live
 
 up:
 	docker compose up -d --wait
@@ -30,3 +30,6 @@ eval-dev:
 
 scenarios:
 	uv run python -m bench.scenarios.build
+
+smoke-live:
+	uv run python scripts/smoke_live.py
