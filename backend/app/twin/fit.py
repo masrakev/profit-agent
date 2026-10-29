@@ -227,6 +227,7 @@ def fit_twin(
             on_hand=float(known[-1]) if known else None,
             inflow_rate=arrivals / days,
             elasticity=_elasticity(prices.get(pid, [])),
+            lead_time_days=p.lead_time_days,
         )
     fixed = _floats(series.fixed_costs[start:end])
     fingerprint = sha256_hex(

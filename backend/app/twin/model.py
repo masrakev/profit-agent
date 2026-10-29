@@ -98,6 +98,7 @@ class ProductModel:
     on_hand: float | None
     inflow_rate: float  # stock arrivals per day over the window
     elasticity: Elasticity
+    lead_time_days: int | None = None  # supplier lead time
 
 
 @dataclass(frozen=True)
