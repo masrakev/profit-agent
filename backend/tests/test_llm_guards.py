@@ -81,13 +81,13 @@ def test_jsonl_ledger_is_shared_and_locked(tmp_path: Path) -> None:
         except BudgetExceededError as exc:
             errors.append(exc)
 
-    threads = [threading.Thread(target=reserve) for _ in range(5)]
+    threads = [threading.Thread(target=reserve) for _ in range(20)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    # 0.25 + 2 x 0.30 fits under 1.00; the 3 other concurrent reservations are refused.
-    assert len(errors) == 3
+    # 0.25 + 2 x 0.30 fits under 1.00; the 18 other concurrent reservations are refused.
+    assert len(errors) == 18
     assert first.spent("run").day == D("0.85")
     lock = path.with_suffix(".jsonl.lock")
     lock.write_text("held")
@@ -284,3 +284,25 @@ def test_schema_rewrite_edge_cases() -> None:
 
     with pytest.raises(SchemaError, match="root"):
         strict_schema(RootModel[list[int]])
+
+
+def test_lock_file_being_deleted_counts_as_held(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Seen on Windows under load: while one holder deletes the lock file, another's O_EXCL open
+    # raises PermissionError ("delete pending") instead of FileExistsError.
+    import app.agent.llm.budget as budget
+
+    real_open = budget.os.open
+    calls = {"n": 0}
+
+    def flaky_open(path: str, flags: int, *args: int) -> int:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise PermissionError(13, "Permission denied", path)
+        return real_open(path, flags, *args)
+
+    monkeypatch.setattr(budget.os, "open", flaky_open)
+    guard = BudgetGuard(BudgetCaps(D("1"), D("1")), JsonlSpendLedger(tmp_path / "s.jsonl"))
+    assert guard.spent("run").day == 0
+    assert calls["n"] == 2  # waited, then took the lock

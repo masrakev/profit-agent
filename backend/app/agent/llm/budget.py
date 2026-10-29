@@ -76,7 +76,9 @@ class JsonlSpendLedger:
             try:
                 fd = os.open(self._lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
                 break
-            except FileExistsError:
+            except (FileExistsError, PermissionError):
+                # Windows reports PermissionError while the lock file is being deleted by
+                # another holder ("delete pending"): the lock is still taken, wait.
                 if time.monotonic() > deadline:
                     raise TimeoutError(f"spend ledger lock {self._lock_path} is held") from None
                 time.sleep(0.01)
