@@ -226,14 +226,56 @@ class ToolOutcome(BaseModel):
     result: dict[str, Any] | None = None
     error_code: str | None = None
     error: str | None = Field(default=None, max_length=500)
+    truncated: bool = False  # lists were cut to fit the size limit; narrow the query
+
+
+TRUNCATED = {"truncated": True, "note": "items omitted to fit the size limit: narrow the query"}
+DEFAULT_MAX_RESULT_CHARS = 12000
+
+
+def _lists(node: Any) -> list[list[Any]]:
+    found: list[list[Any]] = []
+    if isinstance(node, dict):
+        for value in node.values():
+            found.extend(_lists(value))
+    elif isinstance(node, list):
+        found.append(node)
+        for value in node:
+            found.extend(_lists(value))
+    return found
+
+
+def compact(result: dict[str, Any], max_chars: int) -> tuple[dict[str, Any], bool]:
+    """Halve the longest list (keeping its first items, which tools rank best first) until the
+    result fits in `max_chars`, ending each cut list with one explicit marker."""
+    data = json.loads(json.dumps(result))
+    truncated = False
+    while len(json.dumps(data)) > max_chars:
+        candidates = [lst for lst in _lists(data) if any(x != TRUNCATED for x in lst)]
+        if not candidates:
+            break
+        longest = max(candidates, key=lambda lst: len(json.dumps(lst)))
+        items = [x for x in longest if x != TRUNCATED]
+        longest[:] = [*items[: len(items) // 2], TRUNCATED]
+        truncated = True
+    return data, truncated
 
 
 class ToolRegistry:
-    def __init__(self, tools: list[Tool[Any, Any]]) -> None:
+    """Dispatches the model's tool calls. Create one per investigation: identical calls (same
+    tool, same validated arguments) are answered from its memo."""
+
+    def __init__(
+        self, tools: list[Tool[Any, Any]], *, max_result_chars: int = DEFAULT_MAX_RESULT_CHARS
+    ) -> None:
         self._tools = {t.name: t for t in tools}
         if len(self._tools) != len(tools):
             raise ValueError("duplicate tool names")
+        self.max_result_chars = max_result_chars
         self.refused: list[ToolCall] = []  # calls to tools that do not exist
+        self._memo: dict[tuple[str, str], ToolOutcome] = {}
+        self.calls = 0
+        self.memo_hits = 0
 
     @property
     def names(self) -> list[str]:
@@ -268,10 +310,19 @@ class ToolRegistry:
             return ToolOutcome(
                 ok=False, tool=tool.name, error_code="invalid_arguments", error=str(exc)[:500]
             )
+        self.calls += 1
+        key = (tool.name, args.model_dump_json())
+        if key in self._memo:
+            self.memo_hits += 1
+            return self._memo[key]
         try:
             with facts_only(ctx.conn):
                 result = tool.run(ctx, args)
         except ToolError as exc:
-            return ToolOutcome(ok=False, tool=tool.name, error_code=exc.code, error=str(exc))
-        log.info("agent.tool_ran", tool=tool.name)
-        return ToolOutcome(ok=True, tool=tool.name, result=result.model_dump(mode="json"))
+            outcome = ToolOutcome(ok=False, tool=tool.name, error_code=exc.code, error=str(exc))
+        else:
+            data, truncated = compact(result.model_dump(mode="json"), self.max_result_chars)
+            outcome = ToolOutcome(ok=True, tool=tool.name, result=data, truncated=truncated)
+            log.info("agent.tool_ran", tool=tool.name, truncated=truncated)
+        self._memo[key] = outcome
+        return outcome

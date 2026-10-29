@@ -404,3 +404,26 @@ def _insert_product(conn: Connection, store_id: UUID) -> None:
 def test_period_input_limits() -> None:
     with pytest.raises(ValueError, match="366"):
         PeriodInput(start="2025-01-01", end="2026-06-01")  # type: ignore[arg-type]
+
+
+def test_identical_calls_are_memoised(ctx: ToolContext) -> None:
+    registry = build_registry()
+    first, _ = registry.execute(ctx, ToolCall("c1", "get_data_quality", "{}"))
+    again, output = registry.execute(ctx, ToolCall("c2", "get_data_quality", " { } "))
+    assert again is first  # same validated arguments: no second run
+    assert output.call_id == "c2"
+    assert (registry.calls, registry.memo_hits) == (2, 1)
+    fresh = build_registry()  # a new investigation starts with an empty memo
+    fresh.execute(ctx, ToolCall("c3", "get_data_quality", "{}"))
+    assert fresh.memo_hits == 0
+
+
+def test_large_results_are_truncated_with_a_marker(ctx: ToolContext, store: dict[str, Any]) -> None:
+    tight = build_registry(max_result_chars=3000)
+    outcome, output = tight.execute(
+        ctx, ToolCall("c1", "get_incident", json.dumps({"incident_id": store["incident"]}))
+    )
+    assert outcome.ok
+    assert outcome.truncated
+    assert len(json.dumps(outcome.result)) <= 3000
+    assert json.loads(output.output)["truncated"] is True

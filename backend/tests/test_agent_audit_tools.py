@@ -11,6 +11,7 @@ from sqlalchemy import Engine
 
 from app.agent.tools import ToolContext
 from app.agent.tools import audit as audit_module
+from app.agent.tools.base import TRUNCATED
 from app.db import tenant_transaction
 from app.detection.models import Candidate, EntityRef, FaultFamily
 from tests.test_agent_tools import call, error, fact_views, numbers_outside_facts
@@ -100,8 +101,10 @@ def test_check_reconciliation(ctx: ToolContext, store: dict[str, Any]) -> None:
         assert m["gap"]["metric"] == "derived.gap"
     gaps_zero = all(Decimal(m["gap"]["value"]) == 0 for m in view["money"])
     assert view["products_reconcile"] is gaps_zero
-    assert view["purchases"]
-    for p in view["purchases"]:
+    # Stores with many campaigns exceed the result size limit: the list ends with a marker.
+    checks = [p for p in view["purchases"] if p != TRUNCATED]
+    assert checks
+    for p in checks:
         attributed = Decimal(p["attributed_purchases"]["value"])
         orders = Decimal(p["orders_with_promoted_products"]["value"])
         assert Decimal(p["gap"]["value"]) == attributed - orders
