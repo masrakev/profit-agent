@@ -30,6 +30,7 @@ TENANT_TABLES = (
     "audit_log",
     "store_settings",
     "incidents",
+    "investigations",
 )
 
 

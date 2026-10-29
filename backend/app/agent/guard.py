@@ -96,7 +96,9 @@ class GuardedOutcome[T: BaseModel]:
         return sum((r.cost_usd for r in self.results), Decimal(0))
 
 
-def _feedback(violations: list[OutputViolation], rejected: str) -> tuple[UserMessage, UserMessage]:
+def feedback_messages(
+    violations: list[OutputViolation], rejected: str
+) -> tuple[UserMessage, UserMessage]:
     listed = "\n".join(f"- {v.describe()}" for v in violations[:20])
     return (
         UserMessage(role="developer", text=f"Rejected answer (for reference):\n{rejected[:4000]}"),
@@ -161,7 +163,7 @@ def generate_guarded[T: BaseModel](
                 rejected = result.parsed.model_dump_json()
         history.append(violations)
         request = request.model_copy(
-            update={"input": (*request.input, *_feedback(violations, rejected))}
+            update={"input": (*request.input, *feedback_messages(violations, rejected))}
         )
     reason = "its output failed verification after every regeneration"
     return _template(

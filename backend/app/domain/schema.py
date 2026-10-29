@@ -279,3 +279,17 @@ incidents = Table(
     Column("payload", JSONB, nullable=False),
     _ts("updated_at"),
 )
+
+investigations = Table(
+    "investigations",
+    metadata,
+    Column("investigation_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("incident_id", Text, nullable=False),
+    Column("cache_key", CHAR(64), nullable=False),
+    Column("status", Text, nullable=False),
+    Column("model", Text, nullable=False),
+    Column("prompt_version", Text, nullable=False),
+    Column("payload", JSONB, nullable=False),
+    _ts("created_at"),
+)
