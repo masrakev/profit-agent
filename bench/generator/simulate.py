@@ -14,7 +14,6 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 import numpy as np
 
-from app.domain.hashing import canonical_json
 from app.domain.models import (
     AdCampaign,
     AdCampaignProduct,
@@ -107,13 +106,8 @@ def _midnight(day: date) -> datetime:
     return datetime.combine(day, time(), tzinfo=UTC)
 
 
-def store_id_for(config: GeneratorConfig, interventions: Sequence[Intervention] = ()) -> UUID:
-    base = uuid5(STORE_NAMESPACE, f"{config.seed}:{config.fingerprint}")
-    if not interventions:
-        return base
-    # Another store (its own ids), with the same numbers until the first intervention.
-    key = [[i.day, i.campaign, repr(i.budget_multiplier)] for i in interventions]
-    return uuid5(base, canonical_json(key))
+def store_id_for(config: GeneratorConfig) -> UUID:
+    return uuid5(STORE_NAMESPACE, f"{config.seed}:{config.fingerprint}")
 
 
 def _budget_multiplier(interventions: Sequence[Intervention], campaign: int, day: int) -> float:
@@ -128,7 +122,7 @@ def generate(
     interventions: Sequence[Intervention] = (),
 ) -> GeneratedStore:
     rng = np.random.default_rng(config.seed)
-    store_id = store_id_for(config, interventions)
+    store_id = store_id_for(config)  # the same store, whatever the owner does
     store = Store(
         store_id=store_id,
         name=config.store_name or f"Bench store {config.seed}",

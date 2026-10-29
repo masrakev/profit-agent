@@ -20,6 +20,7 @@ from bench.generator import (
     generate,
 )
 from bench.generator.__main__ import main as generator_main
+from bench.scenarios.manifest import load_suite
 
 SMALL = GeneratorConfig(seed=7, days=40)
 
@@ -121,7 +122,7 @@ def test_interventions_change_only_what_follows_them(small: GeneratedStore) -> N
     first = SMALL.start_date + timedelta(days=day)
     cut = generate(SMALL, interventions=[Intervention(day=day, campaign=0, budget_multiplier=0.5)])
     paused = generate(SMALL, interventions=[Intervention(day=day, campaign=0, budget_multiplier=0)])
-    assert cut.store.store_id not in (small.store.store_id, paused.store.store_id)
+    assert cut.store.store_id == small.store.store_id == paused.store.store_id
     assert cut.interventions == (Intervention(day=day, campaign=0, budget_multiplier=0.5),)
 
     def figures(data: GeneratedStore, before: bool) -> list[tuple[object, ...]]:
@@ -132,7 +133,7 @@ def test_interventions_change_only_what_follows_them(small: GeneratedStore) -> N
             if (m.metric_date < first) is before
         )
 
-    # Same numbers before the intervention (the stores only differ by their ids).
+    # The same store: identical until the intervention, faults still find their entities.
     assert figures(cut, True) == figures(small, True) == figures(paused, True)
     early = {o.id for d in (cut, small) for o in d.orders if o.ordered_at.date() < first}
 
@@ -149,3 +150,10 @@ def test_interventions_change_only_what_follows_them(small: GeneratedStore) -> N
     others = [f for f in figures(paused, False) if f[0] != 0]
     assert others
     assert len(others) == len([f for f in figures(small, False) if f[0] != 0])
+
+
+def test_faults_still_apply_under_interventions() -> None:
+    manifest = next(m for m in load_suite("golden") if m.scenario_id == "golden-cpa_drift")
+    data = manifest.generate(interventions=[Intervention(100, 0, 0.7)])
+    assert data.store.store_id == manifest.generate().store.store_id
+    assert data.interventions == (Intervention(100, 0, 0.7),)

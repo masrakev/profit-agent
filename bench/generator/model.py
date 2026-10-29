@@ -43,8 +43,8 @@ class CampaignTruth:
 @dataclass(frozen=True)
 class Intervention:
     """An owner action from `day` on: the campaign's daily budget times `budget_multiplier`
-    (0 pauses it). Generating with interventions gives the real outcome of a simulated action;
-    days before the first intervention are identical to the store without them."""
+    (0 pauses it). Generating with interventions gives the real outcome of a simulated action:
+    the same store (same ids, so faults still apply), identical until the first intervention."""
 
     day: int
     campaign: int  # index of the campaign in generation order
