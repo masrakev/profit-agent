@@ -24,7 +24,7 @@ from app.agent.tools.derived import ComputeError, change_point, compute, differe
 from app.causes.noise import noise_band
 from app.causes.profit import AttributionUnavailableError, attribute_profit_change
 from app.detection.config import default_config
-from app.detection.models import EntityRef, SymptomCategory
+from app.detection.models import ALERT_RANK, AlertLevel, EntityRef, SymptomCategory
 from app.detection.pipeline import daily_figures
 from app.detection.repository import load_incident, load_incidents
 from app.domain.hashing import canonical_json, sha256_hex
@@ -136,6 +136,53 @@ def get_incident(ctx: ToolContext, q: IncidentQuery) -> IncidentView:
         expected_monthly_impact=impact[0] if impact else None,
         attribution=_facts_by_id(ctx, i.attribution_fact_ids),
     )
+
+
+# --- list_incidents ------------------------------------------------------------------------
+
+
+class IncidentsQuery(ToolInput):
+    include_watchlist: bool = Field(description="also list incidents below materiality")
+
+
+class IncidentSummary(ToolResult):
+    incident_id: str
+    category: str
+    alert: str
+    first_seen: date
+    entities: list[EntityView]
+    top_cause: str | None
+    expected_monthly_impact: FactView | None
+
+
+class IncidentsView(ToolResult):
+    incidents: list[IncidentSummary] = Field(description="most urgent first")
+
+
+def list_incidents(ctx: ToolContext, q: IncidentsQuery) -> IncidentsView:
+    rank = {level.value: i for level, i in ALERT_RANK.items()}
+    stored = sorted(
+        load_incidents(ctx.conn, ctx.store_id),
+        key=lambda s: (rank[s.incident.alert.value], s.incident.first_seen),
+    )
+    out = []
+    for s in stored:
+        i = s.incident
+        if i.alert is AlertLevel.WATCHLIST and not q.include_watchlist:
+            continue
+        impact = _facts_by_id(ctx, [i.monthly_impact_fact_id]) if i.monthly_impact_fact_id else []
+        out.append(
+            IncidentSummary(
+                incident_id=i.incident_id,
+                category=i.category.value,
+                alert=i.alert.value,
+                first_seen=i.first_seen,
+                entities=[ctx.entity(_scope(e)) for e in i.entities],
+                top_cause=i.candidates[0].family.value if i.candidates else None,
+                expected_monthly_impact=impact[0] if impact else None,
+            )
+        )
+    return IncidentsView(incidents=out)
 
 
 # --- get_profit_bridge ---------------------------------------------------------------------
@@ -540,6 +587,14 @@ def compute_tool(ctx: ToolContext, q: ComputeQuery) -> ComputeView:
 
 
 TOOLS: list[Tool[Any, Any]] = [
+    Tool(
+        "list_incidents",
+        "The store's incidents, most urgent first: category, alert level, "
+        "entities, top deterministic cause and expected monthly impact.",
+        IncidentsQuery,
+        IncidentsView,
+        list_incidents,
+    ),
     Tool(
         "get_incident",
         "An incident: symptoms with their facts, the deterministic ranking of "

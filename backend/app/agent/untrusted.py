@@ -31,5 +31,19 @@ def data_block(kind: str, text: str) -> str:
     return f"{OPEN}data kind={kind}{CLOSE}{escape(text)}{OPEN}/data{CLOSE}"
 
 
+# Store text that addresses the model: it stays data, and the answer says it was not followed.
+_INSTRUCTION_LIKE = re.compile(
+    r"(?i)\b(?:ignore|disregard|forget|override)\b.{0,40}\b(?:instruction|rule|prompt)s?\b"
+    r"|\b(?:system|developer|admin)\s+(?:note|prompt|message|mode)\b"
+    r"|\byou\s+are\s+now\b|\bact\s+as\b|\bnew\s+instructions?\b"
+    r"|\b(?:increase|raise|double|triple|cut|pause|stop|delete)\b.{0,30}"
+    r"\b(?:all\s+)?(?:budgets?|campaigns?|prices?|store)\b"
+)
+
+
+def looks_like_instruction(text: str) -> bool:
+    return _INSTRUCTION_LIKE.search(strip_invisible(text)) is not None
+
+
 def contains_block_delimiters(text: str) -> bool:
     return OPEN in text or CLOSE in text

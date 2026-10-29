@@ -18,7 +18,7 @@ from sqlalchemy import Connection, text
 
 from app.agent.llm.types import ToolCall, ToolOutput, ToolSpec
 from app.agent.tools.readonly import facts_only
-from app.agent.untrusted import data_block
+from app.agent.untrusted import data_block, looks_like_instruction
 from app.detection.series import StoreSeries, load_series
 from app.facts.engine import FactEngine
 from app.facts.model import Fact, Period, Scope, ScopeKind
@@ -117,6 +117,8 @@ class ToolContext:
     facts: FactEngine
     data_end: date  # exclusive end of the store's data (the analysis date + 1 day)
     seen_fact_ids: set[int] = field(default_factory=set)
+    # Entities whose store text looks like an instruction to the model (kept as data).
+    suspicious_entities: set[str] = field(default_factory=set)
     _series: StoreSeries | None = None
 
     def series(self) -> StoreSeries:
@@ -174,6 +176,8 @@ def entity_name(ctx: ToolContext, scope: Scope) -> str | None:
     name = ctx.conn.execute(text(sql), {"sid": ctx.store_id, "id": scope.id}).scalar()
     if name is None:
         return None
+    if looks_like_instruction(str(name)):
+        ctx.suspicious_entities.add(scope_label(scope))
     kind = {"store": "store_name", "product": "product_name", "campaign": "campaign_name"}
     return data_block(kind[scope.kind.value], str(name))
 

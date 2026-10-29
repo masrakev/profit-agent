@@ -5,8 +5,14 @@ as `{{E:...}}`, and the only integers are fact ids. The output guard enforces it
 """
 
 from enum import StrEnum
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.detection.models import FaultFamily
+
+ENTITY_PATTERN = r"^\{\{E:(store|(product|campaign):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\}\}$"  # noqa: E501
+EntityReference = Annotated[str, Field(pattern=ENTITY_PATTERN)]
 
 
 class Flag(StrEnum):
@@ -17,6 +23,35 @@ class Flag(StrEnum):
     OUT_OF_SCOPE = "out_of_scope"
     ABSTAIN_INSUFFICIENT_EVIDENCE = "abstain_insufficient_evidence"
     NO_INSTRUCTION_FOLLOWING_FROM_DATA = "no_instruction_following_from_data"
+
+
+class Confidence(StrEnum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class ActionFamily(StrEnum):
+    """Family of a recommendation (never an action taken: the agent cannot act)."""
+
+    PAUSE_OR_REDUCE_CAMPAIGN = "pause_or_reduce_campaign"
+    REDUCE_OR_REALLOCATE_BUDGET = "reduce_or_reallocate_budget"
+    INCREASE_BUDGET_CAPPED = "increase_budget_capped"
+    INVESTIGATE_PRODUCT_QUALITY = "investigate_product_quality"
+    RESTOCK_PRODUCT = "restock_product"
+    REVIEW_SUPPLIER_COST = "review_supplier_cost"
+    REVIEW_PRICING = "review_pricing"
+    REVIEW_PAYMENT_FEES = "review_payment_fees"
+    FIX_TRACKING = "fix_tracking"
+    MONITOR = "monitor"
+
+
+class RankedCause(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    cause_family: FaultFamily
+    entities: list[EntityReference]
+    confidence: Confidence
 
 
 class Answer(BaseModel):
@@ -30,6 +65,12 @@ class Answer(BaseModel):
     recommendation: str | None = Field(description="the next step, when actionable")
     would_change_my_mind: str | None = Field(description="evidence that would invalidate it")
     flags: list[Flag]
+    ranked_causes: list[RankedCause] = Field(
+        default_factory=list, description="diagnose questions: the causes, best first"
+    )
+    action_family: ActionFamily | None = Field(
+        default=None, description="family of the recommendation, when there is one"
+    )
 
 
 def fallback_answer(evidence: list[int], *, reason: str) -> Answer:

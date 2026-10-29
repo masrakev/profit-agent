@@ -91,6 +91,7 @@ def test_registry_lists_the_typed_tools() -> None:
             "get_data_quality",
             "get_facts",
             "get_incident",
+            "list_incidents",
             "get_inventory_context",
             "get_profit_bridge",
             "get_series_summary",
@@ -427,3 +428,13 @@ def test_large_results_are_truncated_with_a_marker(ctx: ToolContext, store: dict
     assert outcome.truncated
     assert len(json.dumps(outcome.result)) <= 3000
     assert json.loads(output.output)["truncated"] is True
+
+
+def test_list_incidents(ctx: ToolContext, store: dict[str, Any]) -> None:
+    alerts = call(ctx, "list_incidents", include_watchlist=False)["incidents"]
+    everything = call(ctx, "list_incidents", include_watchlist=True)["incidents"]
+    assert alerts[0]["incident_id"] == store["incident"]
+    assert alerts[0]["top_cause"] == "stockout_on_promoted"
+    assert {i["alert"] for i in alerts} <= {"critical", "high", "normal", "data_quality"}
+    assert len(everything) >= len(alerts)
+    assert numbers_outside_facts(everything) == []

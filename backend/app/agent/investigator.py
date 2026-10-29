@@ -15,34 +15,25 @@ the same requests, which keeps prompt caching effective. Enforced in code, not i
 """
 
 import json
-import time
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Connection, Engine, insert, select
 
-from app.agent.contracts import Flag
-from app.agent.guard import OutputViolation, check_output, feedback_messages
-from app.agent.llm.errors import LLMError, StructuredOutputError
-from app.agent.llm.models import ModelId, Usage, load_prices
+from app.agent.contracts import Confidence, EntityReference, Flag
+from app.agent.guard import OutputViolation
 from app.agent.llm.provider import LLMProvider
 from app.agent.llm.types import (
-    InputItem,
     LLMRequest,
-    LLMResult,
-    ReplayedItem,
     ToolCall,
-    ToolOutput,
     UserMessage,
 )
-from app.agent.loop import known_entities
 from app.agent.origin import data_origin
 from app.agent.prompts import load_prompt
+from app.agent.session import UsageSummary, run_session
 from app.agent.stages import Route, Routing, Stage, StagesConfig, load_stages
 from app.agent.tools import ToolContext, ToolOutcome, build_registry
 from app.agent.untrusted import data_block
@@ -55,16 +46,7 @@ from app.facts.repository import get_facts
 from app.observability import get_logger
 
 INVESTIGATION_VERSION = 1
-MAX_REGENERATIONS = 2
 CLOSE_SCORE_RATIO = 0.8  # second candidate within 80% of the first: ambiguous
-ENTITY_PATTERN = r"^\{\{E:(store|(product|campaign):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\}\}$"  # noqa: E501
-EntityReference = Annotated[str, Field(pattern=ENTITY_PATTERN)]
-
-
-class Confidence(StrEnum):
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
 
 
 class AuditKind(StrEnum):
@@ -116,17 +98,6 @@ class Robustness(_Out):
     called_by: Literal["agent", "code"]
     stable: bool
     unstable_because: list[str]
-
-
-class UsageSummary(_Out):
-    calls: int = 0
-    input_tokens: int = 0
-    cached_tokens: int = 0
-    output_tokens: int = 0
-    reasoning_tokens: int = 0
-    cost_usd: Decimal = Decimal(0)
-    standard_cost_usd: Decimal = Decimal(0)  # the same tokens at Standard (production) prices
-    latency_ms: float = 0.0
 
 
 Status = Literal["complete", "fallback", "partial", "invalid"]
@@ -217,9 +188,6 @@ REMINDER = UserMessage(
     text="Before answering, call run_sensitivity for this incident and take its stable verdict "
     "into account. Then answer with the investigation schema.",
 )
-TOOL_BUDGET_REACHED = UserMessage(
-    role="developer", text="The tool-call budget is used up: answer now with what you have."
-)
 
 
 # --- deterministic fallback and audit rules --------------------------------------------------
@@ -306,42 +274,7 @@ def apply_audit_rules(
     )
 
 
-# --- the loop ------------------------------------------------------------------------------
-
-
-@dataclass
-class _Run:
-    results: list[LLMResult] = field(default_factory=list)
-    outcomes: list[ToolOutcome] = field(default_factory=list)
-    regenerations: int = 0
-    violations: int = 0
-    stop_reason: str | None = None
-
-    def usage(self) -> UsageSummary:
-        prices = load_prices()
-        total = Usage()
-        for r in self.results:
-            total = total + r.usage
-        # Contributor runs (benchmark) are repriced at Standard prices: what production pays.
-        standard = sum(
-            (prices.cost(standard_model(ModelId(r.model)), r.usage) for r in self.results),
-            Decimal(0),
-        )
-        return UsageSummary(
-            calls=len(self.results),
-            input_tokens=total.input_tokens,
-            cached_tokens=total.cached_tokens,
-            output_tokens=total.output_tokens,
-            reasoning_tokens=total.reasoning_tokens,
-            cost_usd=sum((r.cost_usd for r in self.results), Decimal(0)),
-            standard_cost_usd=standard,
-            latency_ms=round(sum(r.latency_ms for r in self.results), 3),
-        )
-
-
-def standard_model(model: ModelId) -> ModelId:
-    """The Standard-mode model with the same capability (for production cost estimates)."""
-    return ModelId.SPARK if model is ModelId.SPARK_CONTRIBUTOR else model
+# --- the investigation -------------------------------------------------------------------
 
 
 def _sensitivity(outcomes: list[ToolOutcome]) -> dict[str, Any] | None:
@@ -438,101 +371,50 @@ def investigate(
             ctx, ToolCall("prefetch", "get_incident", json.dumps({"incident_id": incident_id}))
         )
         investigation_id = uuid4()
-        run = _Run()
-        items: list[InputItem] = [store_context(conn, ctx), incident_message(incident, details)]
-        allowed_entities = (
-            {str(e) for e in incident.entities}
-            | {str(c.entity) for c in incident.candidates}
-            | {"store"}
-        )
+        reminded = False
 
-        def request() -> LLMRequest:
-            return LLMRequest(
+        def remind(outcomes: list[ToolOutcome]) -> UserMessage | None:
+            nonlocal reminded
+            if _sensitivity(outcomes) is not None or reminded:
+                return None
+            reminded = True
+            return REMINDER
+
+        def at_least_one(report: InvestigationReport) -> list[OutputViolation]:
+            if report.hypotheses:
+                return []
+            return [OutputViolation("hypotheses", "schema", "rank at least one hypothesis")]
+
+        run = run_session(
+            provider,
+            registry,
+            ctx,
+            LLMRequest(
                 model=route.model,
                 data_origin=origin,
                 instructions=prompt.text,
                 prompt_version=prompt.version,
-                input=tuple(items),
-                tools=registry.specs(),
-                output_schema=InvestigationReport,
+                input=(store_context(conn, ctx), incident_message(incident, details)),
                 reasoning_effort=route.reasoning_effort,
                 max_output_tokens=stage_cfg.max_output_tokens,
                 run_id=run_id or str(investigation_id),
                 purpose=stage.value,
                 store_id=store_id,
-            )
-
-        report: InvestigationReport | None = None
-        reminded = False
-        tool_calls = 0
-        started = time.perf_counter()
-        while report is None:
-            used = sum(r.usage.input_tokens for r in run.results)
-            if used >= stage_cfg.max_input_tokens:
-                run.stop_reason = "input token budget reached"
-                break
-            try:
-                result = provider.generate(request())
-            except StructuredOutputError as exc:
-                run.regenerations += 1
-                if run.regenerations > MAX_REGENERATIONS:
-                    run.stop_reason = "output did not match the schema"
-                    break
-                schema_error = OutputViolation("", "schema", str(exc)[:300])
-                items.extend(feedback_messages([schema_error], "(not valid JSON for the schema)"))
-                continue
-            except LLMError as exc:
-                run.stop_reason = f"model unavailable ({type(exc).__name__})"
-                break
-            run.results.append(result)
-            if result.tool_calls:
-                items.extend(ReplayedItem(item=i) for i in result.replay_items)
-                for call in result.tool_calls:
-                    if tool_calls >= stage_cfg.max_tool_calls:
-                        refused = ToolOutcome(
-                            ok=False,
-                            tool=call.name,
-                            error_code="tool_budget",
-                            error="tool-call budget used up: answer now",
-                        )
-                        items.append(_output(call, refused))
-                        continue
-                    tool_calls += 1
-                    outcome, output = registry.execute(ctx, call)
-                    run.outcomes.append(outcome)
-                    items.append(output)
-                if tool_calls >= stage_cfg.max_tool_calls:
-                    items.append(TOOL_BUDGET_REACHED)
-                continue
-            if result.refusal is not None:
-                run.stop_reason = "the model declined to answer"
-                break
-            if _sensitivity(run.outcomes) is None and not reminded:
-                reminded = True
-                items.append(REMINDER)
-                continue
-            candidate = result.parsed
-            assert isinstance(candidate, InvestigationReport)
-            violations = check_output(
-                candidate,
-                known_facts=set(ctx.seen_fact_ids),
-                known_entities=known_entities([details, *run.outcomes]) | allowed_entities,
-            )
-            if not candidate.hypotheses:
-                violations.append(OutputViolation("hypotheses", "schema", "rank at least one"))
-            if not violations:
-                report = candidate
-                break
-            run.violations += sum(v.kind == "number" for v in violations)
-            run.regenerations += 1
-            if run.regenerations > MAX_REGENERATIONS:
-                run.stop_reason = "its output failed verification after every regeneration"
-                break
-            items.extend(feedback_messages(violations, candidate.model_dump_json()))
+            ),
+            InvestigationReport,
+            max_tool_calls=stage_cfg.max_tool_calls,
+            max_input_tokens=stage_cfg.max_input_tokens,
+            extra_entities={str(e) for e in incident.entities}
+            | {str(c.entity) for c in incident.candidates}
+            | {"store"},
+            prior_outcomes=[details],
+            validate=at_least_one,
+            before_answer=remind,
+        )
+        report = run.output
         status: Status = "complete"
         if report is None:
-            stopped = run.stop_reason or ""
-            status = "partial" if "budget" in stopped or "unavailable" in stopped else "fallback"
+            status = "partial" if run.stopped_by_budget else "fallback"
             report = deterministic_report(incident, ctx.seen_fact_ids, run.stop_reason or "")
         sensitivity = _sensitivity(run.outcomes)
         called_by: Literal["agent", "code"] = "agent"
@@ -569,10 +451,8 @@ def investigate(
             stages_version=f"{stages.version}:{stages.digest}",
             cache_key=key,
             cache_hit=False,
-            usage=run.usage().model_copy(
-                update={"latency_ms": round((time.perf_counter() - started) * 1000, 3)}
-            ),
-            tool_calls=tool_calls,
+            usage=run.usage(),
+            tool_calls=run.tool_calls,
             memo_hits=registry.memo_hits,
             regenerations=run.regenerations,
             verifier_violations=run.violations,
@@ -601,7 +481,3 @@ def investigate(
         cost_usd=str(investigation.usage.cost_usd),
     )
     return investigation
-
-
-def _output(call: ToolCall, outcome: ToolOutcome) -> InputItem:
-    return ToolOutput(call_id=call.call_id, output=outcome.model_dump_json())
