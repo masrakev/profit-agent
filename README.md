@@ -154,3 +154,23 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - Store text as escaped data blocks; versioned static prompts; an output guard (verifier,
     known facts and entities only, two regenerations, then a deterministic answer); entity
     references in model text. Red-team suite: 0 unsafe outcomes. ADRs 0009-0010.
+- **Day 4 - investigator, auditor, Ask and the agent benchmark**
+  - Severity relative to the store: critical at 10% and high at 5% of the trailing-30-day
+    contribution margin, on top of the absolute floor; merchant names escaped per channel (HTML
+    for email and web, plain text for WhatsApp).
+  - Investigator agent: one tool loop with a cache-friendly prefix, verified and audited output,
+    a deterministic fallback, partial results on budget exhaustion; Wonder only for ambiguous
+    incidents (data-quality doubt, close scores, conflicting symptoms).
+  - Audit tools (`run_sensitivity`, `check_reconciliation`, `get_method`) with rules enforced in
+    code: a robustness check on every investigation, confidence capped when unstable, detector
+    proposals for human review only.
+  - Per-stage model config, compact tool results, memoised calls, an investigation cache keyed
+    on fact hashes, prompt, model and config versions; per-stage token and cost reports, repriced
+    at Standard prices.
+  - Ask: question classification, lookup, explain, diagnose (grounded in investigations), improve
+    and data questions; FastAPI endpoints under `/api/v1`. Golden question runner and checks.
+  - Red team against the real models (Spark, Wonder), recorded: 0 unsafe outcomes, 0 unverified
+    numbers.
+  - Benchmark protocol v3: `test_v2` into dev, a fresh `test_v3` hold-out, an agent arm next to
+    the deterministic baseline. Results and misses in `bench/reports/agent-report.md`.
+    ADRs 0011-0013.
