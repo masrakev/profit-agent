@@ -41,6 +41,17 @@ class CampaignTruth:
 
 
 @dataclass(frozen=True)
+class Intervention:
+    """An owner action from `day` on: the campaign's daily budget times `budget_multiplier`
+    (0 pauses it). Generating with interventions gives the real outcome of a simulated action;
+    days before the first intervention are identical to the store without them."""
+
+    day: int
+    campaign: int  # index of the campaign in generation order
+    budget_multiplier: float
+
+
+@dataclass(frozen=True)
 class GeneratedStore:
     store: Store
     products: tuple[Product, ...]
@@ -58,6 +69,7 @@ class GeneratedStore:
     config: GeneratorConfig
     # (order id, campaign id) for every ad-driven order: ground truth, never loaded.
     order_campaigns: tuple[tuple[UUID, UUID], ...] = ()
+    interventions: tuple[Intervention, ...] = ()
 
     def counts(self) -> dict[str, int]:
         return {

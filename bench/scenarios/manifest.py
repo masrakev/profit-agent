@@ -2,6 +2,7 @@
 stored as JSON."""
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -11,6 +12,7 @@ from bench.faults import AnyFault, FaultLabel
 from bench.faults.conditions import AnyCondition, ConditionLabel
 from bench.generator import GeneratedStore, GeneratorConfig, generate
 from bench.generator.faults import fault_rng
+from bench.generator.model import Intervention
 
 SCENARIO_DIR = Path(__file__).resolve().parent
 # dev: tuning only. test_v3: reported once the agent and thresholds are frozen.
@@ -35,8 +37,8 @@ class ScenarioManifest(BaseModel):
     def is_healthy(self) -> bool:
         return not self.faults
 
-    def generate(self) -> GeneratedStore:
-        data = generate(self.config, faults=self.faults)
+    def generate(self, interventions: Sequence[Intervention] = ()) -> GeneratedStore:
+        data = generate(self.config, faults=self.faults, interventions=interventions)
         for index, condition in enumerate(self.conditions):
             rng = fault_rng(self.config.seed, CONDITION_STREAM + index, condition)
             data = condition.apply(data, rng)

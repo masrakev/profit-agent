@@ -11,7 +11,14 @@ from sqlalchemy import Engine, text
 from app.db import tenant_transaction
 from app.domain.audit import verify_chain
 from app.facts import recompute
-from bench.generator import Fault, GeneratedStore, GeneratorConfig, apply_faults, generate
+from bench.generator import (
+    Fault,
+    GeneratedStore,
+    GeneratorConfig,
+    Intervention,
+    apply_faults,
+    generate,
+)
 from bench.generator.__main__ import main as generator_main
 
 SMALL = GeneratorConfig(seed=7, days=40)
@@ -107,3 +114,38 @@ def test_cli_loads_store_and_facts_recompute(
     assert orders == created["counts"]["orders"]
     with tenant_transaction(app_engine, UUID(store_id)) as conn:
         assert verify_chain(conn, UUID(store_id)).entries_checked == 2
+
+
+def test_interventions_change_only_what_follows_them(small: GeneratedStore) -> None:
+    day = 30
+    first = SMALL.start_date + timedelta(days=day)
+    cut = generate(SMALL, interventions=[Intervention(day=day, campaign=0, budget_multiplier=0.5)])
+    paused = generate(SMALL, interventions=[Intervention(day=day, campaign=0, budget_multiplier=0)])
+    assert cut.store.store_id not in (small.store.store_id, paused.store.store_id)
+    assert cut.interventions == (Intervention(day=day, campaign=0, budget_multiplier=0.5),)
+
+    def figures(data: GeneratedStore, before: bool) -> list[tuple[object, ...]]:
+        index = {c.id: i for i, c in enumerate(data.campaigns)}
+        return sorted(
+            (index[m.campaign_id], m.metric_date, m.spend, m.impressions, m.clicks)
+            for m in data.ad_metrics
+            if (m.metric_date < first) is before
+        )
+
+    # Same numbers before the intervention (the stores only differ by their ids).
+    assert figures(cut, True) == figures(small, True) == figures(paused, True)
+    early = {o.id for d in (cut, small) for o in d.orders if o.ordered_at.date() < first}
+
+    def sales(data: GeneratedStore) -> list[object]:
+        return sorted(str(ln.net_amount) for ln in data.lines if ln.order_id in early)
+
+    assert sales(cut) == sales(small)
+
+    def spend_after(data: GeneratedStore) -> float:
+        return sum(float(f[2]) for f in figures(data, False) if f[0] == 0)
+
+    assert 0 < spend_after(cut) < 0.6 * spend_after(small)
+    assert spend_after(paused) == 0
+    others = [f for f in figures(paused, False) if f[0] != 0]
+    assert others
+    assert len(others) == len([f for f in figures(small, False) if f[0] != 0])

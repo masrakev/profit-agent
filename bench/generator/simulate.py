@@ -14,6 +14,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 import numpy as np
 
+from app.domain.hashing import canonical_json
 from app.domain.models import (
     AdCampaign,
     AdCampaignProduct,
@@ -28,7 +29,7 @@ from app.domain.models import (
 )
 from bench.generator.config import GeneratorConfig
 from bench.generator.faults import Fault, apply_faults
-from bench.generator.model import CampaignTruth, GeneratedStore, ProductTruth
+from bench.generator.model import CampaignTruth, GeneratedStore, Intervention, ProductTruth
 
 CENT = Decimal("0.01")
 STORE_NAMESPACE = uuid5(NAMESPACE_URL, "https://profit-agent.dev/bench/store")
@@ -106,13 +107,28 @@ def _midnight(day: date) -> datetime:
     return datetime.combine(day, time(), tzinfo=UTC)
 
 
-def store_id_for(config: GeneratorConfig) -> UUID:
-    return uuid5(STORE_NAMESPACE, f"{config.seed}:{config.fingerprint}")
+def store_id_for(config: GeneratorConfig, interventions: Sequence[Intervention] = ()) -> UUID:
+    base = uuid5(STORE_NAMESPACE, f"{config.seed}:{config.fingerprint}")
+    if not interventions:
+        return base
+    # Another store (its own ids), with the same numbers until the first intervention.
+    key = [[i.day, i.campaign, repr(i.budget_multiplier)] for i in interventions]
+    return uuid5(base, canonical_json(key))
 
 
-def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> GeneratedStore:
+def _budget_multiplier(interventions: Sequence[Intervention], campaign: int, day: int) -> float:
+    """The latest intervention on the campaign in force on `day` (multipliers do not compound)."""
+    active = [i for i in interventions if i.campaign == campaign and i.day <= day]
+    return max(active, key=lambda i: i.day).budget_multiplier if active else 1.0
+
+
+def generate(
+    config: GeneratorConfig,
+    faults: Sequence[Fault] = (),
+    interventions: Sequence[Intervention] = (),
+) -> GeneratedStore:
     rng = np.random.default_rng(config.seed)
-    store_id = store_id_for(config)
+    store_id = store_id_for(config, interventions)
     store = Store(
         store_id=store_id,
         name=config.store_name or f"Bench store {config.seed}",
@@ -148,7 +164,10 @@ def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> Generated
         for c, truth in enumerate(campaign_truth):
             if day < truth.start_day:
                 continue
-            spend = money(float(campaigns[c].daily_budget) * rng.uniform(0.75, 1.05))
+            budget = float(campaigns[c].daily_budget) * _budget_multiplier(interventions, c, day)
+            if budget <= 0:
+                continue  # paused: no spend and no ad-driven demand
+            spend = money(budget * rng.uniform(0.75, 1.05))
             spend_today[c] = spend
             expected = truth.a * (1.0 - math.exp(-truth.b * float(spend)))
             purchases = max(0, round(expected + rng.normal(0.0, truth.noise_sd)))
@@ -219,6 +238,7 @@ def generate(config: GeneratorConfig, faults: Sequence[Fault] = ()) -> Generated
         lost_sales_units=builder.lost_sales_units,
         config=config,
         order_campaigns=tuple(builder.order_campaigns),
+        interventions=tuple(interventions),
     )
     return apply_faults(data, faults, config.seed)
 
