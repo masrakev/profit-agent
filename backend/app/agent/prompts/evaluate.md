@@ -20,7 +20,10 @@ Write the answer contract:
   adjust: worth doing in the adjusted form; avoid: not worth doing), citing the net-profit change
   fact. What-if: the expected effect, citing the net-profit change fact.
 - evidence: the ids of the facts you cite.
-- reasoning: how the facts lead there: what moves (spend, units, margin) and why.
+- reasoning: start from where the store stands today, citing the entity's current facts the
+  change acts on (a campaign: its profit and POAS; a product: units, margin and stock cover; all
+  ad spend: current ad spend and contribution after ads), then what the change moves (spend,
+  units, margin) and why.
 - alternatives: the variants (and the one code recommends), each with its net-profit change fact.
 - uncertainty: what is estimated and why it is uncertain. Simulated results are ranges, never
   exact values: say "likely" or "between", never "exactly".

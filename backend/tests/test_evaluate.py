@@ -197,10 +197,11 @@ def explained(body: dict[str, Any], **extra: Any) -> f.Reply:
     scenario = context(body)["scenario"]
     change = scenario["simulated_change_vs_doing_nothing"]["net_profit"]["fact_id"]
     days = scenario["parameters"]["twin.parameter.horizon_days"]["fact_id"]
+    now = context(body)["entity_facts"][0]["fact_id"]
     payload = {
         "answer": f"Not worth doing: net profit would change by {{{{F{change}}}}}.",
-        "evidence": [change, days],
-        "reasoning": f"Over {{{{F{days}}}}} days the extra spend sells nothing more.",
+        "evidence": [change, days, now],
+        "reasoning": f"Today {{{{F{now}}}}}; over {{{{F{days}}}}} days the spend sells no more.",
         "alternatives": ["A smaller budget loses less."],
         "uncertainty": "The new campaign's response is borrowed from the store's others.",
         "recommendation": "Restock first.",
@@ -301,3 +302,24 @@ def test_answers_are_answers() -> None:
     assert isinstance(clarification_answer(["action"], None), Answer)
     assert isinstance(AskResult, type)
     assert IntentAction("change_price") is IntentAction.CHANGE_PRICE
+
+
+@pytest.mark.db
+def test_an_evaluation_starts_from_the_current_facts(
+    app_engine: Engine, golden_stockout: dict[str, Any]
+) -> None:
+    def simulation_only(body: dict[str, Any]) -> f.Reply:
+        scenario = context(body)["scenario"]
+        change = scenario["simulated_change_vs_doing_nothing"]["net_profit"]["fact_id"]
+        return explained(body, evidence=[change], reasoning=f"It moves {{{{F{change}}}}}.")
+
+    product = golden_stockout["product"]
+    steps = [
+        classify("evaluate"),
+        intent(action="launch_campaign", entity=f"product:{product}"),
+        simulation_only,
+        explained,
+    ]
+    h = Harness(steps)
+    out = ask(app_engine, golden_stockout["id"], "Launch one?", h.provider)
+    assert (out.status, out.regenerations) == ("answered", 1)

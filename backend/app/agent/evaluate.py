@@ -7,7 +7,7 @@
    fits the twin, simulates the intent and its variants (the same change at other sizes or for
    less time) against doing nothing, and, for evaluate, decides the verdict
    (`app.decisions.verdict`).
-3. The model explains from facts only (lookup stage, no tools): the scenario's parameters, the
+3. The model explains from facts only (explanation stage, no tools): the scenario's parameters, the
    simulated changes, the entity's current facts. The answer is verified like every answer;
    code adds `low_evidence` when an assumption is weak. If the model's answer cannot be used,
    code writes the answer from the same facts.
@@ -328,6 +328,7 @@ def evaluate_checks(
     question_type: str,
     change_fact_id: int,
     estimates: set[int],
+    current: set[int],
     base: Callable[[Answer], list[OutputViolation]],
 ) -> Callable[[Answer], list[OutputViolation]]:
     def check(answer: Answer) -> list[OutputViolation]:
@@ -335,6 +336,12 @@ def evaluate_checks(
         if change_fact_id not in answer.evidence:
             found.append(
                 OutputViolation("evidence", "contract", "cite the simulated net-profit change")
+            )
+        if current and not current & set(answer.evidence):
+            found.append(
+                OutputViolation(
+                    "evidence", "contract", "cite the entity's current facts the change acts on"
+                )
             )
         if question_type == "evaluate":
             if not answer.alternatives:
@@ -544,8 +551,8 @@ def evaluate_question(
         )
     evidence = entity_facts(ctx, scenario)
     explain = load_prompt("evaluate")
-    cfg = stages[Stage.LOOKUP]
-    answer_route = stages.route(Stage.LOOKUP, origin, routing, f"{question_type} explanation")
+    cfg = stages[Stage.EXPLANATION]
+    answer_route = stages.route(Stage.EXPLANATION, origin, routing, f"{question_type} explanation")
     estimates = {f.id for s in (intent, *others) for f in s.change.values() if f.id is not None}
     entities = {"store"} | {
         ref
@@ -576,7 +583,9 @@ def evaluate_question(
         max_tool_calls=0,
         max_input_tokens=cfg.max_input_tokens,
         extra_entities=entities,
-        validate=evaluate_checks(question_type, change.id, estimates, base_checks),
+        validate=evaluate_checks(
+            question_type, change.id, estimates, {int(v["fact_id"]) for v in evidence}, base_checks
+        ),
     )
     if run.output is not None:
         answer = run.output
