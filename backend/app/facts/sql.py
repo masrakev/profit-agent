@@ -213,6 +213,26 @@ def latest_inventory(
     )
 
 
+def product_lead_time(conn: Connection, store_id: UUID, product_id: UUID) -> Aggregate | None:
+    """The product's supplier lead time in days, or None when unknown."""
+    row = conn.execute(
+        text(
+            "SELECT p.id, p.supplier_lead_time_days FROM products p "
+            "WHERE p.store_id = :sid AND p.id = :pid"
+        ),
+        {"sid": store_id, "pid": product_id},
+    ).first()
+    if row is None or row.supplier_lead_time_days is None:
+        return None
+    return Aggregate(
+        value=Decimal(row.supplier_lead_time_days),
+        table="products",
+        ids=(row.id,),
+        digest=sha256_hex(f"{row.id}:{row.supplier_lead_time_days}"),
+        currencies=frozenset(),
+    )
+
+
 def campaign_ids(conn: Connection, store_id: UUID) -> list[UUID]:
     rows = conn.execute(
         text("SELECT id FROM ad_campaigns WHERE store_id = :sid ORDER BY id"), {"sid": store_id}

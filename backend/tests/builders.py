@@ -42,7 +42,9 @@ class Scenario:
         self.currency = currency
         self._orders = 0
 
-    def product(self, price: str, cost: str, fee: str, sku: str | None = None) -> UUID:
+    def product(
+        self, price: str, cost: str, fee: str, sku: str | None = None, lead_time: int | None = None
+    ) -> UUID:
         pid = uuid4()
         ProductRepository(self.conn).add_many(
             [
@@ -55,6 +57,7 @@ class Scenario:
                     unit_cost=D(cost),
                     unit_fee=D(fee),
                     currency=self.currency,
+                    supplier_lead_time_days=lead_time,
                 )
             ]
         )

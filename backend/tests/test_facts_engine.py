@@ -30,7 +30,7 @@ def _seed(app_engine: Engine) -> tuple[UUID, UUID, list[UUID]]:
     store = create_store(app_engine)
     with tenant_transaction(app_engine, store) as conn:
         s = Scenario(conn, store)
-        p = s.product("25.00", "10.00", "1.00")
+        p = s.product("25.00", "10.00", "1.00", lead_time=7)  # every formula is defined
         lines = [
             s.order(
                 f"2026-01-{d:02d}T09:00:00", [(p, 1, "25.00", "10.00", "1.00")], payment_fee="1.00"
@@ -146,7 +146,7 @@ def test_recompute_cli(app_engine: Engine, capsys: pytest.CaptureFixture[str]) -
 
 
 def test_registry_rules() -> None:
-    assert len(REGISTRY) == 28
+    assert len(REGISTRY) == 31
     assert {f.formula_id for f in REGISTRY.for_scope(ScopeKind.STORE)} >= {
         "revenue",
         "net_profit",

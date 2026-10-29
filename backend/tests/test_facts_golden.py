@@ -11,6 +11,7 @@ from sqlalchemy import Engine
 from app.db import tenant_transaction
 from app.domain.models import OrderStatus
 from app.domain.money import round_for_display
+from app.domain.schema import products
 from app.facts.engine import FactEngine
 from app.facts.model import Fact, FactStatus, Period, Scope
 from tests.builders import Scenario
@@ -363,3 +364,28 @@ def test_foreign_currency_rows_make_money_facts_undefined(app_engine: Engine) ->
     assert f["units"].value == D(2)
     assert f["gross_margin"].undefined_reason is not None
     assert f["gross_margin"].undefined_reason.startswith("revenue is undefined")
+
+
+def test_golden_ad_delivery_counts_and_lead_time(app_engine: Engine) -> None:
+    # Two January ad days at 10 clicks and 1,000 impressions each (February 1 is excluded):
+    # clicks = 20, impressions = 2,000, for the store and for its only campaign.
+    store, campaign, product = _ads_store(app_engine)
+    for scope in (Scope.store(), Scope.campaign(campaign)):
+        f = facts_for(app_engine, store, JAN, scope, "clicks", "impressions")
+        assert values(f) == {"clicks": D(20), "impressions": D(2000)}
+        assert f["clicks"].currency is None
+    # Lead time is a product attribute: unknown here, then 12 days whatever the period.
+    unknown = facts_for(app_engine, store, JAN, Scope.product(product), "supplier_lead_time_days")
+    assert unknown["supplier_lead_time_days"].undefined_reason == "supplier lead time unknown"
+    with tenant_transaction(app_engine, store) as conn:
+        conn.execute(
+            products.update()
+            .where(products.c.store_id == store, products.c.id == product)
+            .values(supplier_lead_time_days=12)
+        )
+    for period in (JAN, Period.days(date(2026, 3, 1), date(2026, 3, 8))):
+        known = facts_for(
+            app_engine, store, period, Scope.product(product), "supplier_lead_time_days"
+        )["supplier_lead_time_days"]
+        assert (known.value, known.status) == (D(12), FactStatus.DEFINED)
+        assert [s.table for s in known.lineage.sources] == ["products"]

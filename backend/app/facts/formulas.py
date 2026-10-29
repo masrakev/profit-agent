@@ -283,6 +283,18 @@ def _units_on_hand(ctx: FactContext, scope: Scope, period: Period) -> Computed:
     return from_aggregate(ctx, agg, money=False)
 
 
+def _supplier_lead_time(ctx: FactContext, scope: Scope, period: Period) -> Computed:
+    """A product attribute, not a flow: the same value whatever the period."""
+    assert scope.id is not None
+    agg = sql.product_lead_time(ctx.conn, ctx.store_id, scope.id)
+    if agg is None:
+        inputs_hash = sha256_hex(
+            canonical_json({"table": "products", "product": scope.id, "lead_time": None})
+        )
+        return Computed(None, None, inputs_hash, undefined_reason="supplier lead time unknown")
+    return from_aggregate(ctx, agg, money=False)
+
+
 def _inventory_cover_days(ctx: FactContext, scope: Scope, period: Period) -> Computed:
     trailing = Period(start=period.end - timedelta(days=INVENTORY_TRAILING_DAYS), end=period.end)
     return derive(
@@ -396,6 +408,20 @@ def build_registry() -> FormulaRegistry:
         "Σ purchases attributed by the ad platform",
     )
     add(
+        "clicks",
+        Unit.COUNT,
+        STORE_CAMPAIGN,
+        _ad_metric("clicks", money=False),
+        "Σ ad clicks reported by the platform",
+    )
+    add(
+        "impressions",
+        Unit.COUNT,
+        STORE_CAMPAIGN,
+        _ad_metric("impressions", money=False),
+        "Σ ad impressions reported by the platform",
+    )
+    add(
         "attributed_contribution",
         Unit.MONEY,
         STORE_CAMPAIGN,
@@ -466,6 +492,13 @@ def build_registry() -> FormulaRegistry:
         f"units_on_hand ÷ (units sold in [end − {INVENTORY_TRAILING_DAYS}d, end) ÷ "
         f"{INVENTORY_TRAILING_DAYS})",
         inputs=("units_on_hand", "units"),
+    )
+    add(
+        "supplier_lead_time_days",
+        Unit.DAYS,
+        PRODUCT,
+        _supplier_lead_time,
+        "the product's supplier lead time (a product attribute; the period does not matter)",
     )
     add(
         "campaign_profit",
