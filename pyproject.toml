@@ -75,4 +75,12 @@ filterwarnings = ["error"]
 branch = true
 
 [tool.coverage.report]
-exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+# Protocol stubs only: a bare `...` line, or a one-line `def f(...) -> T: ...`. (The former
+# pattern, any "...", also matched `tuple[int, ...]` annotations and hid whole functions.)
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "^\\s*\\.\\.\\.\\s*$",
+    ": \\.\\.\\.$",
+]
