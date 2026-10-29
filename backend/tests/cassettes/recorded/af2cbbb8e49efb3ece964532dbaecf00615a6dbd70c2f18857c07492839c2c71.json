@@ -1,0 +1,210 @@
+{
+  "key": "af2cbbb8e49efb3ece964532dbaecf00615a6dbd70c2f18857c07492839c2c71",
+  "note": "",
+  "request": {
+    "body": {
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Look up the fact with id one and report its reference.",
+              "type": "input_text"
+            }
+          ],
+          "role": "user",
+          "type": "message"
+        },
+        {
+          "encrypted_content": "Q-PaDgHLMNcc5zucs-XHfT-3RW8vZIxcaaNS4T2JD7Z_i8LnUX1rH79AqyhL_nrAcHIc802NlRNnVjFsxV5RouikNpHkp3LG1vjtRIRkvML1qZjp_b7HLiBqdw5TLHxb3iepYXTfdVibpFwuZH0sArFK9zEeJV678EIQGCvDEgkOOVxCaQyew3araIvuJaqpPE1F-lQ7NFKr4Y0lKoAQHAHX61PTRIb5IgtQ-UlB5kwxUQVNxBqhUmjlLuJXc1wtc-Hs-yHRZpPq06aNHxSJzW8g7CZQpD4aKffeotQvHdR08yjr4leT62DOyCJTkhMy5mazGe4CahxeB1go2C1XajDZWA7CnjODst9MSe1eVFV1n30mfje0vjbKI1mAN6ES7KGzaCF9Yq0-1xzxw6bHoFVW4TXFk4svDi8r11Zx3PMx2ZFvZw2Occmn4Uz51yOeyvNea2gUoQG1OWHTu36t4XdvcgnXbKQ4XMroBCm_FakWAfA6QLh4z0dv3Bkw37BeoRRfHqfPIbmyamN92zFr7bHJFhMpCy3wOC5EbiUv5xoOz7-ie4QwokYRomKO-x25XkEH-wbbFhsDI3Hw0xRPyTsM0OATuq_1RGlK9Av2_-M27_PebPj7lc4pq9TldXrsJDmDAAeiQyvjeq9vjDlcZSrC_oJ40fLWValEFzWvoE0Opk0HvbO0MRS8UjMvS2yNd4RbjUCfvilqJLcFCLIEVEMVZeok4SQ29XlLg9MnTjfoWs_q4VYHvw3ld5tYOdUhUvOOldv-ezFmXLMZXvpDB8TvyL-t60MUUBdcZ7rWfDLCXtQMxT9ZC-xkT4xZnhdM5FmNLo_bVM6h6E_LCWO0TZ7kcMLf1eibpdvQUjGXPrMNjZBf_VFVUOR37CVN3GBUOoK7uPWGIZhr17MmZKYI9qAuWxpkXnljRY7FosaeKZ8PDKloxvefvT1POERcsuWOOIl1akJAJ-WPoKuyanTeUEEycFSPT754ULF27Siby083qjcBuJNHeM-dutijPIqz9DW_NECNmxjnCZiUOrkuHbVksxf_ik5A9oc_dquCRIheXIa7NOthZNGRMAAsfqOxjoosuuTYC3wvO1MFJzXl8gSadG_O1AWTBN1uOMBaKH1pyYTQnVPrN-GlgJcHA68nsuTSkggpTP5Z8cOJXnCLGf7tWQ_jB7tWM839K37AIaWaJBexjIgk1p0_Fu6rGCl3Vm2mfxUzBhmiSAiOfa2hcqdX4Unezdzp4O0CPiSZzeXA9tybnhSPcMh6CB4duqy8xVB_ed4hLkUZTVuJ6BM1ZQHSbDZZRmzTbhEj-pBGQWYxhTJp2NWr-AXii4w-LUKG6C_SHmvTYW8cEpa1sxGiM4hDCwv1VSZFEDC_UbaKSszODBMXLU3Er9jXkUriqWbknBrvQLDbITi--EQuRw",
+          "id": "rs_6ae33c9183a1547d3b1b43d0:rs_c08dde8f-ced8-4fc8-ae8d-5b79b9e97ad4",
+          "status": "completed",
+          "summary": [],
+          "type": "reasoning"
+        },
+        {
+          "arguments": "{\"fact_id\":1}",
+          "call_id": "call_f7ab5463-3c57-46e5-aa6f-491d193ec7f1",
+          "id": "fc_f7ab5463-3c57-46e5-aa6f-491d193ec7f1",
+          "name": "get_fact",
+          "status": "completed",
+          "type": "function_call"
+        },
+        {
+          "call_id": "call_f7ab5463-3c57-46e5-aa6f-491d193ec7f1",
+          "output": "{\"fact_id\": 1, \"reference\": \"{{F1}}\"}",
+          "type": "function_call_output"
+        }
+      ],
+      "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
+      "max_output_tokens": 2048,
+      "model": "muse-spark-1.3",
+      "prompt_cache_key": "muse-spark-1.3:smoke:28a0fc81bdbadc94",
+      "reasoning": {
+        "effort": "low"
+      },
+      "store": false,
+      "text": {
+        "format": {
+          "name": "SmokeAnswer",
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_reference": {
+                "type": "string"
+              },
+              "used_tool": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "fact_reference",
+              "used_tool"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "json_schema"
+        }
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": "Return the reference of a stored fact by id.",
+          "name": "get_fact",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_id": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "fact_id"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "function"
+        }
+      ]
+    },
+    "method": "POST",
+    "path": "/v1/responses"
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "completed_at": 1793277074.0,
+      "created_at": 1793277074.0,
+      "error": null,
+      "id": "resp_6ae33c92d6eda86a94ff4287",
+      "incomplete_details": null,
+      "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
+      "max_output_tokens": 2048,
+      "model": "muse-spark-1.3",
+      "object": "response",
+      "output": [
+        {
+          "encrypted_content": "Q-PaDgGnLjLlEuG5cvZsZOqxOkDeo7hcmTO5xlxTgOH8b7lsIyWrTES8EF1hB1O74TTopkLEJ6nRxqQsqU-ZRkdE0dwq2oT0g3Ud3A3WPj5IqmWSJdHMV9XG2zbExPsiPZxPi4oIUCKwk_Ki63aYn9wAXVXHtovnAmAuqw_HloI2M7xKItFY9ThUjGjsBPXecPEvu0GG6XRDLyCV3Wg5KFsPifaYvro0ldsA_jk75NEYvKCKPgX7Vsxypvu7xKAuM3Rcajmuu-pM3LFQ2VmYsgV74N--PkqHaZr2VfmEnnnAxR5JNEFdkJPbnLIEcdBA40OPXcq4XM1sqvBr5vsWd0cgzDoIHhrUXep85waVjcgveAm_BJFqeVrDk-ubVsU4-MNshAID3P4h7-gqDG2n2AvikI2qF328LlN7Ohfv-dGbDWddB122gjTnrPiA_xI3oDFD_ogNXx7LrnysBoOuyWFWdTsh3eyaz6vhYSw6oYm9cpT0i9JasXlwiBFao8wcmvRW_-RdY0Bgh8ZhNxH_IgHSnZMN7xU2BaR8pXT740MUJAZl5lZA9_xAtigv22s3fI1_KLJg6GdOVNZe7RjklB0ZREUSXBV5N3_RVL2XfIQoTPZ6xTz5Tn0L0VrAYc_zJEKQv3gLqGFf9fVx4rBaKfUO2reteWS8M1pxmZ5x-aVRcfUimBx6jk_4DiJDLqOcAS9NolRUXTw1KT3O4QGXSUoLnh4IOy31ZevNhP2WGjrizWgH7w_h70CZqL4kq-TDHmotwiLNBrWEfH6WZTyNu5vBDUlmt_dgzAGLlQLHXhtX6hNNuz5BoHldbGTmyJlSienDlOc624v7vuBaBzVTyB85ZXOdqbN8ajSVK6nF-9pd2SZYbPfzEjk47lO1XVZx7uKXU9Pzvi8v-vJQYM9s_U5Z90XaISA_fXPvRezXcNeMP_XKSv5k4h2x7MDverLXVUGLOSvHEPczcoX-A0Z9q5A_3-_MyZ3R1OAc23dSiOWRtuAsXJknPXwOvk1hFpxLf6K7OiWgfwWZ7rHogQSrMlGbcwy0dQcELnb9hFWCPivr6UINOa8ZAOr9I7Am7WG-MIuVEpS_bs9xsnx2aCEh_Q_G7I4sXlAey-CSNOdsZz-zVRuQxY2b_GMzKqxhJ5xeRyjEui0gJ-XO5DOegvngxK2NbbNj6ug737PxIJvJEr39uKzaBvL4PjwNfoi66bcpaldjN44xNpXzLw96Y7Axszn1NDL7vk7zIoZRr27yU2Uqzl_0my7ZS2WLDEa-CbTr062L1h7mtRWyMLxmYmiUXl9vKhvSPMGUbi4qSvPCXsOixmEhDm8uTNrRSkUFgc90mlInBlMzjOA0LUQY_mU5myql8nynocjGFbQ6PkKoCvpvFcUwtUNufjyqGmgWNufAEEHFV1psswZX3ol0qg",
+          "id": "rs_6ae33c92d6eda86a94ff4287:rs_f81ed581-87a9-4d9d-bb84-a0753cd82d6b",
+          "status": "completed",
+          "summary": [],
+          "type": "reasoning"
+        },
+        {
+          "content": [
+            {
+              "annotations": [],
+              "logprobs": [],
+              "text": "{\"fact_reference\":\"{{F1}}\",\"used_tool\":true}",
+              "type": "output_text"
+            }
+          ],
+          "id": "msg_572c7c0e-1a17-4c9e-9ff1-81e94b8a791b",
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        }
+      ],
+      "parallel_tool_calls": true,
+      "prompt_cache_key": "muse-spark-1.3:smoke:28a0fc81bdbadc94",
+      "reasoning": {
+        "effort": "low"
+      },
+      "service_tier": "auto",
+      "status": "completed",
+      "store": false,
+      "temperature": 1.0,
+      "text": {
+        "format": {
+          "name": "SmokeAnswer",
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_reference": {
+                "type": "string"
+              },
+              "used_tool": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "fact_reference",
+              "used_tool"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "json_schema"
+        }
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": "Return the reference of a stored fact by id.",
+          "name": "get_fact",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_id": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "fact_id"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "function"
+        }
+      ],
+      "top_logprobs": 0,
+      "top_p": 1.0,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 811,
+        "input_tokens_details": {
+          "cached_tokens": 625
+        },
+        "output_tokens": 94,
+        "output_tokens_details": {
+          "reasoning_tokens": 71
+        },
+        "total_tokens": 905
+      }
+    },
+    "headers": {
+      "content-type": "application/json",
+      "x-ratelimit-limit-requests": "3000",
+      "x-ratelimit-limit-tokens": "4000000",
+      "x-ratelimit-remaining-requests": "2999",
+      "x-ratelimit-remaining-tokens": "3999211"
+    },
+    "status": 200
+  },
+  "synthetic": false
+}

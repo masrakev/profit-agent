@@ -1,0 +1,199 @@
+{
+  "key": "17b7aed886b00f849dd160e44b3b0339556d0f369f59f865c56dba85b7624751",
+  "note": "",
+  "request": {
+    "body": {
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Look up the fact with id one and report its reference.",
+              "type": "input_text"
+            }
+          ],
+          "role": "user",
+          "type": "message"
+        }
+      ],
+      "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
+      "max_output_tokens": 2048,
+      "model": "muse-wonder-1.0",
+      "prompt_cache_key": "muse-wonder-1.0:smoke:28a0fc81bdbadc94",
+      "reasoning": {
+        "effort": "low"
+      },
+      "store": false,
+      "text": {
+        "format": {
+          "name": "SmokeAnswer",
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_reference": {
+                "type": "string"
+              },
+              "used_tool": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "fact_reference",
+              "used_tool"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "json_schema"
+        }
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": "Return the reference of a stored fact by id.",
+          "name": "get_fact",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_id": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "fact_id"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "function"
+        }
+      ]
+    },
+    "method": "POST",
+    "path": "/v1/responses"
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "completed_at": 1793277082.0,
+      "created_at": 1793277082.0,
+      "error": null,
+      "id": "resp_6ae33c9a4c52769b53ee4a3a",
+      "incomplete_details": null,
+      "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
+      "max_output_tokens": 2048,
+      "model": "muse-wonder-1.0",
+      "object": "response",
+      "output": [
+        {
+          "encrypted_content": "Q-PaDgHfYua3p1-rEa8DJUAA-behrcALaVg7uaFCsJ09IILdLVVyxaMF4wtQyd6PIZDNi9Pg41A2V30hecnQa7-cpkMncWJn3O8QLNp0DHvAXNNIaMczeU2i-bSV_aYVsFPYn3n7nCu6jKF2NbzBo1i__P49h-tnWkMMTANvXZLncXC0wntb4IC4weRsN2ORJdXDyCDXoIQfbWiveuAEt5uy9B9z3PL022E8RgD9dIED-JjIUSyBoaYpnR2zAZZkLQ09HDV7c3EQUOiYSM8HmL7DrBTOKDvMgSeSQlgg2SiFKkgXVJJxLuiaCudVw6rUuip6hMywLnRhjViuDvUfvcm7FVPfaHS-guswZPZmYwMXmH_Y1JG9fwpXY-3M678mDdvtEbdz-tgCTIPI4ylgJi9JTkWynk0qlBLDqG8NyvzdR_uttSAMXHnuuHkK-FFo9Z2-M0a6mYlH7e90kc3nfyIAhJcesIqExdJ_rukquE8pjHWOww3HuliTNtnrk_uy_7rSwVW2fVMzd1xLFCvdO10ycpRzEnZUnl9EYEP-Tc1KpK5QDYjtV8dKSNzScRzXm2afpaqGArAFGmbTZ0Tybjkr90DPBh_3K0p9no7BZjOM4HMh-iEbRpfBkLy5rH-9hqYY8XRF99ReBjsDTwccTQF3Buvu4U917hv6i8yGrbgME3VWEeVSAjLvUwmoq6bdLjvOORPfsw5sNz1Ujg6fUkEUWgp9mpEqzpmGhmhg4ekyEHu8OPfZ8q0IaTe0ihJlAsIaZKZma0XYPYUxOrj9xevRpcAO47IuBPe1vGtT57a7dJeZhE1u6Cya9CACWg3SwBWONx9X_vFt_gpk6TKGMo_oQx3p2H7eFFImZ6VnZ-tWwN8SPn1sAtxwwoGsTiaV_JhwWzbVrPiN5eiTBHR75PNQEAIhHpJcXiijB9XOzU6WJdFIuu2ps0Limw8JK32QIhpbICav47aGVWqVFDuzbwvnZXDULGT2V9wGY_Lo1EE7fo4r0uiA06UJ51mayUPrn3ZmwTtHvJnATddH_feAqX0ksE__0mmh91J7jQWGMScHbbBSD-p1jNTbqmR8ntyoYGQbzVi-Ji7GZ84oXKkmf-24wPcBJPt7PzGfhVLdBZ8RMx3W2YwX2_nGoe6rCKlfkzmErRp-7pP1b_DechG1uYBKjznf6S-fjA5CpGqTOSsW8_UL1Uew-WGcwTl2lRFyHMDGQxeL1Emr1iItv0coQa9Sk9OTuO6J6bnq9MF1DUNFsA5_3HqxWpE9BLf4p1DNv2DEmOXrHaB3tFeS3cNuVMHn5GuwSy-TIEAtoPKHoZtdEMyr-ohfIJmXqZxoLjbpl3TUM-kK-P3m4ccrA2EAyGK00qtnmflnegbTtqfRX8WlBU4DLD2KayeWUQMv08SUtH8QThiOJ36lt71faA",
+          "id": "rs_6ae33c9a4c52769b53ee4a3a:rs_92caf371-78cf-4653-ad23-fe5ce06da6a2",
+          "status": "completed",
+          "summary": [],
+          "type": "reasoning"
+        },
+        {
+          "content": [
+            {
+              "annotations": [],
+              "logprobs": [],
+              "text": "Looking up fact 1 — I'll call get_fact to retrieve its reference.",
+              "type": "output_text"
+            }
+          ],
+          "id": "rs_2b4b8520-36bc-4002-a3cb-fbad70ff9005",
+          "phase": "commentary",
+          "role": "assistant",
+          "status": "completed",
+          "type": "message"
+        },
+        {
+          "arguments": "{\"fact_id\":1}",
+          "call_id": "call_673f2b6a-4b5c-49da-ad71-82e9ca05a8f8",
+          "id": "fc_673f2b6a-4b5c-49da-ad71-82e9ca05a8f8",
+          "name": "get_fact",
+          "status": "completed",
+          "type": "function_call"
+        }
+      ],
+      "parallel_tool_calls": true,
+      "prompt_cache_key": "muse-wonder-1.0:smoke:28a0fc81bdbadc94",
+      "reasoning": {
+        "effort": "low"
+      },
+      "service_tier": "auto",
+      "status": "completed",
+      "store": false,
+      "temperature": 1.0,
+      "text": {
+        "format": {
+          "name": "SmokeAnswer",
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_reference": {
+                "type": "string"
+              },
+              "used_tool": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "fact_reference",
+              "used_tool"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "json_schema"
+        }
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": "Return the reference of a stored fact by id.",
+          "name": "get_fact",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_id": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "fact_id"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "function"
+        }
+      ],
+      "top_logprobs": 0,
+      "top_p": 1.0,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 538,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 162,
+        "output_tokens_details": {
+          "reasoning_tokens": 90
+        },
+        "total_tokens": 700
+      }
+    },
+    "headers": {
+      "content-type": "application/json",
+      "x-ratelimit-limit-requests": "3000",
+      "x-ratelimit-limit-tokens": "4000000",
+      "x-ratelimit-remaining-requests": "2999",
+      "x-ratelimit-remaining-tokens": "4000000"
+    },
+    "status": 200
+  },
+  "synthetic": false
+}

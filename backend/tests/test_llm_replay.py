@@ -1,6 +1,7 @@
 """Record / replay modes, the provider factory, the synthetic cassettes and the smoke check."""
 
 import json
+import re
 from decimal import Decimal
 from pathlib import Path
 
@@ -20,9 +21,8 @@ from app.agent.llm.cassette import (
 from app.agent.llm.errors import CassetteMissError, MissingApiKeyError, RecordingForbiddenError
 from app.agent.llm.factory import build_provider
 from app.agent.llm.smoke import SmokeAnswer, run, run_model
-from app.config import REPO_ROOT, Settings, repo_path
+from app.config import REPO_ROOT, Settings, get_settings, repo_path
 from scripts import smoke_live
-from tests.cassettes import synthetic_build
 from tests.llm_helpers import Harness, request
 
 COMMITTED = repo_path("backend/tests/cassettes")
@@ -124,27 +124,68 @@ def test_recorded_cassettes_win_over_synthetic_ones(tmp_path: Path) -> None:
         store.find("0" * 64)
 
 
-def test_committed_cassettes_are_marked_and_current(tmp_path: Path) -> None:
+def test_committed_cassettes_are_real_named_and_all_reachable(tmp_path: Path) -> None:
     store = CassetteStore(COMMITTED)
     committed = store.all()
-    assert committed, "synthetic cassettes are missing"
+    assert committed, "recorded cassettes are missing"
     for path, cassette in committed:
         assert cassette.key == path.stem
-        if path.parent.name == "synthetic":
-            assert cassette.synthetic
+        assert cassette.synthetic is (path.parent.name == "synthetic")
+        if cassette.synthetic:
             assert "pending live verification" in cassette.note
-        else:
-            assert not cassette.synthetic
-    # Rebuilding gives the same files: cassette keys still match what the provider sends.
-    rebuilt = synthetic_build.build(tmp_path)
-    committed_synthetic = {p.name for p, _ in committed if p.parent.name == "synthetic"}
-    assert committed_synthetic == {p.name for p in rebuilt}, "unreachable synthetic cassettes"
-    for path in rebuilt:
-        twin = COMMITTED / "synthetic" / path.name
-        assert twin.exists(), f"stale synthetic cassettes: run {synthetic_build.__file__}"
-        assert json.loads(path.read_text(encoding="utf-8")) == json.loads(
-            twin.read_text(encoding="utf-8")
-        )
+    # Replaying the smoke conversation serves every committed cassette: none is stale. (After a
+    # change to the smoke prompt or the request encoding, re-record with
+    # scripts/smoke_live.py --mode record.)
+    provider = build_provider(settings(tmp_path), cassette_dir=COMMITTED)
+    assert all(o.ok for o in run(provider, list(ModelId)))
+    transport = provider._client._client._transport  # the replay transport behind the SDK
+    assert isinstance(transport, ReplayTransport)
+    assert sorted(transport.served) == sorted(c.key for _, c in committed)
+
+
+SECRET_PATTERNS = [
+    re.compile(p)
+    for p in (
+        r"(?i)authorization",
+        r"(?i)\bbearer\s",
+        r"LLM_[0-9]+_",  # Meta Model API key format
+        r"(?i)api[_-]?key",
+        r"(?i)cookie",
+        r"(?i)password|passwd",
+        r"sk-[A-Za-z0-9]{16,}",
+        r"AKIA[0-9A-Z]{16}",
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    )
+]
+
+
+def test_no_cassette_contains_a_secret() -> None:
+    key = get_settings().model_api_key
+    secret = key.get_secret_value() if key is not None else ""
+    files = sorted(COMMITTED.rglob("*.json"))
+    assert files
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        data = json.loads(text)
+        assert set(data["request"]) == {"method", "path", "body"}, path.name  # no headers
+        assert set(data["response"]["headers"]) <= {
+            "content-type",
+            "retry-after",
+            "x-ratelimit-limit-requests",
+            "x-ratelimit-remaining-requests",
+            "x-ratelimit-limit-tokens",
+            "x-ratelimit-remaining-tokens",
+        }, path.name
+        if secret:
+            assert secret not in text, path.name
+            assert secret[-12:] not in text, path.name
+        for pattern in SECRET_PATTERNS:
+            assert not pattern.search(text), (path.name, pattern.pattern)
+
+
+def test_the_secret_scan_catches_a_leak(tmp_path: Path) -> None:
+    leak = '{"headers": {"Authorization": "Bearer LLM_123_abcdef"}}'
+    assert sum(bool(p.search(leak)) for p in SECRET_PATTERNS) >= 3
 
 
 def test_smoke_reports_every_kind_of_difference() -> None:
