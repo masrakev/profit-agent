@@ -30,12 +30,17 @@ class Prompt:
         return f"{self.role}:{self.version}"
 
 
+def _read(path: Path) -> str:
+    """Line endings normalised: the same text (and hash) on every OS and checkout."""
+    return path.read_text(encoding="utf-8").replace(chr(13), "").strip()
+
+
 @cache
 def load_prompt(role: str) -> Prompt:
     if role not in ROLES:
         raise ValueError(f"unknown prompt role {role!r}")
-    rules = (PROMPTS_DIR / "rules.md").read_text(encoding="utf-8").strip()
-    body = (PROMPTS_DIR / f"{role}.md").read_text(encoding="utf-8").strip()
+    rules = _read(PROMPTS_DIR / "rules.md")
+    body = _read(PROMPTS_DIR / f"{role}.md")
     text = f"{rules}\n\n{body}\n"
     leftover = ALLOWED_BRACES.sub("", text)
     if "{" in leftover or "}" in leftover:

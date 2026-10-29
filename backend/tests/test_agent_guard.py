@@ -207,3 +207,20 @@ def test_instruction_like_store_text_is_detected() -> None:
     ]
     assert all(looks_like_instruction(t) for t in hostile)
     assert not any(looks_like_instruction(t) for t in benign)
+
+
+def test_prompt_versions_do_not_depend_on_line_endings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import app.agent.prompts as prompts
+
+    lf = load_prompt("ask")
+    for name in ("rules.md", "ask.md"):
+        text = (prompts.PROMPTS_DIR / name).read_text(encoding="utf-8").replace(chr(13), "")
+        (tmp_path / name).write_bytes(text.replace(chr(10), chr(13) + chr(10)).encode("utf-8"))
+    monkeypatch.setattr(prompts, "PROMPTS_DIR", tmp_path)
+    prompts.load_prompt.cache_clear()
+    try:
+        assert prompts.load_prompt("ask") == lf
+    finally:
+        prompts.load_prompt.cache_clear()
