@@ -5,6 +5,7 @@ import os
 from collections.abc import Iterator
 from uuid import UUID, uuid4
 
+import httpx2
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -22,6 +23,16 @@ TEST_DB = os.environ.get("TEST_DATABASE_NAME", "profit_test")
 
 def _with_db(url: str, database: str) -> str:
     return make_url(url).set(database=database).render_as_string(hide_password=False)
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never reach a live model: the real HTTP transport is disabled."""
+
+    def refuse(self: object, request: object) -> object:
+        raise RuntimeError("network access is disabled in tests; use a fake or replay transport")
+
+    monkeypatch.setattr(httpx2.HTTPTransport, "handle_request", refuse)
 
 
 @pytest.fixture(scope="session")

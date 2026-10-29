@@ -46,6 +46,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/profit
       APP_DATABASE_URL: postgresql+psycopg://profit_app:profit_app@localhost:5432/profit
+      LLM_MODE: replay  # never a live model in CI; a cassette miss fails the run
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
