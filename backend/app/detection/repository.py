@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Connection, func, select
@@ -53,22 +54,30 @@ class IncidentRepository:
             )
 
     def get(self, store_id: UUID, incident_id: str) -> StoredIncident | None:
-        row = self.conn.execute(
-            select(incidents).where(
-                incidents.c.store_id == store_id, incidents.c.incident_id == incident_id
-            )
-        ).first()
-        if row is None:
-            return None
-        return StoredIncident(
-            Incident.model_validate(row.payload), row.as_of, row.thresholds_version
-        )
+        return load_incident(self.conn, store_id, incident_id)
 
     def list_ids(self, store_id: UUID) -> list[str]:
-        return list(
-            self.conn.execute(
-                select(incidents.c.incident_id)
-                .where(incidents.c.store_id == store_id)
-                .order_by(incidents.c.incident_id)
-            ).scalars()
+        return [s.incident.incident_id for s in load_incidents(self.conn, store_id)]
+
+
+# Read-only access (no write method), for agent tools.
+
+
+def _stored(row: Any) -> StoredIncident:
+    return StoredIncident(Incident.model_validate(row.payload), row.as_of, row.thresholds_version)
+
+
+def load_incident(conn: Connection, store_id: UUID, incident_id: str) -> StoredIncident | None:
+    row = conn.execute(
+        select(incidents).where(
+            incidents.c.store_id == store_id, incidents.c.incident_id == incident_id
         )
+    ).first()
+    return None if row is None else _stored(row)
+
+
+def load_incidents(conn: Connection, store_id: UUID) -> list[StoredIncident]:
+    rows = conn.execute(
+        select(incidents).where(incidents.c.store_id == store_id).order_by(incidents.c.incident_id)
+    ).all()
+    return [_stored(r) for r in rows]
