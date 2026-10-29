@@ -3,6 +3,8 @@ Alembic as the owner role and exercised as the non-superuser application role.""
 
 import os
 from collections.abc import Iterator
+from datetime import timedelta
+from typing import Any
 from uuid import UUID, uuid4
 
 import httpx2
@@ -14,8 +16,11 @@ from sqlalchemy.exc import OperationalError
 
 from app.config import get_settings
 from app.db import make_engine, tenant_transaction
+from app.detection import pipeline
 from app.domain.models import Store
 from app.domain.repositories import StoreRepository
+from bench.generator.load import load
+from bench.scenarios.manifest import load_suite
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DB = os.environ.get("TEST_DATABASE_NAME", "profit_test")
@@ -97,3 +102,24 @@ def create_store(engine: Engine, currency: str = "USD", name: str = "Test store"
 @pytest.fixture
 def store_id(app_engine: Engine) -> UUID:
     return create_store(app_engine)
+
+
+@pytest.fixture(scope="session")
+def golden_stockout(app_engine: Engine) -> dict[str, Any]:
+    """The golden stockout-on-promoted store, loaded once and run through detection."""
+    manifest = next(
+        m for m in load_suite("golden") if m.scenario_id == "golden-stockout_on_promoted"
+    )
+    data = manifest.generate()
+    load(app_engine, data, manifest.config)
+    result = pipeline.run_pipeline(app_engine, data.store.store_id)
+    label = manifest.labels[0]
+    return {
+        "id": data.store.store_id,
+        "incident": result.incidents[0].incident_id,
+        "product": next(e.id for e in label.entities if e.kind.value == "product"),
+        "campaign": next(c.id for c in data.campaigns),
+        "products": [p.id for p in data.products],
+        "fault_day": manifest.config.start_date + timedelta(days=label.start_day),
+        "impact_fact": result.incidents[0].monthly_impact_fact_id,
+    }

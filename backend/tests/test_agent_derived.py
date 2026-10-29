@@ -6,7 +6,17 @@ from uuid import UUID
 
 import pytest
 
-from app.agent.tools.derived import ComputeError, change_point, compute, difference, mean, slope
+from app.agent.tools.derived import (
+    ComputeError,
+    change_point,
+    compute,
+    difference,
+    gap,
+    mean,
+    share,
+    slope,
+    total,
+)
 from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
 
 STORE = UUID(int=1)
@@ -178,3 +188,26 @@ def test_series_helpers_with_undefined_days() -> None:
     )
     gappy = daily(["1", None, "1", None, "1", None, "9", None, "9", None, "9", None])
     assert change_point(gappy) is None  # fewer than five defined days on a side
+
+
+def test_reconciliation_helpers() -> None:
+    parts = [fact(20, "100.00"), fact(21, "50.50")]
+    summed = total(parts, Scope.store(), JAN, parts[0])
+    assert (summed.value, summed.formula_id) == (D("150.50"), "derived.sum")
+    assert [p.role for p in summed.lineage.parents] == ["part:0", "part:1"]
+    whole = fact(22, "151.00", scope=Scope.store())
+    g = gap(whole, summed)
+    assert (g.value, g.unit, g.currency) == (D("0.50"), Unit.MONEY, "USD")
+    assert [p.role for p in g.lineage.parents] == ["whole", "parts"]
+    attributed, orders = fact(23, "12", Unit.COUNT), fact(24, "10", Unit.COUNT)
+    s = share(attributed, orders)
+    assert (s.value, s.unit, s.currency) == (D("1.2"), Unit.RATIO, None)
+    # Undefined inputs or a zero denominator give undefined facts, never an exception.
+    assert total([*parts, fact(25, None)], Scope.store(), JAN, parts[0]).undefined_reason == (
+        "a part is undefined"
+    )
+    assert gap(whole, fact(26, None)).undefined_reason == "a side is undefined"
+    assert share(attributed, fact(27, "0", Unit.COUNT)).undefined_reason == (
+        "the denominator is zero"
+    )
+    assert share(fact(28, None, Unit.COUNT), orders).undefined_reason == "a side is undefined"

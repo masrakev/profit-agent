@@ -19,6 +19,7 @@ from sqlalchemy import Connection, text
 from app.agent.llm.types import ToolCall, ToolOutput, ToolSpec
 from app.agent.tools.readonly import facts_only
 from app.agent.untrusted import data_block
+from app.detection.series import StoreSeries, load_series
 from app.facts.engine import FactEngine
 from app.facts.model import Fact, Period, Scope, ScopeKind
 from app.observability import get_logger
@@ -116,6 +117,13 @@ class ToolContext:
     facts: FactEngine
     data_end: date  # exclusive end of the store's data (the analysis date + 1 day)
     seen_fact_ids: set[int] = field(default_factory=set)
+    _series: StoreSeries | None = None
+
+    def series(self) -> StoreSeries:
+        """The store's daily series, loaded once per context."""
+        if self._series is None:
+            self._series = load_series(self.conn, self.store_id)
+        return self._series
 
     @classmethod
     def open(cls, conn: Connection, store_id: UUID) -> "ToolContext":
@@ -123,7 +131,8 @@ class ToolContext:
 
     def view(self, fact: Fact) -> FactView:
         """Persist the fact (and its parents) and expose it."""
-        saved = fact if fact.id is not None else self.facts.persist(fact)
+        # Registered with the engine so that a later derived fact can name it as a parent.
+        saved = fact if fact.id is not None else self.facts.persist(self.facts.adopt(fact))
         assert saved.id is not None
         self.seen_fact_ids.add(saved.id)
         return FactView(

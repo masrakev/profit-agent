@@ -18,33 +18,16 @@ from app.agent.tools.base import PeriodInput, Tool, ToolInput, ToolResult
 from app.agent.tools.readonly import WriteForbiddenError, facts_only
 from app.agent.untrusted import CLOSE, OPEN
 from app.db import tenant_transaction
-from app.detection import pipeline
 from app.domain.schema import products
 from app.facts.repository import get_facts
-from bench.generator.load import load
-from bench.scenarios.manifest import load_suite
 
 pytestmark = pytest.mark.db
 TOOLS_DIR = Path(__file__).resolve().parents[1] / "app" / "agent" / "tools"
 
 
-@pytest.fixture(scope="module")
-def store(app_engine: Engine) -> dict[str, Any]:
-    manifest = next(
-        m for m in load_suite("golden") if m.scenario_id == "golden-stockout_on_promoted"
-    )
-    data = manifest.generate()
-    load(app_engine, data, manifest.config)
-    result = pipeline.run_pipeline(app_engine, data.store.store_id)
-    label = manifest.labels[0]
-    return {
-        "id": data.store.store_id,
-        "incident": result.incidents[0].incident_id,
-        "product": next(e.id for e in label.entities if e.kind.value == "product"),
-        "campaign": next(c.id for c in data.campaigns),
-        "products": [p.id for p in data.products],
-        "fault_day": manifest.config.start_date + timedelta(days=label.start_day),
-    }
+@pytest.fixture
+def store(golden_stockout: dict[str, Any]) -> dict[str, Any]:
+    return golden_stockout
 
 
 @pytest.fixture
@@ -98,7 +81,7 @@ def numbers_outside_facts(node: Any, inside: bool = False) -> list[Any]:
     return [] if inside else [node]
 
 
-def test_registry_lists_nine_typed_tools() -> None:
+def test_registry_lists_the_typed_tools() -> None:
     registry = build_registry()
     assert registry.names == sorted(
         [
@@ -111,6 +94,9 @@ def test_registry_lists_nine_typed_tools() -> None:
             "get_inventory_context",
             "get_profit_bridge",
             "get_series_summary",
+            "run_sensitivity",
+            "check_reconciliation",
+            "get_method",
         ]
     )
     for spec in registry.specs():

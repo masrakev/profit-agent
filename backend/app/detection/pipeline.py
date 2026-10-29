@@ -203,6 +203,49 @@ def _impact_fact(
     return engine.persist(engine.adopt(fact))
 
 
+def expected_impact(
+    facts: FactEngine,
+    series: StoreSeries,
+    group: list[Symptom],
+    graph: EntityGraph,
+    baseline: Period,
+    current: Period,
+    cfg: DetectionConfig,
+    figures: DailyFigures | None = None,
+) -> tuple[MonthlyImpact, Fact]:
+    """The incident's expected monthly impact over the given windows, persisted as an estimate
+    fact. Used by the pipeline and, with other windows, by the sensitivity audit."""
+    figures = figures if figures is not None else daily_figures(series)
+    first_seen = min(s.first_seen for s in group)
+    b = (series.index(baseline.start.date()), series.index(baseline.end.date()))
+    c = (series.index(current.start.date()), series.index(current.end.date()))
+    scope = impact_scope(group, graph)
+    entities = sorted(str(s.entity) for s in group)
+    impact = estimate_monthly_impact(
+        figures,
+        list(series.products),
+        list(series.campaigns),
+        scope,
+        baseline=b,
+        current=c,
+        rng=np.random.default_rng(_seed(facts.store_id, "impact", first_seen, *entities)),
+        resamples=cfg.materiality.resamples,
+    )
+    digest = sha256_hex(
+        canonical_json(
+            {
+                "method": IMPACT_METHOD,
+                "resamples": cfg.materiality.resamples,
+                "products": sorted(map(str, scope.products)),
+                "campaigns": sorted(map(str, scope.campaigns)),
+                "drivers": sorted(scope.store_drivers),
+                "entities": entities,
+            }
+        )
+    )
+    return impact, _impact_fact(facts, group, impact, baseline, current, digest)
+
+
 def run_pipeline(
     engine: Engine, store_id: UUID, cfg: DetectionConfig | None = None
 ) -> DetectionResult:
@@ -217,7 +260,6 @@ def run_pipeline(
         attributions: list[ProfitAttribution] = []
         settings = StoreSettingsRepository(conn).get_or_default(store_id)
         figures = daily_figures(series)
-        product_ids, campaign_ids = list(series.products), list(series.campaigns)
         month = _day_period(series, max(series.days - 30, 0), series.days) if series.days else None
         trailing = (
             facts.persist(facts.fact("contribution_margin", Scope.store(), month))
@@ -226,35 +268,10 @@ def run_pipeline(
         )
 
         def assess(group: list[Symptom]) -> Assessment:
-            first_seen = min(s.first_seen for s in group)
-            baseline, current = attribution_windows(series, first_seen, cfg)
-            b = (series.index(baseline.start.date()), series.index(baseline.end.date()))
-            c = (series.index(current.start.date()), series.index(current.end.date()))
-            scope = impact_scope(group, graph)
-            entities = sorted(str(s.entity) for s in group)
-            impact = estimate_monthly_impact(
-                figures,
-                product_ids,
-                campaign_ids,
-                scope,
-                baseline=b,
-                current=c,
-                rng=np.random.default_rng(_seed(store_id, "impact", first_seen, *entities)),
-                resamples=cfg.materiality.resamples,
+            baseline, current = attribution_windows(series, min(x.first_seen for x in group), cfg)
+            impact, fact = expected_impact(
+                facts, series, group, graph, baseline, current, cfg, figures
             )
-            digest = sha256_hex(
-                canonical_json(
-                    {
-                        "method": IMPACT_METHOD,
-                        "resamples": cfg.materiality.resamples,
-                        "products": sorted(map(str, scope.products)),
-                        "campaigns": sorted(map(str, scope.campaigns)),
-                        "drivers": sorted(scope.store_drivers),
-                        "entities": entities,
-                    }
-                )
-            )
-            fact = _impact_fact(facts, group, impact, baseline, current, digest)
             level, material = alert_level(
                 impact,
                 settings.materiality,

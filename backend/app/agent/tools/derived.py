@@ -301,3 +301,78 @@ def change_point(days: Sequence[Fact], *, min_side: int = 5, min_t: float = 3.0)
         if t >= best_t:
             best, best_t = k, t
     return best
+
+
+# --- reconciliation ------------------------------------------------------------------------
+
+SUM_FORMULA = ("derived.sum", 1)
+GAP_FORMULA = ("derived.gap", 1)
+SHARE_FORMULA = ("derived.share", 1)
+
+
+def total(parts: Sequence[Fact], scope: Scope, period: Period, template: Fact) -> Fact:
+    """Sum of facts of one unit and currency (undefined if any part is)."""
+    missing = [p for p in parts if p.value is None]
+    value = None if missing else exact_sum(*(p.value for p in parts if p.value is not None))
+    return _fact(
+        template=template,
+        formula=SUM_FORMULA,
+        kind=FactKind.EXACT,
+        unit=template.unit,
+        currency=template.currency,
+        scope=scope,
+        period=period,
+        baseline=None,
+        parents=[(f"part:{i}", p) for i, p in enumerate(parts)],
+        params="sum of parts",
+        value=value,
+        undefined_reason="a part is undefined" if missing else None,
+    )
+
+
+def gap(whole: Fact, parts: Fact) -> Fact:
+    """`whole - parts`: zero when the two reconcile."""
+    if whole.value is None or parts.value is None:
+        value, reason = None, "a side is undefined"
+    else:
+        value, reason = exact_sub(whole.value, parts.value), None
+    return _fact(
+        template=whole,
+        formula=GAP_FORMULA,
+        kind=FactKind.EXACT,
+        unit=whole.unit,
+        currency=whole.currency,
+        scope=whole.scope,
+        period=whole.period,
+        baseline=None,
+        parents=[("whole", whole), ("parts", parts)],
+        params="whole minus parts",
+        value=value,
+        undefined_reason=reason,
+    )
+
+
+def share(numerator: Fact, denominator: Fact) -> Fact:
+    """`numerator / denominator` as a ratio; undefined on a zero denominator."""
+    value, reason = None, None
+    if numerator.value is None or denominator.value is None:
+        reason = "a side is undefined"
+    else:
+        try:
+            value = ratio(numerator.value, denominator.value, denominator_name="the denominator")
+        except UndefinedValue as exc:
+            reason = exc.reason
+    return _fact(
+        template=numerator,
+        formula=SHARE_FORMULA,
+        kind=FactKind.EXACT,
+        unit=Unit.RATIO,
+        currency=None,
+        scope=numerator.scope,
+        period=numerator.period,
+        baseline=None,
+        parents=[("numerator", numerator), ("denominator", denominator)],
+        params="ratio",
+        value=value,
+        undefined_reason=reason,
+    )

@@ -27,7 +27,6 @@ from app.detection.config import default_config
 from app.detection.models import EntityRef, SymptomCategory
 from app.detection.pipeline import daily_figures
 from app.detection.repository import load_incident, load_incidents
-from app.detection.series import load_series
 from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.formulas import REGISTRY
 from app.facts.model import Fact, Period, Scope, ScopeKind, Unit
@@ -169,7 +168,7 @@ def get_profit_bridge(ctx: ToolContext, q: BridgeQuery) -> BridgeView:
     baseline, current = q.baseline.period(), q.current.period()
     if baseline.end > current.start:
         raise ToolError("invalid_periods", "the baseline must end before the current period")
-    series = load_series(ctx.conn, ctx.store_id)
+    series = ctx.series()
     band = None
     try:
         start = series.index(q.baseline.start)
