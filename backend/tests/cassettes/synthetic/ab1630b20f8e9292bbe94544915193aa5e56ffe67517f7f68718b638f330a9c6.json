@@ -1,0 +1,123 @@
+{
+  "key": "ab1630b20f8e9292bbe94544915193aa5e56ffe67517f7f68718b638f330a9c6",
+  "note": "SYNTHETIC: hand-written response in the documented format, not a real model output; pending live verification (record with scripts/smoke_live.py --mode record)",
+  "request": {
+    "body": {
+      "include": [
+        "reasoning.encrypted_content"
+      ],
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Look up the fact with id one and report its reference.",
+              "type": "input_text"
+            }
+          ],
+          "role": "user",
+          "type": "message"
+        }
+      ],
+      "instructions": "This is a connectivity test of a tool-using assistant. First call the tool get_fact for the fact the user asks about. When the tool result arrives, answer with the exact reference string it returned in fact_reference, and set used_tool to true.",
+      "max_output_tokens": 2048,
+      "model": "muse-spark-1.3",
+      "reasoning": {
+        "effort": "low"
+      },
+      "store": false,
+      "text": {
+        "format": {
+          "name": "SmokeAnswer",
+          "schema": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_reference": {
+                "type": "string"
+              },
+              "used_tool": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "fact_reference",
+              "used_tool"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "json_schema"
+        }
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": "Return the reference of a stored fact by id.",
+          "name": "get_fact",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "fact_id": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "fact_id"
+            ],
+            "type": "object"
+          },
+          "strict": true,
+          "type": "function"
+        }
+      ]
+    },
+    "method": "POST",
+    "path": "/v1/responses"
+  },
+  "response": {
+    "body": {
+      "created_at": 1793268567.0,
+      "error": null,
+      "id": "resp_muse-spark-1_3_1",
+      "incomplete_details": null,
+      "model": "muse-spark-1.3",
+      "object": "response",
+      "output": [
+        {
+          "encrypted_content": "enc-muse-spark-1_3-1",
+          "id": "rs_muse-spark-1_3_1_0:rs_muse-spark-1_3_1_0",
+          "summary": [],
+          "type": "reasoning"
+        },
+        {
+          "arguments": "{\"fact_id\": 1}",
+          "call_id": "call_muse-spark-1_3",
+          "id": "fun_muse-spark-1_3_1_1",
+          "name": "get_fact",
+          "status": "completed",
+          "type": "function_call"
+        }
+      ],
+      "parallel_tool_calls": true,
+      "status": "completed",
+      "store": false,
+      "tool_choice": "auto",
+      "tools": [],
+      "usage": {
+        "input_tokens": 212,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 46,
+        "output_tokens_details": {
+          "reasoning_tokens": 28
+        },
+        "total_tokens": 258
+      }
+    },
+    "headers": {
+      "content-type": "application/json"
+    },
+    "status": 200
+  },
+  "synthetic": true
+}
