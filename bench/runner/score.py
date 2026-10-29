@@ -18,12 +18,14 @@
 - Alerts per healthy store per month: profitability alerts / (healthy stores x days / 30).
 """
 
+from decimal import Decimal
 from statistics import mean, median
 
 from pydantic import BaseModel, ConfigDict
 
 from app.detection.models import FaultFamily, SymptomCategory
 from bench.faults import FaultLabel
+from bench.runner.agent import HypothesisView
 from bench.runner.run import IncidentView, ScenarioOutcome
 
 DETECTION_GRACE_DAYS = 3
@@ -51,6 +53,31 @@ class Judgement(BaseModel):
     gated: int = 0  # profitability incidents kept on the watchlist by materiality
     levels: dict[str, int] = {}
     months: float = 0.0
+    attribution_scope_ok: bool | None = None  # level 2, within the incident's scope
+    # The agent arm (investigation of the primary incident), when it ran.
+    agent_status: str | None = None
+    agent_top1: bool | None = None
+    agent_top3: bool | None = None
+    agent_confidence: str | None = None
+    agent_tracking_dq: bool | None = None
+    agent_changed_top1: bool | None = None
+    agent_escalated: bool | None = None
+    agent_stable: bool | None = None
+    agent_downgraded: bool | None = None  # code capped a confidence (unstable conclusion)
+    agent_robustness_by: str | None = None
+    agent_stage: str | None = None
+    agent_calls: int = 0
+    agent_input_tokens: int = 0
+    agent_cached_tokens: int = 0
+    agent_output_tokens: int = 0
+    agent_reasoning_tokens: int = 0
+    agent_cost_usd: str | None = None
+    agent_standard_cost_usd: str | None = None
+    agent_latency_s: float | None = None
+    agent_tool_calls: int = 0
+    agent_final_violations: int = 0
+    agent_rejected_violations: int = 0
+    agent_error: bool = False
 
 
 def _matches(family: str, entity: str, label: FaultLabel) -> bool:
@@ -102,6 +129,51 @@ def _alert_counts(outcome: ScenarioOutcome, label: FaultLabel | None) -> dict[st
     }
 
 
+def _agent_fields(
+    outcome: ScenarioOutcome, label: FaultLabel | None, det_top1: bool | None
+) -> dict[str, object]:
+    a = outcome.agent
+    if a is None:
+        return {"agent_error": outcome.agent_error is not None}
+    ranked = list(a.hypotheses)
+    top = ranked[0] if ranked else None
+
+    def hit(h: HypothesisView) -> bool:
+        assert label is not None
+        return h.family == label.fault_type.value and bool(
+            set(h.entities) & {str(e) for e in label.entities}
+        )
+
+    fields: dict[str, object] = {
+        "agent_status": a.status,
+        "agent_confidence": top.confidence if top else None,
+        "agent_escalated": a.escalated,
+        "agent_stable": a.stable,
+        "agent_downgraded": any("capped" in x for x in a.adjustments),
+        "agent_robustness_by": a.robustness_by,
+        "agent_stage": "escalation" if a.escalated else "investigation",
+        "agent_calls": a.calls,
+        "agent_input_tokens": a.input_tokens,
+        "agent_cached_tokens": a.cached_tokens,
+        "agent_output_tokens": a.output_tokens,
+        "agent_reasoning_tokens": a.reasoning_tokens,
+        "agent_cost_usd": a.cost_usd,
+        "agent_standard_cost_usd": a.standard_cost_usd,
+        "agent_latency_s": a.latency_s,
+        "agent_tool_calls": a.tool_calls,
+        "agent_final_violations": a.final_violations,
+        "agent_rejected_violations": a.rejected_violations,
+    }
+    if label is not None:
+        top1 = top is not None and hit(top)
+        fields["agent_top1"] = top1
+        fields["agent_top3"] = any(hit(h) for h in ranked[:3])
+        fields["agent_changed_top1"] = None if det_top1 is None else top1 != det_top1
+        if label.fault_type is FaultFamily.TRACKING_BREAK:
+            fields["agent_tracking_dq"] = top is not None and top.family == "tracking_break"
+    return fields
+
+
 def judge(outcome: ScenarioOutcome) -> Judgement:
     if outcome.error is not None:
         fault = outcome.labels[0].fault_type.value if outcome.labels else HEALTHY
@@ -117,6 +189,7 @@ def judge(outcome: ScenarioOutcome) -> Judgement:
             false_alert=any(_is_profit_alert(i) for i in incidents),
             primary=shown,
             **_alert_counts(outcome, None),
+            **_agent_fields(outcome, None, None),
         )
     label = outcome.labels[0]
     entities = {str(e) for e in label.entities}
@@ -135,12 +208,13 @@ def judge(outcome: ScenarioOutcome) -> Judgement:
             i.category == SymptomCategory.DATA_QUALITY.value and _relevant(i, label)
             for i in incidents
         ) and not any(_is_profit_alert(i) and _relevant(i, label) for i in incidents)
+    det_top1 = bool(ranked) and _matches(ranked[0].family, ranked[0].entity, label)
     return Judgement(
         scenario_id=outcome.scenario_id,
         fault_type=label.fault_type.value,
         detected=first is not None,
         delay_days=None if first is None else max(0, first - label.start_day),
-        top1=bool(ranked) and _matches(ranked[0].family, ranked[0].entity, label),
+        top1=det_top1,
         top3=any(_matches(c.family, c.entity, label) for c in ranked[:3]),
         tracking_classified_dq=tracking,
         attribution_ok=(
@@ -155,8 +229,15 @@ def judge(outcome: ScenarioOutcome) -> Judgement:
             else attribution is not None
             and attribution.significant.get(label.expected_driver.value) is True
         ),
+        attribution_scope_ok=(
+            None
+            if label.expected_driver is None
+            else attribution is not None
+            and attribution.largest_negative_in_scope == label.expected_driver.value
+        ),
         primary=shown,
         **_alert_counts(outcome, label),
+        **_agent_fields(outcome, label, det_top1),
     )
 
 
@@ -185,6 +266,16 @@ def summarize(judgements: list[Judgement], outcomes: list[ScenarioOutcome]) -> d
             "false_alert_rate": _rate([j.false_alert for j in items]),
             "false_alerts": sum(bool(j.false_alert) for j in items),
             "tracking_classified_dq": _rate([j.tracking_classified_dq for j in items]),
+            "attribution_scope_check": _rate([j.attribution_scope_ok for j in items]),
+            "agent_top1": _rate([j.agent_top1 for j in items]),
+            "agent_top3": _rate([j.agent_top3 for j in items]),
+            "agent_tracking_classified_dq": _rate([j.agent_tracking_dq for j in items]),
+            "agent_standard_cost_usd_mean": _mean_decimal(
+                [j.agent_standard_cost_usd for j in items]
+            ),
+            "agent_latency_s_mean": _mean([j.agent_latency_s for j in items]),
+            "agent_escalated_share": _rate([j.agent_escalated for j in items]),
+            "agent_final_violations": sum(j.agent_final_violations for j in items),
         }
     faulty = [j for j in judgements if j.fault_type != HEALTHY]
     delays = [j.delay_days for j in faulty if j.delay_days is not None]
@@ -209,6 +300,7 @@ def summarize(judgements: list[Judgement], outcomes: list[ScenarioOutcome]) -> d
             "tracking_classified_dq": _rate([j.tracking_classified_dq for j in judgements]),
             "attribution_check": _rate([j.attribution_ok for j in judgements]),
             "attribution_significant": _rate([j.attribution_significant for j in judgements]),
+            "attribution_scope_check": _rate([j.attribution_scope_ok for j in judgements]),
             "false_alerts": sum(bool(j.false_alert) for j in healthy),
             "healthy_scenarios": len(healthy),
             "alerts": alerts,
@@ -230,4 +322,86 @@ def summarize(judgements: list[Judgement], outcomes: list[ScenarioOutcome]) -> d
             },
         },
         "per_fault_type": per_type,
+        "agent": _agent_summary(judgements),
+    }
+
+
+def _mean(values: list[float | None]) -> float | None:
+    known = [v for v in values if v is not None]
+    return round(mean(known), 2) if known else None
+
+
+def _mean_decimal(values: list[str | None]) -> str | None:
+    known = [Decimal(v) for v in values if v is not None]
+    return format(sum(known, Decimal(0)) / len(known), "f") if known else None
+
+
+def _sum_decimal(values: list[str | None]) -> str:
+    return format(sum((Decimal(v) for v in values if v is not None), Decimal(0)), "f")
+
+
+def _stage_summary(group: list[Judgement]) -> dict[str, object]:
+    inputs = sum(j.agent_input_tokens for j in group)
+    cached = sum(j.agent_cached_tokens for j in group)
+    return {
+        "investigations": len(group),
+        "calls": sum(j.agent_calls for j in group),
+        "input_tokens": inputs,
+        "cached_tokens": cached,
+        "output_tokens": sum(j.agent_output_tokens for j in group),
+        "reasoning_tokens": sum(j.agent_reasoning_tokens for j in group),
+        "cost_usd": _sum_decimal([j.agent_cost_usd for j in group]),
+        "standard_cost_usd": _sum_decimal([j.agent_standard_cost_usd for j in group]),
+        "latency_s_mean": _mean([j.agent_latency_s for j in group]),
+        "cache_hit_rate": round(cached / inputs, 4) if inputs else None,
+    }
+
+
+def _agent_summary(judgements: list[Judgement]) -> dict[str, object] | None:
+    ran = [j for j in judgements if j.agent_status is not None]
+    if not ran:
+        return None
+    faulty = [j for j in ran if j.fault_type != HEALTHY]
+    by_confidence = {
+        level: {
+            "n": sum(j.agent_confidence == level for j in faulty),
+            "accuracy": _rate([j.agent_top1 for j in faulty if j.agent_confidence == level]),
+        }
+        for level in ("high", "medium", "low")
+    }
+    wrong = [j for j in faulty if j.agent_top1 is False]
+    changed = [j for j in faulty if j.agent_changed_top1]
+    confident_wrong = sum(1 for j in wrong if j.agent_confidence == "high")
+    return {
+        "investigations": len(ran),
+        "errors": sum(j.agent_error for j in judgements),
+        "statuses": {
+            s: sum(j.agent_status == s for j in ran)
+            for s in sorted({j.agent_status for j in ran if j.agent_status})
+        },
+        "top1": _rate([j.agent_top1 for j in faulty]),
+        "top3": _rate([j.agent_top3 for j in faulty]),
+        "tracking_classified_dq": _rate([j.agent_tracking_dq for j in faulty]),
+        "confident_errors": round(confident_wrong / len(faulty), 4) if faulty else None,
+        "accuracy_by_confidence": by_confidence,
+        "unstable_share": _rate([j.agent_stable is False for j in ran]),
+        "robustness_coverage": _rate([j.agent_robustness_by is not None for j in ran]),
+        "robustness_by_agent": _rate([j.agent_robustness_by == "agent" for j in ran]),
+        "wrong": len(wrong),
+        "wrong_downgraded": sum(1 for j in wrong if j.agent_downgraded),
+        "changed_top1": len(changed),
+        "changed_top1_helped": sum(1 for j in changed if j.agent_top1),
+        "changed_top1_hurt": sum(1 for j in changed if not j.agent_top1),
+        "escalated_share": _rate([j.agent_escalated for j in ran]),
+        "cost_usd_mean": _mean_decimal([j.agent_cost_usd for j in ran]),
+        "standard_cost_usd_mean": _mean_decimal([j.agent_standard_cost_usd for j in ran]),
+        "latency_s_mean": _mean([j.agent_latency_s for j in ran]),
+        "tool_calls_mean": _mean([float(j.agent_tool_calls) for j in ran]),
+        "final_violations": sum(j.agent_final_violations for j in ran),
+        "rejected_violations": sum(j.agent_rejected_violations for j in ran),
+        "per_stage": {
+            stage: _stage_summary([j for j in ran if j.agent_stage == stage])
+            for stage in ("investigation", "escalation")
+            if any(j.agent_stage == stage for j in ran)
+        },
     }

@@ -3,6 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from bench.runner.run import ScenarioOutcome
 from bench.runner.score import Judgement
@@ -81,6 +82,7 @@ def render_markdown(
             f"{_pct(m['detection_rate'])} | {_num(m['median_delay_days'])} | "
             f"{_pct(m['attribution_check'])} | {other} |"
         )
+    lines += agent_section(summary)
     lines += ["", "## Scenarios that failed", ""]
     outcome_by_id = {o.scenario_id: o for o in outcomes}
     failed = [
@@ -121,6 +123,76 @@ def render_markdown(
     return "\n".join(lines) + "\n"
 
 
+def agent_section(summary: dict[str, Any]) -> list[str]:
+    """Baseline vs agent, side by side (Task 3 B4)."""
+    agent = summary.get("agent")
+    if not agent:
+        return []
+    o = summary["overall"]
+    lines = [
+        "",
+        "## Agent (investigation of each primary incident)",
+        "",
+        "| | Top-1 | Top-3 | Tracking breaks as data quality | False profit alerts | Level-2 "
+        "attribution in scope |",
+        "| --- | --- | --- | --- | --- | --- |",
+        f"| Deterministic baseline | {_pct(o['top1'])} | {_pct(o['top3'])} | "
+        f"{_pct(o['tracking_classified_dq'])} | {o['false_alerts']} / {o['healthy_scenarios']} | "
+        f"{_pct(o.get('attribution_scope_check'))} |",
+        f"| Deterministic + agent | {_pct(agent['top1'])} | {_pct(agent['top3'])} | "
+        f"{_pct(agent['tracking_classified_dq'])} | {o['false_alerts']} / "
+        f"{o['healthy_scenarios']} (the agent changes no alert) | n/a |",
+        "",
+        "| Investigations | Statuses | Confident errors | Unstable conclusions | Robustness check "
+        "(by agent) | Wrong conclusions downgraded | Agent changed top-1 (helped / hurt) | "
+        "Escalated |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        f"| {agent['investigations']} | "
+        + ", ".join(f"{k} {v}" for k, v in agent["statuses"].items())
+        + f" | {_pct(agent['confident_errors'])} | {_pct(agent['unstable_share'])} | "
+        f"{_pct(agent['robustness_coverage'])} ({_pct(agent['robustness_by_agent'])}) | "
+        f"{agent['wrong_downgraded']} of {agent['wrong']} | {agent['changed_top1']} "
+        f"({agent['changed_top1_helped']} / {agent['changed_top1_hurt']}) | "
+        f"{_pct(agent['escalated_share'])} |",
+        "",
+        "| Confidence | Investigations | Top-1 accuracy |",
+        "| --- | --- | --- |",
+        *(
+            f"| {level} | {v['n']} | {_pct(v['accuracy'])} |"
+            for level, v in agent["accuracy_by_confidence"].items()
+        ),
+        "",
+        "| Cost per investigation (USD) | At Standard prices | Latency (s) | Tool calls | "
+        "Verifier violations (final / rejected) |",
+        "| --- | --- | --- | --- | --- |",
+        f"| {_num(agent['cost_usd_mean'])} | {_num(agent['standard_cost_usd_mean'])} | "
+        f"{_num(agent['latency_s_mean'])} | {_num(agent['tool_calls_mean'])} | "
+        f"{agent['final_violations']} / {agent['rejected_violations']} |",
+        "",
+        "| Stage | Investigations | Calls | Input | Cached | Output | Reasoning | Cost USD | "
+        "At Standard prices | Mean latency (s) | Cache hit rate |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        *(
+            f"| {stage} | {v['investigations']} | {v['calls']} | {v['input_tokens']} | "
+            f"{v['cached_tokens']} | {v['output_tokens']} | {v['reasoning_tokens']} | "
+            f"{v['cost_usd']} | {v['standard_cost_usd']} | {_num(v['latency_s_mean'])} | "
+            f"{_pct(v['cache_hit_rate'])} |"
+            for stage, v in agent["per_stage"].items()
+        ),
+        "",
+        "| Fault type | Baseline top-1 | Agent top-1 | Baseline top-3 | Agent top-3 | Agent "
+        "cost at Standard (USD) | Agent latency (s) | Escalated |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for fault, v in summary["per_fault_type"].items():
+        lines.append(
+            f"| {fault} | {_pct(v['top1'])} | {_pct(v['agent_top1'])} | {_pct(v['top3'])} | "
+            f"{_pct(v['agent_top3'])} | {_num(v['agent_standard_cost_usd_mean'])} | "
+            f"{_num(v['agent_latency_s_mean'])} | {_pct(v['agent_escalated_share'])} |"
+        )
+    return lines
+
+
 def write_reports(
     suite: str,
     started: datetime,
@@ -147,6 +219,6 @@ def write_reports(
     md = render_markdown(
         suite, started, summary, judgements, outcomes, total_runtime_s, thresholds_version
     )
-    md_path = out_dir / ("latest.md" if suite == "test_v2" else f"latest-{suite}.md")
+    md_path = out_dir / ("latest.md" if suite == "test_v3" else f"latest-{suite}.md")
     md_path.write_text(md, encoding="utf-8", newline="\n")
     return json_path, md_path

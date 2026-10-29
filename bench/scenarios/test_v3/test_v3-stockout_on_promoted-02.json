@@ -1,0 +1,71 @@
+{
+  "condition_labels": [],
+  "conditions": [],
+  "config": {
+    "campaign_budget_policy": "profit_optimal",
+    "campaigns_max": 8,
+    "campaigns_min": 3,
+    "cost_change_probability": "0",
+    "cross_sell_probability": "0.12",
+    "currency": "USD",
+    "days": 120,
+    "discount_probability": "0.2",
+    "discount_rate": "0.10",
+    "free_shipping_threshold": "75.00",
+    "initial_stock_days": [
+      45,
+      60
+    ],
+    "payment_fee_fixed": "0.30",
+    "payment_fee_rate": "0.029",
+    "products_max": 40,
+    "products_min": 15,
+    "reorder_policy": "adaptive",
+    "safety_stock_days": 7,
+    "seed": 131100,
+    "shipping_fee": "5.99",
+    "start_date": "2026-06-01",
+    "store_name": null,
+    "tax_rate": "0.08",
+    "weekly_seasonality": [
+      "0.92",
+      "0.95",
+      "0.97",
+      "1.00",
+      "1.08",
+      "1.15",
+      "0.93"
+    ]
+  },
+  "description": "stockout_on_promoted magnitude 1 from day 60 (2026-07-31)",
+  "faults": [
+    {
+      "campaign_id": "dbfcfe72-8e5a-5710-8af9-66e419bde967",
+      "magnitude": "1",
+      "product_id": "b1825c29-db28-5121-8279-a0f7f8a31d98",
+      "start_day": 60,
+      "type": "stockout_on_promoted"
+    }
+  ],
+  "labels": [
+    {
+      "category": "profitability",
+      "entities": [
+        {
+          "id": "b1825c29-db28-5121-8279-a0f7f8a31d98",
+          "kind": "product"
+        },
+        {
+          "id": "dbfcfe72-8e5a-5710-8af9-66e419bde967",
+          "kind": "campaign"
+        }
+      ],
+      "expected_driver": "volume",
+      "fault_type": "stockout_on_promoted",
+      "magnitude": "1",
+      "start_day": 60
+    }
+  ],
+  "scenario_id": "test_v3-stockout_on_promoted-02",
+  "suite": "test_v3"
+}

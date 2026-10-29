@@ -13,9 +13,9 @@ from bench.generator import GeneratedStore, GeneratorConfig, generate
 from bench.generator.faults import fault_rng
 
 SCENARIO_DIR = Path(__file__).resolve().parent
-# dev: tuning only. test_v2: reported once thresholds are frozen. golden: named scenarios for
-# the golden question set (bench/golden/questions.yaml).
-Suite = Literal["dev", "test_v2", "golden"]
+# dev: tuning only. test_v3: reported once the agent and thresholds are frozen.
+# golden: named scenarios for the golden question set (bench/golden/questions.yaml).
+Suite = Literal["dev", "test_v3", "golden"]
 CONDITION_STREAM = 100  # random streams of conditions start after those of faults
 
 

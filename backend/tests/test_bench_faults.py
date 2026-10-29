@@ -185,14 +185,15 @@ def test_committed_manifests_match_a_fresh_build() -> None:
     assert committed["dev-healthy-01"].is_healthy
 
 
-def test_suite_composition_v2() -> None:
-    dev, test_v2 = load_suite("dev"), load_suite("test_v2")
-    assert (len(dev), sum(m.is_healthy for m in dev)) == (84, 20)
-    assert (len(test_v2), sum(m.is_healthy for m in test_v2)) == (70, 30)
-    per_type = Counter(m.labels[0].fault_type for m in test_v2 if m.labels)
+def test_suite_composition_v3() -> None:
+    dev, test_v3 = load_suite("dev"), load_suite("test_v3")
+    assert (len(dev), sum(m.is_healthy for m in dev)) == (154, 50)
+    assert len({m.scenario_id for m in dev}) == 154
+    assert (len(test_v3), sum(m.is_healthy for m in test_v3)) == (70, 30)
+    per_type = Counter(m.labels[0].fault_type for m in test_v3 if m.labels)
     assert set(per_type.values()) == {5}
     assert len(per_type) == 8
-    test_seeds = {m.config.seed for m in test_v2}
+    test_seeds = {m.config.seed for m in test_v3}
     assert test_seeds.isdisjoint({m.config.seed for m in dev})
     assert test_seeds.isdisjoint({m.config.seed for m in load_suite("golden")})
 

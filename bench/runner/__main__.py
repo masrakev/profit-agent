@@ -1,6 +1,6 @@
 """Run a benchmark suite end to end and write reports.
 
-    uv run python -m bench.runner                  # test_v2 suite (what `make eval` runs)
+    uv run python -m bench.runner                  # test_v3 suite (what `make eval` runs)
     uv run python -m bench.runner --suite dev      # tuning suite
 
 Uses a dedicated database (`profit_bench`), recreated and migrated on every run, and runs
@@ -19,9 +19,12 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, make_url, text
 
+from app.agent.stages import Routing
 from app.config import get_settings
 from app.detection.config import default_config
 from app.observability import configure_logging
+from bench.runner.agent import AgentSettings
+from bench.runner.proposals import write_proposals
 from bench.runner.report import REPORT_DIR, write_reports
 from bench.runner.run import run_job, worker_init
 from bench.runner.score import judge, summarize
@@ -55,10 +58,14 @@ def prepare_database(name: str = BENCH_DB) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the detection benchmark")
-    parser.add_argument("--suite", choices=["dev", "test_v2", "golden"], default="test_v2")
+    parser.add_argument("--suite", choices=["dev", "test_v3", "golden"], default="test_v3")
     parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
     parser.add_argument("--only", nargs="*", help="scenario ids to run")
     parser.add_argument("--out", type=Path, default=REPORT_DIR)
+    parser.add_argument(
+        "--agent", action="store_true", help="also investigate each primary incident (live)"
+    )
+    parser.add_argument("--routing", choices=[r.value for r in Routing], default="economy")
     args = parser.parse_args(argv)
     configure_logging("WARNING")
 
@@ -70,7 +77,14 @@ def main(argv: list[str] | None = None) -> int:
     started = datetime.now(UTC).replace(microsecond=0)
     began = time.perf_counter()
     app_url = prepare_database()
-    jobs = [(m, app_url) for m in manifests]
+    agent = (
+        AgentSettings(
+            routing=Routing(args.routing), run_id=f"bench-{args.suite}-{started:%Y%m%dT%H%M%SZ}"
+        )
+        if args.agent
+        else None
+    )
+    jobs = [(m, app_url, agent) for m in manifests]
     if args.workers > 1:
         with ProcessPoolExecutor(max_workers=args.workers, initializer=worker_init) as pool:
             outcomes = list(pool.map(run_job, jobs))
@@ -80,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     judgements = [judge(o) for o in outcomes]
     summary = summarize(judgements, outcomes)
     json_path, md_path = write_reports(
-        args.suite,
+        f"{args.suite}-agent-{args.routing}" if args.agent else args.suite,
         started,
         summary,
         judgements,
@@ -89,6 +103,8 @@ def main(argv: list[str] | None = None) -> int:
         default_config().version,
         args.out,
     )
+    if args.agent and args.suite == "dev":  # proposals come from dev runs only
+        write_proposals(started, judgements, outcomes, args.out)
     sys.stdout.write(md_path.read_text(encoding="utf-8"))
     sys.stdout.write(f"\nReports: {json_path}, {md_path}\n")
     return 1 if any(j.error for j in judgements) else 0

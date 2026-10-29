@@ -150,15 +150,15 @@ def test_judging_and_reports(tmp_path: Path) -> None:
         "watchlist": 2,
     }
     started = datetime(2026, 10, 27, tzinfo=UTC)
-    md = render_markdown("test_v2", started, summary, list(j.values()), outcomes, 12.5, 1)
+    md = render_markdown("test_v3", started, summary, list(j.values()), outcomes, 12.5, 1)
     assert "| cpa_drift |" in md
     assert "`alarm`" in md
     assert "## Alerting" in md
     assert "| 1 / 3 |" in md
     json_path, md_path = write_reports(
-        "test_v2", started, summary, list(j.values()), outcomes, 12.5, 1, tmp_path
+        "test_v3", started, summary, list(j.values()), outcomes, 12.5, 1, tmp_path
     )
-    assert json_path.name == "20261027T000000Z-test_v2.json"
+    assert json_path.name == "20261027T000000Z-test_v3.json"
     assert md_path.name == "latest.md"
     _, dev_md = write_reports("dev", started, summary, list(j.values()), outcomes, 1, 1, tmp_path)
     assert dev_md.name == "latest-dev.md"

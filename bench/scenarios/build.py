@@ -3,11 +3,13 @@
     uv run python -m bench.scenarios.build            # every suite
     uv run python -m bench.scenarios.build --check    # fail if committed manifests differ
 
-Protocol v2 (docs/adr/0007-benchmark-protocol.md):
+Protocol v3 (docs/adr/0007-benchmark-protocol.md):
 `dev` (tuning only): the original dev suite (3 per fault type + 6 healthy), the former `test`
-suite merged in after being seen once (5 per fault type + 10 healthy, same seeds, new ids), and
-4 more healthy stores: 64 faulty + 20 healthy.
-`test_v2` (reported once, thresholds frozen): fresh seeds, 5 per fault type + 30 healthy = 70.
+suite (5 per fault type + 10 healthy), 4 more healthy stores, and the former `test_v2` suite
+(5 per fault type + 30 healthy), each merged in after being reported once (same seeds, new
+ids): 104 faulty + 50 healthy = 154.
+`test_v3` (reported once, agent and thresholds frozen): fresh seeds, 5 per fault type + 30
+healthy = 70.
 `golden`: one named, clear scenario per name used by bench/golden/questions.yaml.
 Targets (campaign, product) are chosen from each store's own pre-fault data.
 """
@@ -140,8 +142,9 @@ SUITES: dict[str, tuple[Part, ...]] = {
         Part(50_000, (0, 2, 4), 6),  # original dev suite (subtle, medium, strong)
         Part(10_000, ALL_VARIANTS, 10, fault_numbering=3, healthy_numbering=6),  # former test
         Part(60_000, (), 4, healthy_numbering=16),  # more healthy stores
+        Part(90_000, ALL_VARIANTS, 30, fault_numbering=8, healthy_numbering=20),  # former test_v2
     ),
-    "test_v2": (Part(90_000, ALL_VARIANTS, 30),),
+    "test_v3": (Part(130_000, ALL_VARIANTS, 30),),
 }
 
 
@@ -368,10 +371,10 @@ def _build_condition(name: str, kind: str, first_seed: int) -> ScenarioManifest:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build benchmark scenario manifests")
-    parser.add_argument("--suite", choices=["dev", "test_v2", "golden"], action="append")
+    parser.add_argument("--suite", choices=["dev", "test_v3", "golden"], action="append")
     parser.add_argument("--check", action="store_true", help="compare with committed manifests")
     args = parser.parse_args(argv)
-    suites: list[Suite] = args.suite or ["dev", "test_v2", "golden"]
+    suites: list[Suite] = args.suite or ["dev", "test_v3", "golden"]
     status = 0
     for suite in suites:
         built = build_suite(suite)
