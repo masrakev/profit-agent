@@ -134,14 +134,23 @@ def test_bootstrap_recovers_a_cost_increase() -> None:
 @pytest.mark.parametrize(
     ("p50", "trailing", "out_of_stock", "expected"),
     [
-        ("-1500", "10000", False, (AlertLevel.CRITICAL, True)),  # >= 10x absolute
-        ("-400", "10000", False, (AlertLevel.HIGH, True)),  # >= 3x absolute
-        ("-150", "1000", False, (AlertLevel.NORMAL, True)),
-        ("-150", "10000", False, (AlertLevel.WATCHLIST, False)),  # below 3% of 10,000
-        ("-80", "100", False, (AlertLevel.WATCHLIST, False)),  # below the absolute 100
+        # Margin 10,000: material from 300 (3%), high from 500 (5%), critical from 1,000 (10%).
+        ("-1000", "10000", False, (AlertLevel.CRITICAL, True)),
+        ("-999.99", "10000", False, (AlertLevel.HIGH, True)),
+        ("-500", "10000", False, (AlertLevel.HIGH, True)),
+        ("-499.99", "10000", False, (AlertLevel.NORMAL, True)),
+        ("-300", "10000", False, (AlertLevel.NORMAL, True)),
+        ("-299.99", "10000", False, (AlertLevel.WATCHLIST, False)),
+        # The same loss is critical for a small store and only normal for a large one.
+        ("-4000", "40000", False, (AlertLevel.CRITICAL, True)),
+        ("-4000", "100000", False, (AlertLevel.NORMAL, True)),
+        # Margin 1,000: the absolute floor of 100 binds before every relative tier.
+        ("-99.99", "1000", False, (AlertLevel.WATCHLIST, False)),
+        ("-100", "1000", False, (AlertLevel.CRITICAL, True)),
         ("50", "100", False, (AlertLevel.WATCHLIST, False)),  # a gain is not a loss
-        ("-150", "-500", False, (AlertLevel.NORMAL, True)),  # negative margin: relative is 0
+        ("-150", "-500", False, (AlertLevel.CRITICAL, True)),  # no positive margin: tiers are 0
         ("0", "100", True, (AlertLevel.CRITICAL, False)),  # ads on an empty shelf
+        ("-50", "100000", True, (AlertLevel.CRITICAL, False)),
     ],
 )
 def test_alert_levels(

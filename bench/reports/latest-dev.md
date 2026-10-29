@@ -1,6 +1,6 @@
 # Benchmark report: `dev` suite
 
-Run 2026-10-27T22:49:41+00:00 - thresholds v1 - 84 scenarios - total runtime 245.1 s (mean 21.63 s, max 35.689 s per scenario).
+Run 2026-10-29T13:13:52+00:00 - thresholds v1 - 84 scenarios - total runtime 166.2 s (mean 14.94 s, max 25.075 s per scenario).
 
 ## Overall (faulty scenarios)
 
@@ -12,7 +12,7 @@ Run 2026-10-27T22:49:41+00:00 - thresholds v1 - 84 scenarios - total runtime 245
 
 | False profit alerts (healthy) | Alert precision | Profit alerts per healthy store-month | Alerts | Materiality-gated incidents per scenario | Incidents by level |
 | --- | --- | --- | --- | --- | --- |
-| 1 / 20 | 88% | 0.0125 | 32 | 0.8 | critical 23, data_quality 9, watchlist 67 |
+| 1 / 20 | 88% | 0.0125 | 32 | 0.8 | critical 14, data_quality 9, high 4, normal 5, watchlist 67 |
 
 ## Per fault type
 

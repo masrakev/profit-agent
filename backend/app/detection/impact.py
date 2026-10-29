@@ -27,6 +27,9 @@ from app.facts.model import ScopeKind
 from app.settings.models import Materiality
 
 METHOD = "block_bootstrap_shapley_v1"
+# Severity tiers, as shares of the trailing-30-day contribution margin (SPEC section 6).
+CRITICAL_SHARE = Decimal("0.10")
+HIGH_SHARE = Decimal("0.05")
 MONTH_DAYS = 30
 CENT = Decimal("0.01")
 
@@ -132,12 +135,20 @@ def alert_level(
     *,
     ads_on_out_of_stock: bool,
 ) -> tuple[AlertLevel, bool]:
-    """(level, material). Material: the P50 loss meets both thresholds (SPEC section 6)."""
-    relative = materiality.relative * max(trailing_contribution, Decimal(0))
+    """(level, material), SPEC section 6 (v1.1).
+
+    Material: the P50 loss meets both the absolute and the relative threshold. Severity then
+    scales with the store: `critical` from 10% and `high` from 5% of the trailing-30-day
+    contribution margin. Promoting a product at zero stock is `critical` whatever the amount.
+    With a contribution margin of zero or less every tier is zero, so a material loss is
+    `critical`.
+    """
+    margin = max(trailing_contribution, Decimal(0))
+    relative = materiality.relative * margin
     material = impact.loss >= materiality.absolute and impact.loss >= relative and impact.loss > 0
-    if ads_on_out_of_stock or (material and impact.loss >= 10 * materiality.absolute):
+    if ads_on_out_of_stock or (material and impact.loss >= CRITICAL_SHARE * margin):
         return AlertLevel.CRITICAL, material
-    if material and impact.loss >= 3 * materiality.absolute:
+    if material and impact.loss >= HIGH_SHARE * margin:
         return AlertLevel.HIGH, material
     if material:
         return AlertLevel.NORMAL, material

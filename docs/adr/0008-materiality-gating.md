@@ -38,8 +38,8 @@ method `block_bootstrap_shapley_v1`, parents = the incident's symptom facts):
 
 | Level | Rule |
 | --- | --- |
-| critical | promoting spend on a product at zero stock, or material and loss >= 10 x absolute |
-| high | material and loss >= 3 x absolute |
+| critical | promoting spend on a product at zero stock, or material and loss >= 10% of the trailing 30-day contribution margin |
+| high | material and loss >= 5% of the trailing 30-day contribution margin |
 | normal | material: loss >= absolute **and** loss >= relative x trailing 30-day contribution margin |
 | watchlist | anything else (kept, shown on request, never pushed) |
 | data quality | data-quality incidents bypass the gate (a broken pixel is urgent at any size) |
@@ -57,10 +57,12 @@ windows of the store's own history before the baseline (adjacent pairs stepping 
 
 - Owners get alerts with a money range attached, and small real changes go to a watchlist
   rather than disappearing.
-- The relative threshold dominates on stores of the benchmark's size (30-day contribution margin
-  of 76k-158k, so 3% is 2.3k-4.7k a month), and almost every material incident is above
-  10 x 100: in practice "material" and "critical" coincide. The absolute default may need to
-  scale with store size; this is a product decision (flagged for review).
+- Severity scales with the store (SPEC v1.1): the tiers are shares of the trailing 30-day
+  contribution margin, on top of the absolute floor. The first version used 10 x and 3 x the
+  absolute floor, which on stores of the benchmark's size (30-day contribution margin of
+  76k-158k) made almost every material incident `critical`.
+- With a contribution margin of zero or less, every relative tier is zero: a material loss is
+  `critical` (flagged for review).
 - The impact is the observed change of the incident's entities, not a causal estimate: a
   coincident demand swing on the same products is counted. The bootstrap range shows sampling
   noise only.
