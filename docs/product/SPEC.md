@@ -1,11 +1,47 @@
 # Product specification
 
-Status: v1 · Owner: Kevin Masra · Last updated: 2026-10-27
+Status: v1.2 · Owner: Kevin Masra · Last updated: 2026-10-29
+(v1.1: alert severity scales with store size, section 6.
+v1.2: north star, agent as auditor (section 15), token and cost management (section 16).)
 
 This document defines what the product delivers to a store owner, the exact shape of every output,
 and how quality is measured. Every engineering task must move the evaluations defined in section 12.
 Each feature is tagged with its phase: **[H]** hackathon must-have, **[H+]** hackathon stretch,
 **[L]** later.
+
+---
+
+## 0. North star
+
+### Long-term goal
+
+Become the profit analyst of every online store that cannot afford one: the system that watches the
+business, finds where money is lost or could be made, proves it, acts with the owner's control and
+learns from measured results. Then extend it to every data source and sector where a wrong decision
+costs money.
+
+### Hackathon goal (definition of done, November 4)
+
+In a three-minute video, a judge watches a store that is losing money without knowing it. The
+system detects it on its own, proves the cause number by number, simulates the options, the owner
+approves, the action really executes on Meta, and the result is measured. Then the judge sees why
+it can be trusted: a published benchmark, zero invented numbers, zero dangerous actions.
+
+Done means every item below is true and shown:
+
+- [ ] The full loop runs end to end on a demo store: detect → investigate → alert → options with
+      ranges → approval → real execution on a Meta test ad account → journal → measured outcome.
+- [ ] The owner can ask questions (including "what can I do?" and "I want to do X") and every answer
+      follows the answer contract.
+- [ ] Daily brief and weekly report are generated from facts only.
+- [ ] Every number in every output is clickable down to its formula and source rows.
+- [ ] The benchmark report is published in the repository, with the deterministic baseline and the
+      agent side by side, on a hold-out suite never used for tuning.
+- [ ] The golden question set passes at the target rate.
+- [ ] The red-team suite shows zero unsafe outcomes with a real model.
+- [ ] Every target in section 12 is met, or the miss is reported with its reason.
+- [ ] The repository is public, CI is green, and a judge can run it with one documented command.
+- [ ] The web platform shows the journal, the evidence and the decisions, built on the API.
 
 ---
 
@@ -24,6 +60,8 @@ decision actually earned.
    question to ask.
 5. **Control stays with the owner.** Actions are approved, capped, reversible when possible and logged.
 6. **Honest limits.** When data is missing or evidence is weak, the product says so.
+7. **Two keys.** The code checks the agent (no invented number, entity or action); the agent
+   audits the code (robustness, consistency, method). Neither can override the other.
 
 ## 2. Users and jobs to be done
 
@@ -125,10 +163,13 @@ predicted vs measured impact.
 
 | Severity | Rule | Delivery |
 | --- | --- | --- |
-| `critical` | Impact ≥ 10× absolute materiality, or money is actively being spent on an impossible sale (e.g. ads on a product out of stock) | Immediately, breaks quiet hours |
-| `high` | Impact ≥ 3× absolute materiality | Immediately, within the alert budget |
-| `normal` | Material | Within the alert budget, else next briefing |
+| `critical` | P50 monthly loss ≥ 10% of trailing-30-day contribution margin, or money is actively being spent on an impossible sale (e.g. ads on a product out of stock) | Immediately, breaks quiet hours |
+| `high` | P50 monthly loss ≥ 5% of trailing-30-day contribution margin | Immediately, within the alert budget |
+| `normal` | Material (both materiality thresholds met) | Within the alert budget, else next briefing |
 | Data quality | Tracking break, stale source, reconciliation gap | Separate category, never presented as a profit problem |
+
+Severity scales with store size: the relative tiers apply on top of the absolute materiality floor,
+so a large store is not flooded with `critical` alerts for amounts that are small for it.
 
 **Content (always these six parts).** What was detected · why it matters (impact range) ·
 evidence (facts, clickable) · what is still uncertain · options with estimated impact ·
@@ -265,6 +306,10 @@ Values below illustrate the format. In production every number is a rendered fac
 | Time from data arrival to alert | < 5 min | End-to-end test |
 | Model cost per daily brief | < $0.05 | Cost accounting |
 | Model cost per investigation | < $0.50 | Cost accounting |
+| Investigations with a robustness check | 100% | Audit findings in each investigation |
+| Confident errors (wrong top-1 with `high` confidence) | ≤ 5% | Benchmark |
+| Accuracy of `high`-confidence conclusions | ≥ 90% | Benchmark, per confidence level |
+| Tokens and cost per stage | Reported | Benchmark report |
 
 **Golden question set.** `bench/golden/questions.yaml` lists questions tied to benchmark scenarios
 with machine-checkable expectations: required metrics, required entities, expected verdict or action
@@ -293,3 +338,41 @@ opportunities; FX; multiple users and roles; SMS and Slack; French.
 - Not a customer-support or social-media publishing tool.
 - Never presents platform-reported attribution as truth.
 - Never executes an action that the policy engine has not approved.
+
+## 15. Agent as auditor [H]
+
+The deterministic pipeline checks the agent; the agent also cross-examines the pipeline.
+
+**What the agent audits, with read-only tools:**
+
+| Audit | Question | Tool |
+| --- | --- | --- |
+| Robustness | Does the conclusion survive other reasonable windows and baselines? | `run_sensitivity` |
+| Consistency | Do product totals add up to the store? Do platform-attributed sales match real orders? | `check_reconciliation` |
+| Method | Is the baseline contaminated by the fault? Is the data complete? Is the method suited to the case? | `get_method` |
+
+**Output.** Every investigation contains `audit_findings`, each with a kind
+(`unstable_conclusion`, `window_contamination`, `reconciliation_gap`, `data_gap`, `weak_evidence`,
+`method_mismatch`), its evidence (fact ids), its effect and the check to run next.
+
+**Rules.**
+- Stability is computed by code, not judged by the model. If the conclusion is unstable under
+  sensitivity, confidence is capped at `medium` and the answer carries `low_evidence`, whatever the
+  model says.
+- The agent may challenge a result, request a recomputation through tools and lower confidence.
+  It never changes a formula, a threshold or a setting at runtime.
+- Proposals to improve detectors are written to an offline report and applied only after human
+  review and a new hold-out evaluation.
+
+## 16. Token and cost management [H]
+
+| Lever | Rule |
+| --- | --- |
+| Model routing | Spark Contributor for classification on synthetic stores; Spark by default; Wonder only for ambiguous incidents. Real store data always in Standard mode. |
+| Reasoning effort | Set per stage: low for classification and lookups, medium for investigations, high only on Wonder escalations. |
+| Output limits | A maximum output length per stage. |
+| Prompt caching | Stable prefix first (system prompt, tool schemas), variable content last; a stable cache key per prompt version and purpose. Budgets assume no cache hit. |
+| Compact context | Tools return facts and summaries, never raw daily series; each tool result has a size limit. |
+| Budgets | Per investigation: maximum tool calls and cumulative input tokens, with a clean stop and a partial answer. Per run and per day: hard spend caps. |
+| No duplicate work | Identical tool calls within an investigation are memoised; an investigation whose facts, prompt version and model are unchanged is served from cache. |
+| Measurement | Tokens (input, cached, output, reasoning), cost and latency per stage, reported in every benchmark run, with an estimate of production cost at Standard prices. |
