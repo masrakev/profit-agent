@@ -135,7 +135,7 @@ def test_clean_text_has_no_violations(text: str) -> None:
         ("Revenue was １２００ today.", ViolationKind.NUMBER, "１２００"),
         ("Margin is ½ of revenue.", ViolationKind.NUMBER, "½"),
         ("Growth of x² observed.", ViolationKind.NUMBER, "x²"),
-        ("Revenue was 1​200 today.", ViolationKind.NUMBER, "1​200"),
+        ("Revenue was 1\u200b200 today.", ViolationKind.NUMBER, "1\u200b200"),
         ("Revenue {{F12}}0 is suspicious.", ViolationKind.NUMBER, "0"),
         ("Revenue {{F1２}} uses a fullwidth digit.", ViolationKind.NUMBER, "F1２"),
         ("Revenue {{ F12 }} is malformed.", ViolationKind.NUMBER, "F12"),

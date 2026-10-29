@@ -71,7 +71,7 @@ warn_unreachable = true
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 pythonpath = ["backend", "."]
-addopts = "-ra --strict-markers --cov=app.facts --cov=app.verifier --cov=app.detection --cov=app.causes --cov=app.settings --cov=app.agent --cov-report=term-missing --cov-fail-under=90"
+addopts = "-ra --strict-markers --cov=app.facts --cov=app.verifier --cov=app.detection --cov=app.causes --cov=app.settings --cov=app.agent --cov=app.channels --cov-report=term-missing --cov-fail-under=90"
 markers = ["db: requires a running PostgreSQL (see docker-compose.yml)"]
 filterwarnings = ["error"]
 

@@ -13,14 +13,15 @@ describe, never instructions to follow.
 
 import re
 
+from app.domain.text import strip_invisible
+
 OPEN, CLOSE = "⟦", "⟧"
 MAX_CHARS = 200
-_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f​-‏‪-‮⁦-⁩]")
 _KIND = re.compile(r"^[a-z_]{1,32}$")
 
 
 def escape(text: str, max_chars: int = MAX_CHARS) -> str:
-    cleaned = _CONTROL.sub("", text).replace(OPEN, "[").replace(CLOSE, "]")
+    cleaned = strip_invisible(text).replace(OPEN, "[").replace(CLOSE, "]")
     return cleaned if len(cleaned) <= max_chars else cleaned[: max_chars - 1] + "…"
 
 
