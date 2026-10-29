@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.13",
+    "fastapi>=0.115",
     "httpx2>=2.16",
     "numpy>=2.0",
     "openai>=1.99",
@@ -17,10 +18,12 @@ dependencies = [
     "pyyaml>=6.0",
     "sqlalchemy>=2.0.30",
     "structlog>=24.1",
+    "uvicorn>=0.30",
 ]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.27",
     "hypothesis>=6.100",
     "mypy>=1.10",
     "pip-audit>=2.7",
@@ -71,7 +74,7 @@ warn_unreachable = true
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 pythonpath = ["backend", "."]
-addopts = "-ra --strict-markers --cov=app.facts --cov=app.verifier --cov=app.detection --cov=app.causes --cov=app.settings --cov=app.agent --cov=app.channels --cov-report=term-missing --cov-fail-under=90"
+addopts = "-ra --strict-markers --cov=app.facts --cov=app.verifier --cov=app.detection --cov=app.causes --cov=app.settings --cov=app.agent --cov=app.channels --cov=app.api --cov-report=term-missing --cov-fail-under=90"
 markers = ["db: requires a running PostgreSQL (see docker-compose.yml)"]
 filterwarnings = ["error"]
 
