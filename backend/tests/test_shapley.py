@@ -6,7 +6,7 @@ from itertools import combinations
 from uuid import UUID
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from app.causes.drivers import (
@@ -34,6 +34,9 @@ def games(
     return players, table
 
 
+# Large games make example generation slow on a loaded machine: no deadline and no too_slow
+# health check, so the test fails only when the property does.
+@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(games())
 def test_efficiency(game: tuple[list[int], dict[frozenset[int], Fraction]]) -> None:
     players, table = game
