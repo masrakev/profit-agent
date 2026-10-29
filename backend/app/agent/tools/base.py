@@ -234,7 +234,7 @@ class ToolOutcome(BaseModel):
 
 
 TRUNCATED = {"truncated": True, "note": "items omitted to fit the size limit: narrow the query"}
-DEFAULT_MAX_RESULT_CHARS = 12000
+DEFAULT_MAX_RESULT_CHARS = 20000
 
 
 def _lists(node: Any) -> list[list[Any]]:

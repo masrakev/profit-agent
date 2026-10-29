@@ -1,6 +1,6 @@
 # Per-stage model settings (docs/product/SPEC.md section 16, ADR 0013). Any change bumps
 # `version`: it is part of the investigation cache key.
-version = 1
+version = 2
 
 # Production routing uses `model`. Economy routing (benchmark runs on synthetic stores only) uses
 # the Contributor model for every stage, at the same effort. Real store data never goes to the
@@ -9,7 +9,7 @@ version = 1
 [stages.classification]
 model = "muse-spark-1.3"
 reasoning_effort = "low"
-max_output_tokens = 1024
+max_output_tokens = 2048    # v2: low effort still reasons 600-900 tokens; 1024 cut some answers
 max_tool_calls = 0
 max_input_tokens = 8000
 
@@ -35,4 +35,5 @@ max_tool_calls = 18
 max_input_tokens = 300000
 
 [tool_results]
-max_chars = 12000   # per tool result; longer lists are cut with an explicit marker
+max_chars = 20000   # per tool result; longer lists are cut with an explicit marker (v2: an
+                    # incident with four symptoms and its attribution needs about 14000)

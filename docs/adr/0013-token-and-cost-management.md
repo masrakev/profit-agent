@@ -26,7 +26,7 @@ defaults to `model:purpose:prompt_version`, so requests of the same kind hit the
 prompt cache. Cached input tokens are reported per call and per stage (cache hit rate).
 
 **Compact tool results.** Tool results are JSON views with ids instead of text; a result longer
-than the limit (12,000 characters) is cut by halving its longest lists until it fits, and the
+than the limit (20,000 characters) is cut by halving its longest lists until it fits, and the
 cut is marked explicitly (`{"truncated": true, "note": "... narrow the query"}`) so the model
 knows to ask a narrower question rather than assume completeness.
 
