@@ -27,6 +27,15 @@ hold-out for the next threshold version, so it was merged into `dev`.
 | `test_v2` | reported once, after freezing | 5 per fault type (one subtle) + 30 healthy = 70, fresh seeds |
 | `golden` | demo and product tests | `healthy-a`, `healthy-b`, one strong scenario per fault type, `golden-underfunded_campaign`, `golden-injection` |
 
+**Split (protocol v3, Task 3 part B).** The `test_v2` results were read in Task 2b, so `test_v2`
+joined `dev` (same seeds, renumbered ids) and a new hold-out took its place:
+
+| Suite | Use | Content |
+| --- | --- | --- |
+| `dev` | tuning (detectors, prompts, routing) | v2 dev (84) + former `test_v2` (70) = 104 faulty + 50 healthy = 154 |
+| `test_v3` | reported once, after freezing prompts and routing | same composition as `test_v2`, fresh seeds = 70 |
+| `golden` | demo, product tests, golden questions | unchanged |
+
 Seeds never overlap. Golden scenarios also carry *conditions* that are not faults (an
 underfunded campaign; an instruction injected in a product description), labelled for later
 tasks; scenarios the golden question set references but that need decisions are listed in
@@ -58,18 +67,36 @@ deterministic build.
   healthy store per month, incidents by level, and materiality-gated incidents per scenario.
 - Runtime: wall time per scenario (generate, load through the app repositories, run detection)
   and for the whole suite, with up to 8 worker processes.
+- Level-2 attribution check (v3): the expected driver is also checked against the largest
+  negative contributor *within the incident's scope* (the product or campaign the incident is
+  about), not only store-wide.
 
-**Outputs.** `make eval` runs the `test_v2` suite on a fresh `profit_bench` database and writes
-`bench/reports/<timestamp>-test_v2.json` (every scenario, incident, candidate, impact and
-attribution) and `bench/reports/latest.md`; `make eval-dev` writes `latest-dev.md`. Reports are
-committed; the v1 `test` report stays in the history.
+**Agent arm (v3).** `--agent --routing economy|production` investigates each scenario's primary
+incident with the live investigator (ADR 0012) next to the deterministic baseline. The
+investigation never changes alerts, so false alerts stay the pipeline's. Scored per scenario and
+per fault type: agent top-1 and top-3 (same rule as the baseline, on the ranked hypotheses),
+tracking breaks read as data quality, confident errors (wrong top-1 at high confidence, over
+faulty scenarios), top-1 accuracy per confidence level, unstable conclusions, robustness-check
+coverage, wrong conclusions whose confidence the audit capped, top-1 changes that helped or hurt,
+share escalated to Wonder, verifier violations (final and rejected), cost per investigation
+(actual and repriced at Standard prices), latency, and tokens per stage with the cache hit rate.
+Dev agent runs also write `bench/reports/audit_proposals.md` (SPEC section 15): patterns where
+investigations overturned the detectors, for human review only.
+
+**Outputs.** `make eval` runs the `test_v3` suite on a fresh `profit_bench` database and writes
+`bench/reports/<timestamp>-test_v3.json` (every scenario, incident, candidate, impact,
+attribution and, with `--agent`, investigation) and `bench/reports/latest.md`; `make eval-dev`
+writes `latest-dev.md`. Reports are committed; earlier reports stay in the history.
 
 ## Consequences
 
 - Results are reproducible bit for bit, except runtimes.
 - Five scenarios per fault type give coarse per-type rates (steps of 20%); the overall numbers
   are the meaningful ones. Growing the suites is cheap.
-- `test_v2` is spent once results are read: the next threshold version needs a new hold-out
-  suite with fresh seeds, never re-tuning against `test_v2`.
+- A hold-out suite is spent once results are read: the next threshold, prompt or routing
+  version needs a new hold-out suite with fresh seeds, never re-tuning against the old one
+  (`test_v2` is now dev; `test_v3` is next).
+- Agent runs are live and cost money; their results vary between runs (model sampling), so a
+  single `test_v3` agent run is reported as is, with its spend.
 - The synthetic world encodes our assumptions (e.g. platform over-attribution of 0.9-1.35x);
   the benchmark measures the pipeline against those assumptions, not against real stores.

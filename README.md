@@ -33,9 +33,15 @@ uv run python -m app.facts.recompute --store <store_id printed above>
 uv run python -m app.detection.pipeline --store <store_id>   # symptoms, incidents, attribution
 make test
 make lint
-make eval                                 # detection benchmark (test_v2 suite), ~5 minutes
+make eval                                 # detection benchmark (test_v3 suite), ~5 minutes
+make api                                  # HTTP API on http://127.0.0.1:8000 (/docs)
 make smoke-live                           # one live call per Meta model (needs MODEL_API_KEY)
 ```
+
+The benchmark's agent arm investigates each primary incident with a live model:
+`uv run python -m bench.runner --suite dev --agent --routing economy` (Contributor model on
+synthetic stores; `--routing production` for Spark and Wonder). The golden questions run with
+`uv run python -m bench.golden.runner --routing economy|production`.
 
 Model calls run in `replay` mode by default (committed cassettes, no key, no network); set
 `LLM_MODE=live` or `record` and `MODEL_API_KEY` in `.env` to call the Meta Model API. Spending
@@ -53,10 +59,11 @@ Each Makefile target runs these commands:
 | `make test` | `uv run pytest` |
 | `make lint` | `uv run ruff check .` then `uv run ruff format --check .` then `uv run mypy` |
 | `make format` | `uv run ruff check --fix .` then `uv run ruff format .` |
-| `make eval` | `uv run python -m bench.runner` (test_v2 suite; writes `bench/reports/`) |
+| `make eval` | `uv run python -m bench.runner` (test_v3 suite; writes `bench/reports/`) |
 | `make eval-dev` | `uv run python -m bench.runner --suite dev` (tuning suite) |
 | `make scenarios` | `uv run python -m bench.scenarios.build` (rebuild scenario manifests) |
 | `make smoke-live` | `uv run python scripts/smoke_live.py` (`--mode record` writes cassettes) |
+| `make api` | `uv run uvicorn app.api.main:app --app-dir backend` |
 
 The compose stack publishes PostgreSQL on port 55432 and Redis on 56379 to avoid clashing with
 local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them).
@@ -71,17 +78,20 @@ backend/app/
   detection/      daily series, detectors, versioned thresholds, incidents, materiality, pipeline
   causes/         exact two-level Shapley attribution of net profit changes, noise bands
   agent/          model layer (Meta Responses provider, guards, record/replay), read-only
-                  tools, output guard, versioned prompts
+                  lookup and audit tools, output guard, versioned prompts, stage config and
+                  routing, investigator, Ask
+  api/            FastAPI: Ask, investigate an incident, read an investigation (/api/v1)
+  channels/       per-channel rendering of merchant text (HTML escaping, plain text)
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
 backend/migrations/  Alembic (schema, row-level security, grants)
 backend/tests/       golden, property-based, RLS, audit and red-team tests; model cassettes
 bench/generator/     deterministic synthetic store generator
 bench/faults/        fault catalogue and non-fault conditions with ground-truth labels
-bench/scenarios/     committed scenario manifests (dev, test_v2, golden) and their builder
-bench/golden/        golden question set and scenarios it references that are still pending
-bench/runner/        benchmark runner, scoring, reports
-bench/reports/       committed benchmark reports (latest.md = test_v2 suite)
+bench/scenarios/     committed scenario manifests (dev, test_v3, golden) and their builder
+bench/golden/        golden question set, its checks and runner, pending scenarios
+bench/runner/        benchmark runner, scoring, agent arm, reports, audit proposals
+bench/reports/       committed benchmark reports (latest.md = test_v3 suite)
 docs/adr/            architecture decision records
 docs/product/        product specification
 scripts/             live smoke test of the Meta models
