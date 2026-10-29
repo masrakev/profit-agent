@@ -44,7 +44,7 @@ class ReasoningEffort(StrEnum):
     MEDIUM = "medium"
     HIGH = "high"
     XHIGH = "xhigh"
-    MAX = "max"  # Spark 1.3 and Wonder only
+    MAX = "max"
 
 
 @dataclass(frozen=True)
@@ -57,8 +57,10 @@ class ModelSpec:
 _ALL_EFFORTS = frozenset(ReasoningEffort)
 MODELS: dict[ModelId, ModelSpec] = {
     ModelId.SPARK: ModelSpec(ModelId.SPARK, DataMode.STANDARD, _ALL_EFFORTS),
+    # The reasoning page says "max" is not available in Contributor mode, but the live API
+    # accepts it and lists it among the supported values (checked 2026-10-29).
     ModelId.SPARK_CONTRIBUTOR: ModelSpec(
-        ModelId.SPARK_CONTRIBUTOR, DataMode.CONTRIBUTOR, _ALL_EFFORTS - {ReasoningEffort.MAX}
+        ModelId.SPARK_CONTRIBUTOR, DataMode.CONTRIBUTOR, _ALL_EFFORTS
     ),
     ModelId.WONDER: ModelSpec(ModelId.WONDER, DataMode.STANDARD, _ALL_EFFORTS),
 }

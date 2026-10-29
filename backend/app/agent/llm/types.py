@@ -162,3 +162,4 @@ class LLMResult:
     attempts: int
     # Output items to send back on the next turn (reasoning and function calls).
     replay_items: tuple[dict[str, Any], ...] = field(default=())
+    request_id: str | None = None  # the API's x-request-id, for support requests

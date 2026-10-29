@@ -28,6 +28,7 @@ from app.agent.llm.errors import (
     RateLimitedError,
     ResponseFormatError,
 )
+from app.agent.llm.models import MODELS, ModelSpec
 from app.agent.llm.types import ReplayedItem
 from tests.llm_helpers import Answer, Harness, request
 
@@ -136,15 +137,39 @@ def test_contributor_mode_only_for_synthetic_data() -> None:
         request(model=ModelId.SPARK_CONTRIBUTOR, data_origin=DataOrigin.SYNTHETIC)
     )
     assert ok.text == "ok"
+
+
+def test_unsupported_reasoning_effort_is_refused_before_the_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Every model accepts every effort we offer (checked live on 2026-10-29, "max" included on
+    # the Contributor model), so restrict one to exercise the check.
+    spec = MODELS[ModelId.WONDER]
+    restricted = ModelSpec(spec.model_id, spec.mode, spec.efforts - {ReasoningEffort.MAX})
+    monkeypatch.setitem(MODELS, ModelId.WONDER, restricted)
+    h = Harness([f.ok([f.message("never")])])
     with pytest.raises(InvalidRequestError, match="reasoning effort"):
-        h.provider.generate(
-            request(
-                model=ModelId.SPARK_CONTRIBUTOR,
-                data_origin=DataOrigin.SYNTHETIC,
-                reasoning_effort=ReasoningEffort.MAX,
-            )
-        )
-    assert len(h.transport.requests) == 1
+        h.provider.generate(request(model=ModelId.WONDER, reasoning_effort=ReasoningEffort.MAX))
+    assert h.transport.requests == []
+    assert MODELS[ModelId.SPARK_CONTRIBUTOR].efforts == frozenset(ReasoningEffort)
+
+
+def test_request_ids_are_recorded() -> None:
+    reply = f.ok([f.message("ok")])
+    h = Harness(
+        [
+            f.Reply(reply.status, reply.body, {"x-request-id": "req-123"}),
+            f.Reply(
+                400,
+                {"error": {"message": "bad", "type": "invalid_request_error"}},
+                {"x-request-id": "req-456"},
+            ),
+        ]
+    )
+    assert h.provider.generate(request()).request_id == "req-123"
+    with pytest.raises(InvalidRequestError, match=r"\(request req-456\)"):
+        h.provider.generate(request())
+    assert dict(h.spans()[0].attributes)["llm.request_id"] == "req-123"
 
 
 def test_retryable_errors_are_retried_with_backoff() -> None:

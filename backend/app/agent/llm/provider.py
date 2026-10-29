@@ -174,6 +174,8 @@ class MetaResponsesProvider:
             self._record(span, usage, result.cost_usd, attempts, started, outcome="ok")
             span.set_attribute("gen_ai.response.model", result.model)
             span.set_attribute("gen_ai.response.id", result.response_id)
+            if result.request_id:
+                span.set_attribute("llm.request_id", result.request_id)
             self._log.info(
                 "llm.call",
                 model=request.model.value,
@@ -201,7 +203,10 @@ class MetaResponsesProvider:
             raise LLMConnectionError(str(exc)) from exc
         except openai.APIStatusError as exc:
             raise _status_error(exc) from exc
-        return parse_response(raw.http_response.content)
+        request_id = raw.http_response.headers.get("x-request-id")
+        return parse_response(raw.http_response.content).model_copy(
+            update={"request_id": request_id}
+        )
 
     def _result(
         self, request: LLMRequest, wire: WireResponse, usage: Usage, attempts: int, started: float
@@ -244,6 +249,7 @@ class MetaResponsesProvider:
             latency_ms=(self._clock() - started) * 1000,
             attempts=attempts,
             replay_items=tuple(replay),
+            request_id=wire.request_id,
         )
 
     def _record(
@@ -310,6 +316,9 @@ def _status_error(exc: openai.APIStatusError) -> LLMError:
     error = parse_error(exc.body) or parse_error({"error": exc.body})
     code = error.code if error else None
     message = f"HTTP {status}: {error.message if error else exc.message}"
+    request_id = exc.response.headers.get("x-request-id")
+    if request_id:
+        message += f" (request {request_id})"
     if status == 429:
         return RateLimitedError(message, retry_after=_retry_after(exc.response.headers))
     if status == 504:

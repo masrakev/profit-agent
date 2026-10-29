@@ -96,6 +96,7 @@ class WireResponse(_Wire):
     usage: WireUsage
     error: dict[str, Any] | None = None
     incomplete_details: dict[str, Any] | None = None
+    request_id: str | None = None  # from the `x-request-id` header, not the body
 
     def items(self) -> list[AnyItem]:
         parsed: list[AnyItem] = []
