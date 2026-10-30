@@ -254,3 +254,9 @@ def test_briefings_show_decisions_and_outcomes(app_engine: Engine, lived: dict[s
     trust = next(s for s in monthly.sections if s.key == "trust").items
     expected = "not enough measured outcomes yet" if measured else "no measured outcome yet"
     assert expected in trust[0].text
+
+
+def test_wording_falls_back_to_plain_words() -> None:
+    assert wording.option("pause_until_restock").startswith("pause the campaigns")
+    assert wording.option("a_new_kind") == "a new kind"
+    assert wording.cause(None) == "something changed"
