@@ -40,7 +40,7 @@ def _daily(values: list[Decimal]) -> FloatArray:
     return np.array([float(v) for v in values], dtype=np.float64)
 
 
-def _campaign_series(series: StoreSeries, campaign: UUID) -> FloatArray:
+def campaign_series(series: StoreSeries, campaign: UUID) -> FloatArray:
     c = series.campaigns[campaign]
     out = -_daily(c.spend)
     for pid in c.promoted:
@@ -55,7 +55,7 @@ def donor_matrix(series: StoreSeries, campaign: UUID) -> tuple[FloatArray, list[
     names: list[str] = []
     for cid, c in sorted(series.campaigns.items()):
         if cid != campaign and not promoted & set(c.promoted):
-            columns.append(_campaign_series(series, cid))
+            columns.append(campaign_series(series, cid))
             names.append(f"campaign:{cid}")
     for pid, p in sorted(series.products.items()):
         if pid not in promoted:
@@ -121,7 +121,7 @@ def measure(
     series = load_series(conn, store_id)
     split = series.index(effective)
     first = max(0, split - PRE_DAYS)
-    target = _campaign_series(series, action.campaign_id)[first:]
+    target = campaign_series(series, action.campaign_id)[first:]
     donors, names = donor_matrix(series, action.campaign_id)
     rng = np.random.default_rng(int(sha256_hex(canonical_json([str(action_id), seed]))[:16], 16))
     result: ControlResult = synthetic_control(
