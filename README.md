@@ -215,3 +215,5 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     loop end to end. Action red team: 0 duplicate executions, 0 actions outside policy.
     ADRs 0016-0018.
   - Citations enforced in code: an answer that names a metric cites a fact of it.
+  - Golden questions, all 30 active: 73% with production routing and 80% with economy routing,
+    below the 90% target (`bench/reports/golden-latest-*.md`).
