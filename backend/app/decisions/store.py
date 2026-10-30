@@ -573,6 +573,20 @@ def read_link(token: str, *, secret: str, now: datetime | None = None) -> LinkCl
     )
 
 
+def link_available(conn: Connection, claims: LinkClaims, now: datetime | None = None) -> bool:
+    """The link exists, is unused and has not expired (reading it changes nothing)."""
+    now = now or datetime.now(UTC)
+    return bool(
+        conn.execute(
+            text(
+                "SELECT 1 FROM approval_links WHERE store_id = :s AND link_id = :l "
+                "AND used_at IS NULL AND expires_at > :now"
+            ),
+            {"now": now, "s": claims.store_id, "l": claims.link_id},
+        ).scalar()
+    )
+
+
 def consume_link(conn: Connection, claims: LinkClaims, now: datetime | None = None) -> None:
     """Mark the link used, once: a replayed link is refused."""
     now = now or datetime.now(UTC)

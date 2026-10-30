@@ -31,6 +31,9 @@ one gets "already decided", by code and by the database. Channels: the API (web)
 Email links are tokens `base64(payload).HMAC-SHA256(secret, payload)` naming one decision,
 option and verdict, valid 24 hours, single use (the link row is consumed atomically), and above
 the spending caps they only return a confirmation: approving then takes the web channel.
+Opening a link (`GET`) only shows what it would decide; the confirmation page posts it (`POST`),
+which decides. Mail security scanners open the links in incoming mail, so a link that decided
+on `GET` could approve a decision nobody clicked (changed in Task 5, ADR 0019).
 
 **Transactional outbox.** Approving a decision, creating its actions (one per campaign change,
 idempotency key `decision:option:seq`, unique per store) and their outbox rows happen in one

@@ -6,7 +6,8 @@
    raises the critical alert (ads still spending on a product that is out of stock).
 2. Options for the cause, simulated by the twin; the recommended one pauses the campaigns that
    promote the product until it is restocked. The decision is proposed.
-3. The owner approves it through the signed, single-use email link (the API's email channel).
+3. The owner approves it through the signed, single-use email link (the API's email channel):
+   opening the link shows the decision; confirming it decides.
 4. The worker runs the policy engine and executes the pause: on the Meta sandbox campaign linked
    to the store's campaign (META_ACCESS_TOKEN, META_AD_ACCOUNT_ID, META_CAMPAIGN_LINKS), mirrored
    on the simulator so the outcome can be measured. Without sandbox credentials the Meta side
@@ -121,8 +122,9 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
         f"/api/v1/stores/{store}/decisions/{decision.decision_id}/links",
         json={"option_id": decision.recommended_option_id, "verdict": "approved"},
     ).json()["token"]
-    approval = client.get(f"/api/v1/approval-links/{token}").json()
-    replay = client.get(f"/api/v1/approval-links/{token}")
+    preview = client.get(f"/api/v1/approval-links/{token}").json()  # opening it decides nothing
+    approval = client.post(f"/api/v1/approval-links/{token}").json()
+    replay = client.post(f"/api/v1/approval-links/{token}")
     executor = Executor(
         engine, {"simulator": SimulatorAdapter(engine), "meta": meta}, meta_links=links
     )
@@ -152,6 +154,7 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
         "store": store,
         "alert": alert,
         "decision": decision,
+        "preview": preview,
         "approval": approval,
         "replay_status": replay.status_code,
         "meta_mode": meta_mode,
@@ -178,7 +181,8 @@ def markdown(r: dict[str, Any], started: datetime) -> str:
         f"2. Decision `{d.decision_id}` proposed with {len(d.options)} options; recommended "
         f"`{rec.kind}` (net-profit change over {d.horizon_days} days, P10 / P50 / P90: "
         f"{rec.p10} / {rec.p50} / {rec.p90} {d.currency}).",
-        f"3. Approved through the email link: decision status "
+        f"3. Approved through the email link: opening it left the decision "
+        f"`{r['preview']['decision']['status']}`; confirming it made it "
         f"`{r['approval']['decision']['status']}`; the same link replayed: HTTP "
         f"{r['replay_status']}.",
         f"4. Pause executed: {', '.join(f'{a} on {p}' for a, p in r['pauses'])}; Meta mutating "

@@ -1,10 +1,11 @@
 """Decisions, approvals, rollback, journal, policy preview and kill switches (Task 4 B5).
 
 The tenant is the `{store_id}` path parameter; every query runs under its row-level security.
-Approval over the API is the web channel; email approval links are signed tokens
-(`GET /approval-links/{token}`), single use, and above the spending caps they only return a
-confirmation (approving then takes the web channel). The global kill switch needs the admin
-token (`X-Admin-Token`).
+Approval over the API is the web channel; email approval links are signed tokens, single use.
+Opening a link (`GET /approval-links/{token}`) only shows what it would decide: mail scanners
+open links, so a GET never decides. The confirmation page posts it (`POST`), which decides;
+above the spending caps the link only returns a confirmation (approving then takes the web
+channel). The global kill switch needs the admin token (`X-Admin-Token`).
 """
 
 import hmac
@@ -16,17 +17,20 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.deps import EngineDep, OwnerEngineDep, SettingsDep
+from app.config import Settings
 from app.db import tenant_transaction
 from app.decisions.journal import JournalEntry, journal
 from app.decisions.store import (
     Channel,
     DecisionError,
     DecisionView,
+    LinkClaims,
     Verdict,
     consume_link,
     create_link,
     decide,
     get,
+    link_available,
     list_decisions,
     read_link,
 )
@@ -78,7 +82,10 @@ class LinkResponse(BaseModel):
 
 
 class LinkResult(BaseModel):
-    confirmation_required: bool
+    decided: bool  # whether this request decided (a GET never does)
+    confirmation_required: bool  # above the caps: confirm in the app instead
+    option_id: str
+    verdict: Verdict
     decision: DecisionView
     reason: str | None = None
 
@@ -208,13 +215,42 @@ def post_link(
     return LinkResponse(token=token)
 
 
-@router.get("/approval-links/{token}", response_model=LinkResult, tags=["decisions"])
-def open_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkResult:
-    """Open an email approval link: decide, once; above the caps, only a confirmation."""
+ABOVE_CAPS = "the option goes beyond the spending caps: confirm in the app"
+
+
+def _claims(token: str, settings: Settings) -> LinkClaims:
     try:
-        claims = read_link(token, secret=_secret(settings))
+        return read_link(token, secret=_secret(settings))
     except DecisionError as exc:
         raise _error(exc) from exc
+
+
+@router.get("/approval-links/{token}", response_model=LinkResult, tags=["decisions"])
+def preview_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkResult:
+    """What an email approval link would decide, without deciding (the link stays usable)."""
+    claims = _claims(token, settings)
+    with tenant_transaction(engine, claims.store_id) as conn:
+        decision: DecisionView = _found(lambda: get(conn, claims.store_id, claims.decision_id))
+        option = _found(lambda: decision.option(claims.option_id))
+        if not link_available(conn, claims):
+            raise _error(DecisionError("used_link", "the link was already used or has expired"))
+        above = claims.verdict is Verdict.APPROVED and exceeds_caps(
+            conn, claims.store_id, option.actions
+        )
+    return LinkResult(
+        decided=False,
+        confirmation_required=above,
+        option_id=claims.option_id,
+        verdict=claims.verdict,
+        decision=decision,
+        reason=ABOVE_CAPS if above else None,
+    )
+
+
+@router.post("/approval-links/{token}", response_model=LinkResult, tags=["decisions"])
+def confirm_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkResult:
+    """Confirm an email approval link: decide, once; above the caps, only a confirmation."""
+    claims = _claims(token, settings)
     with tenant_transaction(engine, claims.store_id) as conn:
         decision: DecisionView = _found(lambda: get(conn, claims.store_id, claims.decision_id))
         option = _found(lambda: decision.option(claims.option_id))
@@ -222,9 +258,12 @@ def open_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkResul
             conn, claims.store_id, option.actions
         ):
             return LinkResult(
+                decided=False,
                 confirmation_required=True,
+                option_id=claims.option_id,
+                verdict=claims.verdict,
                 decision=decision,
-                reason="the option goes beyond the spending caps: confirm in the app",
+                reason=ABOVE_CAPS,
             )
         _found(lambda: consume_link(conn, claims))
         decided: DecisionView = _found(
@@ -239,7 +278,13 @@ def open_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkResul
                 meta_links=settings.meta_campaign_links,
             )
         )
-    return LinkResult(confirmation_required=False, decision=decided)
+    return LinkResult(
+        decided=True,
+        confirmation_required=False,
+        option_id=claims.option_id,
+        verdict=claims.verdict,
+        decision=decided,
+    )
 
 
 @router.post(

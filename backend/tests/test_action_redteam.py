@@ -87,7 +87,7 @@ def test_two_channels_decide_once(
         f"/api/v1/stores/{sim['id']}/decisions/{d.decision_id}/approve",
         json={"option_id": d.recommended_option_id},
     )
-    email = client.get(f"/api/v1/approval-links/{link}")
+    email = client.post(f"/api/v1/approval-links/{link}")
     again = client.post(f"/api/v1/stores/{sim['id']}/decisions/{d.decision_id}/reject")
     with tenant_transaction(app_engine, sim["id"]) as conn:
         approvals = conn.execute(
@@ -113,8 +113,8 @@ def test_links_are_single_use_and_expire(
         f"/api/v1/stores/{sim['id']}/decisions/{d.decision_id}/links",
         json={"option_id": d.recommended_option_id, "verdict": "rejected"},
     ).json()["token"]
-    first = client.get(f"/api/v1/approval-links/{token}")
-    replay = client.get(f"/api/v1/approval-links/{token}")
+    first = client.post(f"/api/v1/approval-links/{token}")
+    replay = client.post(f"/api/v1/approval-links/{token}")
     record(
         "replayed email link",
         first.status_code == 200 and replay.status_code == 409,
@@ -131,7 +131,7 @@ def test_links_are_single_use_and_expire(
             secret=SECRET,
             now=late.created_at - timedelta(hours=25),
         )
-    expired = client.get(f"/api/v1/approval-links/{old}")
+    expired = client.post(f"/api/v1/approval-links/{old}")
     forged = client.get(f"/api/v1/approval-links/{token[:-4]}AAAA")
     record(
         "expired and forged links",
@@ -140,6 +140,32 @@ def test_links_are_single_use_and_expire(
     )
     claims = read_link(token, secret=SECRET)
     assert claims.verdict is Verdict.REJECTED
+
+
+def test_opening_a_link_decides_nothing(
+    app_engine: Engine, sim: dict[str, Any], client: TestClient
+) -> None:
+    """Mail scanners open links: a GET shows what the link would do, and only a POST (the
+    confirmation page) decides."""
+    d = proposed(app_engine, sim["id"], sim["campaigns"][1], None, "scanner")
+    token = client.post(
+        f"/api/v1/stores/{sim['id']}/decisions/{d.decision_id}/links",
+        json={"option_id": d.recommended_option_id},
+    ).json()["token"]
+    scanned = [client.get(f"/api/v1/approval-links/{token}").json() for _ in range(3)]
+    untouched = len(actions(app_engine, sim["id"], d.decision_id)) == 0
+    confirmed = client.post(f"/api/v1/approval-links/{token}").json()
+    after = client.get(f"/api/v1/approval-links/{token}")
+    record(
+        "email link opened by a mail scanner",
+        all(not s["decided"] and s["decision"]["status"] == "proposed" for s in scanned)
+        and untouched
+        and confirmed["decided"]
+        and confirmed["decision"]["status"] == "approved"
+        and after.status_code == 409,
+        f"scans decided {[s['decided'] for s in scanned]}, confirmed {confirmed['decided']}, "
+        f"reopened {after.status_code}",
+    )
 
 
 def test_above_the_cap_approval_and_execution(
@@ -151,7 +177,7 @@ def test_above_the_cap_approval_and_execution(
         f"/api/v1/stores/{sim['id']}/decisions/{d.decision_id}/links",
         json={"option_id": d.recommended_option_id},
     ).json()["token"]
-    opened = client.get(f"/api/v1/approval-links/{token}").json()
+    opened = client.post(f"/api/v1/approval-links/{token}").json()
     record(
         "approval above cap by email link",
         opened["confirmation_required"] and opened["decision"]["status"] == "proposed",
