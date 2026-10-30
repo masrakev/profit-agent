@@ -85,13 +85,8 @@ def save(
         },
     ).scalar()
     if inserted is None:
-        existing = conn.execute(
-            text(
-                "SELECT briefing_id FROM briefings WHERE store_id = :s AND kind = :k "
-                "AND local_date = :d"
-            ),
-            {"s": store_id, "k": content.kind.value, "d": local_date},
-        ).scalar_one()
+        existing = find(conn, store_id, content.kind, local_date)
+        assert existing is not None
         return existing, False
     append_audit(
         conn,
@@ -110,13 +105,19 @@ def save(
     return briefing_id, True
 
 
+def find(conn: Connection, store_id: UUID, kind: BriefingKind, local_date: date) -> UUID | None:
+    found: UUID | None = conn.execute(
+        text(
+            "SELECT briefing_id FROM briefings WHERE store_id = :s AND kind = :k "
+            "AND local_date = :d"
+        ),
+        {"s": store_id, "k": kind.value, "d": local_date},
+    ).scalar()
+    return found
+
+
 def exists(conn: Connection, store_id: UUID, kind: BriefingKind, local_date: date) -> bool:
-    return bool(
-        conn.execute(
-            text("SELECT 1 FROM briefings WHERE store_id = :s AND kind = :k AND local_date = :d"),
-            {"s": store_id, "k": kind.value, "d": local_date},
-        ).scalar()
-    )
+    return find(conn, store_id, kind, local_date) is not None
 
 
 def _record(r: Any) -> BriefingRecord:

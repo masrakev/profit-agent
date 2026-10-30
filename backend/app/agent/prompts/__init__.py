@@ -13,7 +13,7 @@ from pathlib import Path
 from app.domain.hashing import sha256_hex
 
 PROMPTS_DIR = Path(__file__).resolve().parent
-ROLES = ("investigator", "ask", "classify", "intent", "evaluate", "review")
+ROLES = ("investigator", "ask", "classify", "intent", "evaluate", "review", "briefing")
 # Only the documented reference syntax may contain braces.
 ALLOWED_BRACES = re.compile(r"\{\{F[0-9]+\}\}|\{\{E:(?:store|product:<id>|campaign:<id>)\}\}")
 

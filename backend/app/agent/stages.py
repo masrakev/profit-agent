@@ -17,6 +17,7 @@ class Stage(StrEnum):
     INTENT = "intent"
     LOOKUP = "lookup"
     EXPLANATION = "explanation"
+    BRIEFING = "briefing"
     INVESTIGATION = "investigation"
     ESCALATION = "escalation"
 
