@@ -263,6 +263,7 @@ store_settings = Table(
     Column("max_budget_changes_per_day", Integer, nullable=False),
     Column("language", Text, nullable=False),
     _ts("updated_at"),
+    Column("notification_email", Text, nullable=True),
 )
 
 incidents = Table(
@@ -459,4 +460,39 @@ briefings = Table(
     Column("output_tokens", Integer, nullable=False),
     Column("cost_usd", Numeric(12, 6), nullable=False),
     _ts("created_at"),
+)
+
+alerts = Table(
+    "alerts",
+    metadata,
+    Column("alert_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("incident_id", Text, nullable=False),
+    Column("level", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("reason", Text, nullable=True),
+    Column("decision_id", Uuid, nullable=True),
+    Column("local_date", Date, nullable=False),
+    _ts("deliver_at"),
+    Column("briefing_id", Uuid, nullable=True),
+    _ts("created_at"),
+)
+
+deliveries = Table(
+    "deliveries",
+    metadata,
+    Column("delivery_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("subject", Text, nullable=False),
+    Column("subject_id", Text, nullable=False),
+    Column("channel", Text, nullable=False),
+    Column("recipient", Text, nullable=True),
+    Column("status", Text, nullable=False),
+    Column("attempts", Integer, nullable=False),
+    _ts("available_at"),
+    Column("provider", Text, nullable=True),
+    Column("provider_message_id", Text, nullable=True),
+    Column("last_error", Text, nullable=True),
+    _ts("created_at"),
+    Column("sent_at", DateTime(timezone=True), nullable=True),
 )

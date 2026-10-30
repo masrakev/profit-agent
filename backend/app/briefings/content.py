@@ -394,6 +394,7 @@ def daily_brief(ctx: Context) -> BriefingContent:
             "Nothing needs your attention today.",
             [health, notice],
             nothing_material=True,
+            incident_ids=[i.incident_id for i in notice.items if i.incident_id],
         )
     critical = any(i.level == AlertLevel.CRITICAL.value for i in top)
     headline = (
@@ -415,7 +416,7 @@ def daily_brief(ctx: Context) -> BriefingContent:
             pending,
             notice,
         ],
-        incident_ids=[i.incident_id for i in top if i.incident_id],
+        incident_ids=[i.incident_id for i in (*top, *notice.items) if i.incident_id],
     )
 
 

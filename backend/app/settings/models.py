@@ -127,6 +127,10 @@ class StoreSettings(_Frozen):
     autonomy: dict[ActionType, AutonomyLevel] = Field(default_factory=_default_autonomy)
     spending_caps: SpendingCaps = SpendingCaps()
     language: str = Field(default="en", pattern=r"^en$")  # French is planned later
+    # Where email goes; without it, email deliveries are skipped (recorded, not sent).
+    notification_email: str | None = Field(
+        default=None, max_length=254, pattern=r"^[^@\s<>\"']+@[^@\s<>\"']+\.[^@\s<>\"']+$"
+    )
 
     @model_validator(mode="after")
     def _complete(self) -> Self:

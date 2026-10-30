@@ -84,4 +84,4 @@ class BriefingContent(Document):
     period_start: date  # data days covered: [period_start, period_end)
     period_end: date
     nothing_material: bool = False
-    incident_ids: tuple[str, ...] = ()  # incidents shown as top items (alerts briefed)
+    incident_ids: tuple[str, ...] = ()  # incidents it shows (top items, data notice)

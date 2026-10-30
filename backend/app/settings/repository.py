@@ -49,6 +49,7 @@ def _row(settings: StoreSettings) -> dict[str, Any]:
             settings.spending_caps.max_budget_changes_per_campaign_per_day
         ),
         "language": settings.language,
+        "notification_email": settings.notification_email,
     }
 
 
@@ -85,6 +86,7 @@ def _from_row(row: Any) -> StoreSettings:
             max_budget_changes_per_campaign_per_day=row.max_budget_changes_per_day,
         ),
         language=row.language,
+        notification_email=row.notification_email,
     )
 
 

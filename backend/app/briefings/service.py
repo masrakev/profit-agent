@@ -18,6 +18,8 @@ from app.briefings.models import BriefingKind
 from app.briefings.narrative import narrate
 from app.briefings.store import BriefingRecord, find, get, save
 from app.db import tenant_transaction
+from app.delivery.alerts import mark_briefed
+from app.delivery.queue import Subject, notify
 from app.facts.repository import get_facts
 
 
@@ -54,7 +56,10 @@ def generate(
             store_id=store_id,
         )
         with tenant_transaction(engine, store_id) as conn:
-            found, _ = save(conn, store_id, content, narration, local_date=local_today)
+            found, created = save(conn, store_id, content, narration, local_date=local_today)
+            if created:
+                notify(conn, store_id, Subject.BRIEFING, str(found), available_at=now, now=now)
+                mark_briefed(conn, store_id, content.incident_ids, found)
     with tenant_transaction(engine, store_id) as conn:
         record = get(conn, store_id, found)
     assert record is not None

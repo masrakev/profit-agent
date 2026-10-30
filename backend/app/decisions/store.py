@@ -27,6 +27,7 @@ from sqlalchemy import Connection, text
 from sqlalchemy.exc import IntegrityError
 
 from app.decisions.options import OptionSet
+from app.delivery.queue import Subject, notify
 from app.domain.audit import append_audit
 from app.facts.engine import FactEngine
 from app.twin import ActionKind, TwinModel
@@ -223,6 +224,15 @@ def propose(
         },
         occurred_at=now,
     )
+    if source != "incident":  # an alert's message carries the decision of its incident
+        notify(
+            conn,
+            model.store_id,
+            Subject.DECISION,
+            str(decision_id),
+            available_at=now,
+            now=now,
+        )
     return get(conn, model.store_id, decision_id)
 
 
