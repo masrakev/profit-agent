@@ -292,3 +292,33 @@ def render_briefing(
     return render_document(
         content, inputs, links, title=briefing_title(content), narrative=narrative
     )
+
+
+def render_sign_in(link: str, *, minutes: int) -> Rendered:
+    """The sign-in email: one link, single use, short-lived. No store data in it."""
+    subject = "Your Profit Agent sign-in link"
+    note = "If you did not ask to sign in, ignore this email: nobody can sign in without the link."
+    text = "\n".join(
+        [
+            f"Sign in to Profit Agent with this link. It works once, for the next {minutes} "
+            "minutes:",
+            "",
+            link,
+            "",
+            note,
+            "",
+        ]
+    )
+    html_ = (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        f"<title>{escape(subject, Channel.EMAIL)}</title></head>"
+        f'<body style="{STYLE_BODY}"><table role="presentation" width="100%" cellpadding="0" '
+        'cellspacing="0"><tr><td align="center" style="padding:24px 12px">'
+        f'<table role="presentation" cellpadding="0" cellspacing="0" style="{STYLE_CARD}"><tr>'
+        '<td style="padding:24px"><h1 style="margin:0 0 16px;font-size:20px">Sign in to Profit '
+        f'Agent</h1><p style="margin:0 0 16px">It works once, for the next {minutes} minutes.'
+        f'</p><a href="{_attr(link)}" style="{STYLE_BUTTON}">Sign in</a>'
+        f'<p style="margin:24px 0 0;font-size:12px;color:#78716c">{escape(note, Channel.EMAIL)}'
+        "</p></td></tr></table></td></tr></table></body></html>"
+    )
+    return Rendered(subject=subject, text=text, html=html_ + "\n")

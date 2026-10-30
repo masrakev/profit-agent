@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     email_from: str = "Profit Agent <briefings@profit-agent.localhost>"
     # Links in messages: the web platform (evidence, decisions, the approval confirmation page).
     app_base_url: str = "http://localhost:3000"
+    # Session cookies are Secure (HTTPS only); turn off only for plain-HTTP local development.
+    session_cookie_secure: bool = True
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

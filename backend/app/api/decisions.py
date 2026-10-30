@@ -16,6 +16,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.api.auth import PrincipalDep, StoreDep
 from app.api.deps import EngineDep, OwnerEngineDep, SettingsDep
 from app.config import Settings
 from app.db import tenant_transaction
@@ -46,7 +47,6 @@ from app.policies.engine import (
 from app.policies.trust import TrustEntry, trust_ledger
 
 router = APIRouter(prefix="/api/v1")
-ActorHeader = Annotated[str, Header(alias="X-Actor", max_length=200)]
 STATUS = {
     "already_decided": 409,
     "expired": 409,
@@ -119,7 +119,7 @@ def _found(fn: Any) -> Any:
 
 
 @router.get("/stores/{store_id}/decisions", response_model=list[DecisionView], tags=["decisions"])
-def get_decisions(store_id: UUID, engine: EngineDep) -> list[DecisionView]:
+def get_decisions(store_id: StoreDep, engine: EngineDep) -> list[DecisionView]:
     with tenant_transaction(engine, store_id) as conn:
         return list_decisions(conn, store_id)
 
@@ -127,7 +127,7 @@ def get_decisions(store_id: UUID, engine: EngineDep) -> list[DecisionView]:
 @router.get(
     "/stores/{store_id}/decisions/{decision_id}", response_model=DecisionView, tags=["decisions"]
 )
-def get_decision(store_id: UUID, decision_id: UUID, engine: EngineDep) -> DecisionView:
+def get_decision(store_id: StoreDep, decision_id: UUID, engine: EngineDep) -> DecisionView:
     with tenant_transaction(engine, store_id) as conn:
         result: DecisionView = _found(lambda: get(conn, store_id, decision_id))
         return result
@@ -136,7 +136,7 @@ def get_decision(store_id: UUID, decision_id: UUID, engine: EngineDep) -> Decisi
 def _decide(
     engine: Any,
     settings: Any,
-    store_id: UUID,
+    store_id: StoreDep,
     decision_id: UUID,
     option: str | None,
     verdict: Verdict,
@@ -164,15 +164,17 @@ def _decide(
     tags=["decisions"],
 )
 def post_approve(
-    store_id: UUID,
+    store_id: StoreDep,
     decision_id: UUID,
     body: Approve,
     engine: EngineDep,
     settings: SettingsDep,
-    actor: ActorHeader = "owner",
+    principal: PrincipalDep,
 ) -> DecisionView:
     """Approve one option (web channel): its actions are queued in the same transaction."""
-    return _decide(engine, settings, store_id, decision_id, body.option_id, Verdict.APPROVED, actor)
+    return _decide(
+        engine, settings, store_id, decision_id, body.option_id, Verdict.APPROVED, principal.label
+    )
 
 
 @router.post(
@@ -181,13 +183,13 @@ def post_approve(
     tags=["decisions"],
 )
 def post_reject(
-    store_id: UUID,
+    store_id: StoreDep,
     decision_id: UUID,
     engine: EngineDep,
     settings: SettingsDep,
-    actor: ActorHeader = "owner",
+    principal: PrincipalDep,
 ) -> DecisionView:
-    return _decide(engine, settings, store_id, decision_id, None, Verdict.REJECTED, actor)
+    return _decide(engine, settings, store_id, decision_id, None, Verdict.REJECTED, principal.label)
 
 
 def _secret(settings: Any) -> str:
@@ -202,7 +204,11 @@ def _secret(settings: Any) -> str:
     tags=["decisions"],
 )
 def post_link(
-    store_id: UUID, decision_id: UUID, body: LinkRequest, engine: EngineDep, settings: SettingsDep
+    store_id: StoreDep,
+    decision_id: UUID,
+    body: LinkRequest,
+    engine: EngineDep,
+    settings: SettingsDep,
 ) -> LinkResponse:
     """A signed, single-use link for the email channel (what the approval email carries)."""
     secret = _secret(settings)
@@ -293,12 +299,12 @@ def confirm_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkRe
     tags=["decisions"],
 )
 def post_rollback(
-    store_id: UUID, action_id: UUID, engine: EngineDep, actor: ActorHeader = "owner"
+    store_id: StoreDep, action_id: UUID, engine: EngineDep, principal: PrincipalDep
 ) -> RollbackResponse:
     """Queue the inverse of an executed action (pause <-> resume, budget restored)."""
     with tenant_transaction(engine, store_id) as conn:
         try:
-            new = request_rollback(conn, store_id, action_id, actor=actor)
+            new = request_rollback(conn, store_id, action_id, actor=principal.label)
         except LookupError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except ValueError as exc:
@@ -307,13 +313,13 @@ def post_rollback(
 
 
 @router.get("/stores/{store_id}/journal", response_model=list[JournalEntry], tags=["journal"])
-def get_journal(store_id: UUID, engine: EngineDep) -> list[JournalEntry]:
+def get_journal(store_id: StoreDep, engine: EngineDep) -> list[JournalEntry]:
     with tenant_transaction(engine, store_id) as conn:
         return journal(conn, store_id)
 
 
 @router.post("/stores/{store_id}/policy/preview", response_model=PolicyResult, tags=["policy"])
-def post_preview(store_id: UUID, body: Preview, engine: EngineDep) -> PolicyResult:
+def post_preview(store_id: StoreDep, body: Preview, engine: EngineDep) -> PolicyResult:
     """What the policy engine would decide for an approved action now (audited as a preview)."""
     from datetime import UTC, datetime
 
@@ -333,17 +339,17 @@ def post_preview(store_id: UUID, body: Preview, engine: EngineDep) -> PolicyResu
 
 
 @router.get("/stores/{store_id}/trust", response_model=list[TrustEntry], tags=["policy"])
-def get_trust(store_id: UUID, engine: EngineDep) -> list[TrustEntry]:
+def get_trust(store_id: StoreDep, engine: EngineDep) -> list[TrustEntry]:
     with tenant_transaction(engine, store_id) as conn:
         return trust_ledger(conn, store_id)
 
 
 @router.put("/stores/{store_id}/kill-switch", tags=["policy"])
 def put_store_switch(
-    store_id: UUID, body: Switch, engine: EngineDep, actor: ActorHeader = "owner"
+    store_id: StoreDep, body: Switch, engine: EngineDep, principal: PrincipalDep
 ) -> dict[str, bool]:
     with tenant_transaction(engine, store_id) as conn:
-        set_store_switch(conn, store_id, body.enabled, actor=actor, reason=body.reason)
+        set_store_switch(conn, store_id, body.enabled, actor=principal.label, reason=body.reason)
     return {"enabled": body.enabled}
 
 

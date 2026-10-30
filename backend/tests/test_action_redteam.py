@@ -32,6 +32,7 @@ from tests.action_helpers import (
     option_set,
     simulator_store,
 )
+from tests.api_helpers import act_as
 
 pytestmark = pytest.mark.db
 SECRET = "redteam-link-secret"
@@ -52,6 +53,7 @@ def client(app_engine: Engine, owner_engine: Engine) -> Iterator[TestClient]:
     app.dependency_overrides[get_engine] = lambda: app_engine
     app.dependency_overrides[get_owner_engine] = lambda: owner_engine
     app.dependency_overrides[get_app_settings] = lambda: settings
+    act_as(app, label="owner:redteam")
     try:
         yield TestClient(app)
     finally:

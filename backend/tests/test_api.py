@@ -11,6 +11,7 @@ from sqlalchemy import Engine
 
 from app.agent.llm import fake as f
 from app.api.main import app, get_engine, get_provider
+from tests.api_helpers import act_as
 from tests.llm_helpers import Harness
 
 pytestmark = pytest.mark.db
@@ -25,6 +26,7 @@ def harness() -> Harness:
 def client(app_engine: Engine, harness: Harness) -> Iterator[TestClient]:
     app.dependency_overrides[get_engine] = lambda: app_engine
     app.dependency_overrides[get_provider] = lambda: harness.provider
+    act_as(app)
     try:
         yield TestClient(app)
     finally:
@@ -36,8 +38,13 @@ def test_openapi_contract(client: TestClient) -> None:
     assert spec["info"]["version"] == "v1"
     assert set(spec["paths"]) == {
         "/api/v1/stores/{store_id}/ask",
-        "/api/v1/incidents/{incident_id}/investigate",
-        "/api/v1/investigations/{investigation_id}",
+        "/api/v1/stores/{store_id}/incidents/{incident_id}/investigate",
+        "/api/v1/stores/{store_id}/investigations/{investigation_id}",
+        "/api/v1/auth/magic-links",
+        "/api/v1/auth/sessions",
+        "/api/v1/auth/session",
+        "/api/v1/stores/{store_id}/api-tokens",
+        "/api/v1/stores/{store_id}/api-tokens/{token_id}",
         "/api/v1/stores/{store_id}/decisions",
         "/api/v1/stores/{store_id}/decisions/{decision_id}",
         "/api/v1/stores/{store_id}/decisions/{decision_id}/approve",
@@ -104,26 +111,15 @@ def test_investigation_routes(
         )
 
     harness.transport.add(sensitivity, report)
-    store = {"X-Store-Id": str(golden_stockout["id"])}
-    path = f"/api/v1/incidents/{golden_stockout['incident']}/investigate"
-    created = client.post(path, headers=store, params={"refresh": True})
+    base = f"/api/v1/stores/{golden_stockout['id']}"
+    path = f"{base}/incidents/{golden_stockout['incident']}/investigate"
+    created = client.post(path, params={"refresh": True})
     assert created.status_code == 200, created.text
     investigation = created.json()
     assert investigation["status"] == "complete"
-    fetched = client.get(
-        f"/api/v1/investigations/{investigation['investigation_id']}", headers=store
-    )
+    fetched = client.get(f"{base}/investigations/{investigation['investigation_id']}")
     assert fetched.json() == investigation
-    other = {"X-Store-Id": str(uuid4())}
-    assert (
-        client.get(
-            f"/api/v1/investigations/{investigation['investigation_id']}", headers=other
-        ).status_code
-        == 404
-    )  # row-level security
-    assert (
-        client.post("/api/v1/incidents/inc-000000000000/investigate", headers=store).status_code
-        == 404
-    )
-    assert client.post("/api/v1/incidents/not-an-id/investigate", headers=store).status_code == 422
-    assert client.post(path).status_code == 422  # the store header is required
+    other = f"/api/v1/stores/{uuid4()}/investigations/{investigation['investigation_id']}"
+    assert client.get(other).status_code == 404  # row-level security
+    assert client.post(f"{base}/incidents/inc-000000000000/investigate").status_code == 404
+    assert client.post(f"{base}/incidents/not-an-id/investigate").status_code == 422

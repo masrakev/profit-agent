@@ -58,7 +58,7 @@ def test_the_api_reads_the_loop(loop: dict[str, Any]) -> None:
     engine: Engine = loop["engine"]
     app.dependency_overrides[get_engine] = lambda: engine
     try:
-        client = TestClient(app)
+        client = TestClient(app, headers={"Authorization": f"Bearer {loop['api_token']}"})
         store = loop["store"]
         decisions = client.get(f"/api/v1/stores/{store}/decisions").json()
         assert [d["decision_id"] for d in decisions] == [str(loop["decision"].decision_id)]

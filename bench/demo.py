@@ -31,6 +31,7 @@ from sqlalchemy import Engine, text
 
 from app.api.deps import get_app_settings, get_engine
 from app.api.main import app
+from app.auth.service import create_api_token
 from app.causal.outcome import measure
 from app.config import Settings, get_settings
 from app.db import make_engine, tenant_transaction
@@ -104,7 +105,8 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
         settings = settings.model_copy(update={"approval_link_secret": SecretStr("demo-secret")})
     app.dependency_overrides[get_engine] = lambda: engine
     app.dependency_overrides[get_app_settings] = lambda: settings
-    client = TestClient(app)
+    _, api_token = create_api_token(engine, store, "demo", None, datetime.now(UTC))
+    client = TestClient(app, headers={"Authorization": f"Bearer {api_token}"})
     with tenant_transaction(engine, store) as conn:
         model = fit_twin(conn, store)
         options = build_options(
@@ -152,6 +154,7 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
     app.dependency_overrides.clear()
     return {
         "store": store,
+        "api_token": api_token,
         "alert": alert,
         "decision": decision,
         "preview": preview,

@@ -2,13 +2,13 @@
 
 from functools import cache
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import Depends, Header
+from fastapi import Depends
 from sqlalchemy import Engine
 
 from app.agent.llm.factory import build_provider
 from app.agent.llm.provider import LLMProvider
+from app.channels.email import EmailSender, sender_from_settings
 from app.config import Settings, get_settings
 from app.db import make_engine
 
@@ -33,7 +33,6 @@ def get_provider() -> LLMProvider:
 
 EngineDep = Annotated[Engine, Depends(get_engine)]
 ProviderDep = Annotated[LLMProvider, Depends(get_provider)]
-StoreHeader = Annotated[UUID, Header(alias="X-Store-Id", description="the store (tenant)")]
 
 
 @cache
@@ -50,5 +49,15 @@ def get_app_settings() -> Settings:
     return get_settings()
 
 
+@cache
+def _email_sender() -> EmailSender:
+    return sender_from_settings(get_settings())
+
+
+def get_email_sender() -> EmailSender:
+    return _email_sender()
+
+
 OwnerEngineDep = Annotated[Engine, Depends(get_owner_engine)]
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
+EmailSenderDep = Annotated[EmailSender, Depends(get_email_sender)]
