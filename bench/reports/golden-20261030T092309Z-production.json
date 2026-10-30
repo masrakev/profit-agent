@@ -1,0 +1,1653 @@
+{
+  "meta": {
+    "started": "2026-10-30T09:23:09+00:00",
+    "routing": "production",
+    "mode": "live"
+  },
+  "summary": {
+    "questions": 30,
+    "active": 30,
+    "passed": 22,
+    "pass_rate": 0.7333,
+    "by_type": {
+      "data_question": {
+        "n": 2,
+        "passed": 2
+      },
+      "diagnose": {
+        "n": 10,
+        "passed": 5
+      },
+      "evaluate": {
+        "n": 4,
+        "passed": 4
+      },
+      "explain": {
+        "n": 2,
+        "passed": 2
+      },
+      "improve": {
+        "n": 4,
+        "passed": 3
+      },
+      "lookup": {
+        "n": 3,
+        "passed": 2
+      },
+      "out_of_scope": {
+        "n": 1,
+        "passed": 1
+      },
+      "review": {
+        "n": 2,
+        "passed": 1
+      },
+      "what_if": {
+        "n": 2,
+        "passed": 2
+      }
+    },
+    "pending": [],
+    "cost_usd": "0.899142424",
+    "standard_cost_usd": "0.96858595",
+    "verifier_violations_in_answers": 0,
+    "investigations": {
+      "n": 17,
+      "escalated": 3,
+      "models": {
+        "muse-spark-1.3": 14,
+        "muse-wonder-1.0": 3
+      },
+      "statuses": {
+        "complete": 17
+      },
+      "cost_usd": "1.46802890",
+      "cost_usd_mean": "0.086355",
+      "cost_usd_max": "0.1978176",
+      "standard_cost_usd_mean": "0.086355",
+      "latency_s_mean": 62.1
+    }
+  },
+  "questions": [
+    {
+      "id": "q01",
+      "type": "lookup",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "lookup",
+      "answer": {
+        "answer": "Your net profit last week was {{F6064}} for {{E:store}}.",
+        "evidence": [
+          6064
+        ],
+        "reasoning": "The exact net profit fact for {{E:store}} over the last-week window is {{F6064}}.",
+        "alternatives": [],
+        "uncertainty": "Calendar definition of last week may vary; this uses the final full week available in the data.",
+        "recommendation": null,
+        "would_change_my_mind": null,
+        "flags": [],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 9706,
+        "cached_tokens": 4081,
+        "output_tokens": 1469,
+        "reasoning_tokens": 1198,
+        "cost_usd": "0.01134475",
+        "standard_cost_usd": "0.01388665",
+        "latency_ms": 12598.39
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q02",
+      "type": "lookup",
+      "scenario": "healthy-a",
+      "passed": false,
+      "failed_checks": [
+        "reference:attributed_contribution (cited ['ad_spend', 'attributed_revenue'])"
+      ],
+      "status": "answered",
+      "classified_as": "lookup",
+      "answer": {
+        "answer": "For the available window closest to this month, Meta spend and platform-attributed revenue were {{F6459}} and {{F6460}} for {{E:campaign:39e0f2f2-3979-5381-acb6-b23657720898}}, {{F8064}} and {{F8065}} for {{E:campaign:4b276d38-0413-5334-b96d-30f4e09b52a2}}, {{F8200}} and {{F8203}} for {{E:campaign:6f466518-4ea3-5de0-be88-c988014779c8}}, and {{F8363}} and {{F8364}} for {{E:campaign:71fe7870-39d4-574f-a254-bbdeb039aecf}}.",
+        "evidence": [
+          6459,
+          6460,
+          8064,
+          8065,
+          8200,
+          8203,
+          8363,
+          8364
+        ],
+        "reasoning": "Each listed campaign is identified as Meta in campaign context, and the figures are for the available window closest to this month.",
+        "alternatives": [
+          "A store-level total was considered, but campaign-level figures answer the question more directly"
+        ],
+        "uncertainty": "Coverage may be incomplete because an additional campaign could not be retrieved within available calls, and platform figures are not reconciled.",
+        "recommendation": null,
+        "would_change_my_mind": "Retrieval of the missing campaign context for the same window would revise the totals",
+        "flags": [
+          "platform_attribution_caveat"
+        ],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 5,
+        "input_tokens": 60573,
+        "cached_tokens": 41269,
+        "output_tokens": 4896,
+        "reasoning_tokens": 3640,
+        "cost_usd": "0.049363006",
+        "standard_cost_usd": "0.05112835",
+        "latency_ms": 58964.108
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q03",
+      "type": "lookup",
+      "scenario": "healthy-b",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "lookup",
+      "answer": {
+        "answer": "{{E:product:aff3714c-6e4b-5cb8-92c7-5b8aab61a58b}} made the most profit last month, with contribution margin {{F6070}} on units {{F6065}}.",
+        "evidence": [
+          6070,
+          6065,
+          6076
+        ],
+        "reasoning": "Products were ranked by contribution margin over the available recent period, and {{E:product:aff3714c-6e4b-5cb8-92c7-5b8aab61a58b}} with {{F6070}} exceeds the next product with {{F6076}}.",
+        "alternatives": [
+          "Other products ranked by contribution margin over the same recent period were considered, including the next-highest product."
+        ],
+        "uncertainty": "Coverage reflects the available recent period returned by the tool; complete calendar coverage is not available.",
+        "recommendation": null,
+        "would_change_my_mind": "A different ranking for a different period or after data revisions would invalidate it.",
+        "flags": [],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 15676,
+        "cached_tokens": 8915,
+        "output_tokens": 1726,
+        "reasoning_tokens": 1389,
+        "cost_usd": "0.015488206",
+        "standard_cost_usd": "0.0171240",
+        "latency_ms": 17266.848
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q04",
+      "type": "explain",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "explain",
+      "answer": {
+        "answer": "Campaign profit for {{E:campaign:39e0f2f2-3979-5381-acb6-b23657720898}} is {{F6540}}, computed as {{F6539}} minus {{F6459}}.",
+        "evidence": [
+          6540,
+          6539,
+          6459
+        ],
+        "reasoning": "Profit judges ads by profit: {{F6540}} reflects {{F6539}} less {{F6459}} for the same scope and period.",
+        "alternatives": [
+          "No alternative computation was tested"
+        ],
+        "uncertainty": "Method audit was not retrieved, so formula version and allocation detail remain unconfirmed.",
+        "recommendation": null,
+        "would_change_my_mind": "A method definition showing a different formula would invalidate this.",
+        "flags": [
+          "platform_attribution_caveat"
+        ],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 9,
+        "input_tokens": 84165,
+        "cached_tokens": 70536,
+        "output_tokens": 3390,
+        "reasoning_tokens": 2266,
+        "cost_usd": "0.040424206",
+        "standard_cost_usd": "0.04202415",
+        "latency_ms": 31508.182
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q05",
+      "type": "explain",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "explain",
+      "answer": {
+        "answer": "Our ROAS in {{E:store}} is platform-reported attributed revenue {{F6541}} divided by platform-reported ad spend {{F6542}} giving {{F6543}}, while Meta applies its own attribution window and counting rules so it will not reconcile to real orders.",
+        "evidence": [
+          6543,
+          6541,
+          6542,
+          6313,
+          6461,
+          10908,
+          10909,
+          10808
+        ],
+        "reasoning": "ROAS here is defined as attributed_revenue over ad_spend using the ad platform's own attribution. The attribution ratio {{F6313}} shows only a share of real orders {{F10908}} is claimed as attributed purchases {{F6461}} with the gap {{F10909}}, so it cannot match order-based revenue {{F10808}}; judge ads by profit, not ROAS alone.",
+        "alternatives": [
+          "A different date range or timezone selected in Meta compared to this analysis",
+          "A different attribution window or counting rule applied by Meta"
+        ],
+        "uncertainty": "Meta's exact window, view-through inclusion and timezone selection are not available in store data.",
+        "recommendation": null,
+        "would_change_my_mind": "A matching Meta export with same period, timezone and attribution settings showing same inputs would remove the difference.",
+        "flags": [
+          "platform_attribution_caveat"
+        ],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 5,
+        "input_tokens": 35337,
+        "cached_tokens": 26933,
+        "output_tokens": 3064,
+        "reasoning_tokens": 1846,
+        "cost_usd": "0.025194656",
+        "standard_cost_usd": "0.02756695",
+        "latency_ms": 62245.476
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q06",
+      "type": "diagnose",
+      "scenario": "golden-cpa_drift",
+      "passed": false,
+      "failed_checks": [
+        "reference:campaign_profit (cited ['derived.gap', 'derived.sum', 'expected_monthly_impact', 'profit_delta', 'profit_driver.ad_spend', 'profit_driver.mix', 'profit_driver.refunds', 'profit_driver.volume', 'revenue'])",
+        "reference:cpa (cited ['derived.gap', 'derived.sum', 'expected_monthly_impact', 'profit_delta', 'profit_driver.ad_spend', 'profit_driver.mix', 'profit_driver.refunds', 'profit_driver.volume', 'revenue'])",
+        "root_cause (top cause mix_shift)"
+      ],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "Profit in {{E:store}} is pressured by unfavorable mix {{F1456}} {{F6877}} with expected impact {{F1123}} while net change is {{F1142}}.",
+        "evidence": [
+          1456,
+          6877,
+          1123,
+          1142,
+          1424,
+          7296,
+          9037,
+          9779,
+          9780,
+          9487,
+          1662,
+          1133,
+          1124
+        ],
+        "reasoning": "Bridge shows favorable volume {{F1424}} offset by unfavorable mix {{F1456}} {{F6877}}, with store revenue in baseline {{F1133}} versus current {{F1124}}. Mix drag persists across sensitivity variants {{F7296}} {{F9037}} and store money reconciles with no gap {{F9779}} {{F9780}}, supporting business mix rather than measurement, with refunds {{F9487}} and ad spend {{F1662}} as subordinate drags.",
+        "alternatives": [
+          "refund pressure as subordinate drag rather than main driver {{F9487}}",
+          "ad spend pressure as subordinate drag rather than main driver {{F1662}}",
+          "tracking break on {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}} does not explain store profit because store totals reconcile {{F9779}} {{F9780}}"
+        ],
+        "uncertainty": "Which demand or merchandising change shifted share away from richer-margin assortment is unknown and whether refunds concentrate in growing assortment is unknown.",
+        "recommendation": "Review merchandising and demand drivers shifting share away from richer-margin assortment and check whether refunds concentrate in growing assortment.",
+        "would_change_my_mind": "Sustained recovery of share and margin contribution from richer-margin assortment, or reconciliation showing missing profit, or extended windows showing refunds and mix reversing rank, would invalidate mix as main cause.",
+        "flags": [],
+        "ranked_causes": [
+          {
+            "cause_family": "mix_shift",
+            "entities": [
+              "{{E:store}}"
+            ],
+            "confidence": "high"
+          },
+          {
+            "cause_family": "refund_spike",
+            "entities": [
+              "{{E:store}}"
+            ],
+            "confidence": "low"
+          }
+        ],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 23085,
+        "cached_tokens": 14419,
+        "output_tokens": 4685,
+        "reasoning_tokens": 3435,
+        "cost_usd": "0.030792306",
+        "standard_cost_usd": "0.0329066",
+        "latency_ms": 25662.906
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q07",
+      "type": "diagnose",
+      "scenario": "golden-supplier_cost_increase",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "Sales held while profit eased because elevated unit cost for {{E:product:39e449c4-3e09-5f6a-8374-887f55192a79}} persisted as seen in {{F1664}} with {{F1665}} against {{F1666}} with {{F1667}}, with the store drag in {{F1950}} concentrated in that product in {{F1935}}.",
+        "evidence": [
+          1664,
+          1665,
+          1666,
+          1667,
+          1754,
+          1753,
+          1758,
+          1757,
+          1950,
+          1935,
+          1685,
+          1704,
+          1670,
+          1668,
+          1673,
+          1671,
+          1908,
+          10747,
+          10748,
+          10419
+        ],
+        "reasoning": "Detector signal for elevated unit cost remains across the attribution window in {{F1754}} with {{F1753}} against {{F1758}} with {{F1757}}, and profit bridge shows significant unit_cost drag at store level in {{F1950}} fully explained at product level in {{F1935}}, alongside margin softness in {{F1670}} with {{F1668}} against {{F1673}} with {{F1671}}, while mix drag in {{F1908}} was flagged as not significant and inventory shows on-hand in {{F10747}} with cover in {{F10748}} and recent sales in {{F10419}}, leaving supplier cost as the supported driver with impact in {{F1685}} against profit change in {{F1704}} below materiality.",
+        "alternatives": [
+          "Mix movement across products weighed on margin but was flagged as not significant with offsetting contributions and unstable ranking across windows"
+        ],
+        "uncertainty": "What supplier or input change raised unit cost and whether it persists, and what mix movement drove the non-significant mix drag, with limited units in the detection window weakening precision.",
+        "recommendation": "Review supplier cost for {{E:product:39e449c4-3e09-5f6a-8374-887f55192a79}} and assess pricing or sourcing before taking margin action, since stock on-hand in {{F10747}} with cover in {{F10748}} remains available and mix effects remain unresolved.",
+        "would_change_my_mind": "A longer-window profit bridge showing unit_cost as not significant or mix as significant and stable, or evidence that supplier cost has returned to baseline, would invalidate the supplier-cost reading.",
+        "flags": [
+          "low_evidence",
+          "no_material_issue"
+        ],
+        "ranked_causes": [
+          {
+            "cause_family": "supplier_cost_increase",
+            "entities": [
+              "{{E:product:39e449c4-3e09-5f6a-8374-887f55192a79}}"
+            ],
+            "confidence": "medium"
+          },
+          {
+            "cause_family": "mix_shift",
+            "entities": [
+              "{{E:store}}"
+            ],
+            "confidence": "low"
+          }
+        ],
+        "action_family": "review_supplier_cost"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 12369,
+        "cached_tokens": 6114,
+        "output_tokens": 4264,
+        "reasoning_tokens": 3006,
+        "cost_usd": "0.025101156",
+        "standard_cost_usd": "0.02685785",
+        "latency_ms": 20575.442
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q08",
+      "type": "diagnose",
+      "scenario": "golden-refund_spike",
+      "passed": false,
+      "failed_checks": [
+        "reference:refunds (cited ['expected_monthly_impact', 'profit_delta', 'profit_driver.mix', 'profit_driver.refunds', 'profit_driver.volume', 'refund_rate'])"
+      ],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "Your margin drop was driven by a refund spike on {{E:product:eed9486b-43f0-5158-ba8f-b44f314c8293}} where refund rate rose from {{F2055}} to {{F2052}}, with store profit down {{F2087}} and expected impact {{F2067}}.",
+        "evidence": [
+          2052,
+          2055,
+          2087,
+          2067,
+          2639,
+          2396,
+          2431
+        ],
+        "reasoning": "Detector flagged sustained rise in refund_rate for the product, investigation verified it as stable across variants with reconciliation showing no gap and inventory showing availability, while profit bridge shows negative profit delta with volume, mix and refunds drivers contributing.",
+        "alternatives": [
+          "stockout_on_promoted in {{E:product:04072db7-3eb1-5e7d-85d0-c705af37dbae}} was tested but ruled low confidence with stock available"
+        ],
+        "uncertainty": "What quality, description, or supplier-batch issue triggered the returns is unknown; refund reason detail not available.",
+        "recommendation": "Investigate product quality, listing accuracy and return reasons for {{E:product:eed9486b-43f0-5158-ba8f-b44f314c8293}} and review supplier batch changes.",
+        "would_change_my_mind": "Evidence that refunds normalized without quality action, or that volume/mix drivers fully explain the profit drop independent of refunds, would invalidate it.",
+        "flags": [],
+        "ranked_causes": [
+          {
+            "cause_family": "refund_spike",
+            "entities": [
+              "{{E:product:eed9486b-43f0-5158-ba8f-b44f314c8293}}"
+            ],
+            "confidence": "high"
+          },
+          {
+            "cause_family": "stockout_on_promoted",
+            "entities": [
+              "{{E:product:04072db7-3eb1-5e7d-85d0-c705af37dbae}}"
+            ],
+            "confidence": "low"
+          }
+        ],
+        "action_family": "investigate_product_quality"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 15385,
+        "cached_tokens": 10963,
+        "output_tokens": 1672,
+        "reasoning_tokens": 1128,
+        "cost_usd": "0.011996456",
+        "standard_cost_usd": "0.01427795",
+        "latency_ms": 12496.104
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q09",
+      "type": "diagnose",
+      "scenario": "golden-mix_shift",
+      "passed": false,
+      "failed_checks": [
+        "reference:contribution_margin (cited ['attribution_ratio', 'derived.gap', 'expected_monthly_impact', 'gross_margin', 'profit_delta', 'profit_driver.mix', 'profit_driver.price', 'profit_driver.unit_cost', 'profit_driver.volume', 'revenue'])"
+      ],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "Profit for {{E:store}} is down while revenue holds because margin mix shifted toward lower-margin assortment described in {{F2994}} outweighing volume support described in {{F2964}}, with net change described in {{F2700}} and expected impact described in {{F2681}}.",
+        "evidence": [
+          2666,
+          2668,
+          2669,
+          2671,
+          2681,
+          2700,
+          2964,
+          2965,
+          2977,
+          2989,
+          2994,
+          3024,
+          3054,
+          13164,
+          20118,
+          20126,
+          21081,
+          21193
+        ],
+        "reasoning": "Profit bridge attributes decline to mix described in {{F2994}} with volume support described in {{F2964}} alongside price support described in {{F3024}} and neutral unit cost described in {{F3054}} leaving revenue described in {{F2669}} and {{F2666}} steady while margin described in {{F2671}} and {{F2668}} weakened. Reconciliation alignment described in {{F21081}} and {{F21193}} with attribution stability described in {{F20118}} versus {{F20126}} supports measurement validity and sensitivity retains mix as top driver described in {{F13164}}. Concentration across products described in {{F2989}} and {{F2977}} and {{F2965}} explains margin pressure.",
+        "alternatives": [
+          "Unit cost explanation ruled out by neutral unit cost driver described in {{F3054}}",
+          "Price cut explanation ruled out by supportive price driver described in {{F3024}}",
+          "Measurement fault ruled out by reconciliation alignment described in {{F21081}} and {{F21193}} with attribution stability described in {{F20118}} versus {{F20126}}"
+        ],
+        "uncertainty": "Which lower-margin products gained share and what drove demand shift remains open, along with whether assortment or promotion approach should adjust",
+        "recommendation": "Review product mix concentration and reallocate promotion toward higher-margin assortment, with owner decision before any change",
+        "would_change_my_mind": "Profit bridge showing mix no longer negative or reconciliation showing misalignment with stale sources and unstable attribution would invalidate mix explanation",
+        "flags": [],
+        "ranked_causes": [
+          {
+            "cause_family": "mix_shift",
+            "entities": [
+              "{{E:store}}"
+            ],
+            "confidence": "high"
+          }
+        ],
+        "action_family": "reduce_or_reallocate_budget"
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 20510,
+        "cached_tokens": 17348,
+        "output_tokens": 7317,
+        "reasoning_tokens": 5762,
+        "cost_usd": "0.035485606",
+        "standard_cost_usd": "0.03765195",
+        "latency_ms": 32071.282
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 2,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q10",
+      "type": "diagnose",
+      "scenario": "golden-fee_increase",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "Yes, elevated fees {{F3210}} on {{E:store}} are eating contribution margin {{F3212}}, with profit change {{F3226}} driven by fees {{F3480}} and expected impact {{F3207}}.",
+        "evidence": [
+          3210,
+          3212,
+          3226,
+          3480,
+          3207,
+          3198,
+          3199,
+          3196,
+          3197,
+          3200,
+          3201,
+          3420,
+          3400
+        ],
+        "reasoning": "Baseline fees {{F3198}} against revenue {{F3199}} versus current fees {{F3196}} against revenue {{F3197}} and extended fees {{F3200}} against revenue {{F3201}} show sustained elevation, while profit change {{F3226}} attributes drag to fees {{F3480}} alongside mix {{F3420}} partly offset by volume {{F3400}}, with expected impact {{F3207}} and current fees {{F3210}} pressuring contribution margin {{F3212}}.",
+        "alternatives": [
+          "mix driver also pressured profit alongside fees and could explain part of the change",
+          "volume driver partly offsets the pressure so profit change differs from the fee driver alone"
+        ],
+        "uncertainty": "What provider schedule or policy change took effect around detection and whether terms can be renegotiated is unknown.",
+        "recommendation": "Review payment provider schedule and fee terms store-wide and explore renegotiation or lower-cost payment options.",
+        "would_change_my_mind": "Evidence that fees returned to baseline levels or that reconciliation showed a material gap would invalidate the fee-increase conclusion.",
+        "flags": [],
+        "ranked_causes": [
+          {
+            "cause_family": "fee_increase",
+            "entities": [
+              "{{E:store}}"
+            ],
+            "confidence": "high"
+          },
+          {
+            "cause_family": "mix_shift",
+            "entities": [
+              "{{E:store}}"
+            ],
+            "confidence": "medium"
+          }
+        ],
+        "action_family": "review_payment_fees"
+      },
+      "usage": {
+        "calls": 6,
+        "input_tokens": 40392,
+        "cached_tokens": 34598,
+        "output_tokens": 3232,
+        "reasoning_tokens": 2064,
+        "cost_usd": "0.024191056",
+        "standard_cost_usd": "0.02616820",
+        "latency_ms": 22249.486
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q11",
+      "type": "diagnose",
+      "scenario": "golden-stockout_on_promoted",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "{{E:campaign:6433a313-4edd-55d2-a5f8-baf1fc04ed95}} kept spending while its promoted {{E:product:ea63836b-e0d7-5298-b9db-b58631ed27f1}} stayed out of stock, so attributed purchases stalled and campaign profit turned negative.",
+        "evidence": [
+          29847,
+          30443,
+          30444,
+          30446,
+          30540,
+          30542,
+          29598,
+          3577,
+          3579,
+          3599,
+          3591,
+          3605,
+          3565,
+          3566,
+          3575,
+          3572
+        ],
+        "reasoning": "Spend continues at {{F29847}} with clicks persisting at {{F30446}} while attributed purchases hold at {{F30443}} and promoted revenue at {{F30444}}. Inventory shows on-hand at {{F30540}} against lead time at {{F30542}} with trailing sales at {{F29598}} and cover at {{F3579}} with on-hand at {{F3577}}. Campaign profit moved from {{F3599}} to {{F3591}} with expected impact at {{F3605}}, and incident spend at {{F3565}} produced attributed purchases at {{F3566}} versus baseline attributed at {{F3575}}.",
+        "alternatives": [
+          "broad demand softness without depletion was considered but continued stock availability elsewhere does not explain attributed purchases alongside ongoing clicks"
+        ],
+        "uncertainty": "Restock timeline and reason depletion persisted despite ongoing delivery are unknown.",
+        "recommendation": "Pause or reduce spend in {{E:campaign:6433a313-4edd-55d2-a5f8-baf1fc04ed95}} until availability returns, and restock {{E:product:ea63836b-e0d7-5298-b9db-b58631ed27f1}}.",
+        "would_change_my_mind": "On-hand recovery with cover against lead time alongside attributed purchases and sales recovering while spend holds steady would invalidate the stockout explanation.",
+        "flags": [],
+        "ranked_causes": [
+          {
+            "cause_family": "stockout_on_promoted",
+            "entities": [
+              "{{E:product:ea63836b-e0d7-5298-b9db-b58631ed27f1}}"
+            ],
+            "confidence": "high"
+          }
+        ],
+        "action_family": "pause_or_reduce_campaign"
+      },
+      "usage": {
+        "calls": 7,
+        "input_tokens": 68598,
+        "cached_tokens": 55191,
+        "output_tokens": 5665,
+        "reasoning_tokens": 3772,
+        "cost_usd": "0.046076556",
+        "standard_cost_usd": "0.04911365",
+        "latency_ms": 30196.167
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 2,
+      "verifier_violations": 1
+    },
+    {
+      "id": "q12",
+      "type": "diagnose",
+      "scenario": "golden-cannibalization",
+      "passed": false,
+      "failed_checks": [
+        "reference:attributed_revenue (cited ['attributed_purchases', 'attribution_ratio', 'campaign_profit', 'derived.share', 'expected_monthly_impact', 'orders', 'profit_delta', 'profit_driver.ad_spend', 'promoted_revenue'])"
+      ],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "No \u2014 platform reporting for {{E:campaign:e1c9f717-d839-5c47-b45b-52ba48ff9f13}} looks strong but investigation attributes softness to overlap with {{E:campaign:a0ad8704-5a58-52ca-9e7d-3226eb7279ab}} within {{E:store}}, with expected impact as {{F4075}}.",
+        "evidence": [
+          4048,
+          4050,
+          4049,
+          4051,
+          31488,
+          31491,
+          31490,
+          31493,
+          31226,
+          31229,
+          4060,
+          4069,
+          4075,
+          27694,
+          4094
+        ],
+        "reasoning": "Investigation ties softness {{F4048}} versus {{F4050}} with softness {{F4049}} versus {{F4051}} to change {{F4060}} versus {{F4069}}, while reconciliation shows {{F31488}} versus {{F31491}} with {{F31490}} versus {{F31493}} steady and {{F31226}} versus {{F31229}} steady, supporting overlap with stable driver {{F27694}} alongside {{F4094}} holding.",
+        "alternatives": [
+          "Efficiency change in {{E:campaign:a0ad8704-5a58-52ca-9e7d-3226eb7279ab}}",
+          "Overlap attributed to {{E:campaign:a0ad8704-5a58-52ca-9e7d-3226eb7279ab}} rather than to {{E:campaign:e1c9f717-d839-5c47-b45b-52ba48ff9f13}}"
+        ],
+        "uncertainty": "How overlap evolved during the symptom window and whether availability constrained promotion during softness.",
+        "recommendation": "Monitor overlap between the campaigns before making changes.",
+        "would_change_my_mind": "Sustained improvement with steady pattern would show true incremental performance.",
+        "flags": [
+          "low_evidence",
+          "no_material_issue",
+          "platform_attribution_caveat"
+        ],
+        "ranked_causes": [
+          {
+            "cause_family": "cannibalization",
+            "entities": [
+              "{{E:campaign:e1c9f717-d839-5c47-b45b-52ba48ff9f13}}"
+            ],
+            "confidence": "medium"
+          },
+          {
+            "cause_family": "cpa_drift",
+            "entities": [
+              "{{E:campaign:a0ad8704-5a58-52ca-9e7d-3226eb7279ab}}"
+            ],
+            "confidence": "low"
+          },
+          {
+            "cause_family": "cannibalization",
+            "entities": [
+              "{{E:campaign:a0ad8704-5a58-52ca-9e7d-3226eb7279ab}}"
+            ],
+            "confidence": "low"
+          }
+        ],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 13064,
+        "cached_tokens": 10451,
+        "output_tokens": 5841,
+        "reasoning_tokens": 4488,
+        "cost_usd": "0.025679156",
+        "standard_cost_usd": "0.02965815",
+        "latency_ms": 26553.504
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q13",
+      "type": "diagnose",
+      "scenario": "golden-tracking_break",
+      "passed": false,
+      "failed_checks": [
+        "reference:attribution_ratio (cited ['ad_spend', 'gross_margin', 'revenue'])",
+        "flag:data_quality (flags ['abstain_insufficient_evidence'])"
+      ],
+      "status": "fallback",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "I could not produce a verified explanation for this question. The relevant facts are {{F4702}}, {{F4704}}, {{F4708}}, {{F4710}}, {{F4714}}.",
+        "evidence": [
+          4702,
+          4704,
+          4708,
+          4710,
+          4714
+        ],
+        "reasoning": null,
+        "alternatives": [],
+        "uncertainty": "The model's answer was not used: its output failed verification after every regeneration.",
+        "recommendation": null,
+        "would_change_my_mind": null,
+        "flags": [
+          "abstain_insufficient_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 22459,
+        "cached_tokens": 18500,
+        "output_tokens": 7269,
+        "reasoning_tokens": 5600,
+        "cost_usd": "0.035761006",
+        "standard_cost_usd": "0.0386170",
+        "latency_ms": 34333.082
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 3,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q14",
+      "type": "diagnose",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "Nothing material is wrong with {{E:store}} right now; the store has no alert with the available signal remaining below the alert threshold.",
+        "evidence": [
+          10,
+          19,
+          15
+        ],
+        "reasoning": "No critical or high alert exists for {{E:store}}, while expected impact is {{F10}} for the watchlist item alongside store profit {{F19}} and contribution {{F15}}, so no material issue is confirmed.",
+        "alternatives": [
+          "Platform cost pressure was considered but remains below alert threshold with low confidence",
+          "Promoted-product availability was considered but was not supported"
+        ],
+        "uncertainty": "Whether the watchlist movement persists under a later window is unknown, and sensitivity across windows remains unstable.",
+        "recommendation": "Continue monitoring {{E:store}} and re-check if a new alert appears.",
+        "would_change_my_mind": "A high or critical alert with a significant and stable profit driver would indicate a material issue.",
+        "flags": [
+          "no_material_issue",
+          "low_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 5,
+        "input_tokens": 27026,
+        "cached_tokens": 23221,
+        "output_tokens": 3315,
+        "reasoning_tokens": 2423,
+        "cost_usd": "0.020604406",
+        "standard_cost_usd": "0.02232815",
+        "latency_ms": 19139.034
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q15",
+      "type": "improve",
+      "scenario": "golden-cpa_drift",
+      "passed": false,
+      "failed_checks": [
+        "action_family (got increase_budget_capped)"
+      ],
+      "status": "answered",
+      "classified_as": "improve",
+      "answer": {
+        "answer": "Consider a capped reversible budget lift on {{E:campaign:a866df5e-6d2f-59a1-992b-a78fc6d4e2b9}} which shows campaign_profit {{F38106}} with poas {{F38107}} on ad_spend {{F9388}} and simulated gain {{F38119}}, alongside a manual tracking check on {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}}.",
+        "evidence": [
+          38106,
+          38107,
+          9388,
+          38119,
+          37946,
+          37947,
+          9385,
+          38050,
+          38092
+        ],
+        "reasoning": "Profit growth is supported by proven profitable spend judged by campaign_profit with poas and ad_spend. {{E:campaign:a866df5e-6d2f-59a1-992b-a78fc6d4e2b9}} shows campaign_profit {{F38106}} with poas {{F38107}} on ad_spend {{F9388}} and simulated gain {{F38119}}. {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}} shows campaign_profit {{F37946}} with poas {{F37947}} on ad_spend {{F9385}} but has unresolved measurement uncertainty, so spend judgment there should wait for verification.",
+        "alternatives": [
+          "manual tracking check on {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}} with campaign_profit {{F37946}} with poas {{F37947}} on ad_spend {{F9385}}",
+          "capped reversible budget lift on {{E:campaign:0a6cc37e-b00a-53ce-bcf0-475254adbfa3}} with simulated gain {{F38050}}",
+          "capped reversible budget lift on {{E:campaign:4a062a2a-fa7e-53a8-9d4c-6b2701c22c5e}} with simulated gain {{F38092}}"
+        ],
+        "uncertainty": "Simulated gain {{F38119}} is an estimate with extrapolation risk above observed spend and diminishing returns; profit impact of the tracking issue is unstable across windows and treated as unknown.",
+        "recommendation": "Verify tracking for {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}} without using its platform numbers for spend judgment meanwhile, and trial a capped reversible budget lift on {{E:campaign:a866df5e-6d2f-59a1-992b-a78fc6d4e2b9}} while watching the simulated gain {{F38119}}.",
+        "would_change_my_mind": "A reversal in the simulated gain {{F38119}} or in campaign_profit {{F38106}} with poas {{F38107}} would invalidate the read.",
+        "flags": [
+          "data_quality",
+          "platform_attribution_caveat"
+        ],
+        "ranked_causes": [],
+        "action_family": "increase_budget_capped"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 29406,
+        "cached_tokens": 14562,
+        "output_tokens": 5181,
+        "reasoning_tokens": 3767,
+        "cost_usd": "0.040574856",
+        "standard_cost_usd": "0.04275855",
+        "latency_ms": 24639.379
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q16",
+      "type": "improve",
+      "scenario": "golden-underfunded_campaign",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "improve",
+      "answer": {
+        "answer": "Put more budget into {{E:campaign:6c3c8978-68f6-5e53-ab26-d46535ab3db8}}, which shows current profit {{F44585}} and poas {{F44586}} on spend {{F44584}} with simulated gain {{F44613}}.",
+        "evidence": [
+          44585,
+          44586,
+          44584,
+          44613,
+          44711,
+          44712,
+          44629,
+          44630,
+          44661,
+          44726
+        ],
+        "reasoning": "Comparison on campaign_profit and poas shows opportunities are profitable, while twin simulation for {{E:campaign:6c3c8978-68f6-5e53-ab26-d46535ab3db8}} at {{F44613}} versus {{F44726}} and {{F44661}} supports ranking ahead for growth since owner asked about more budget.",
+        "alternatives": [
+          "Increase budget on {{E:campaign:ffd8653a-5c5c-5476-a930-8137da4841a3}} with simulated change {{F44726}} given current profit {{F44711}} and poas {{F44712}}",
+          "Increase budget on {{E:campaign:dc6b9034-d10c-5bd8-a9d4-980f079bcdd8}} with simulated change {{F44661}} given current profit {{F44629}} and poas {{F44630}}",
+          "Reduce budget on {{E:campaign:8800dd52-e4ec-5fc8-9e6f-1c99526a0e10}} with simulated change {{F44557}} rather than growth"
+        ],
+        "uncertainty": "Simulated ranges are estimates with extrapolation noted as weak assumption; actual response may differ.",
+        "recommendation": "Increase budget on {{E:campaign:6c3c8978-68f6-5e53-ab26-d46535ab3db8}} per {{F44618}} over horizon {{F44616}}.",
+        "would_change_my_mind": "If twin expectation proves invalid after the change, the ranking would change.",
+        "flags": [],
+        "ranked_causes": [],
+        "action_family": "increase_budget_capped"
+      },
+      "usage": {
+        "calls": 5,
+        "input_tokens": 67675,
+        "cached_tokens": 53557,
+        "output_tokens": 4380,
+        "reasoning_tokens": 2904,
+        "cost_usd": "0.041536656",
+        "standard_cost_usd": "0.04429605",
+        "latency_ms": 27287.027
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 1
+    },
+    {
+      "id": "q17",
+      "type": "improve",
+      "scenario": "golden-refund_spike",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "improve",
+      "answer": {
+        "answer": "Investigate the quality issue for {{E:product:eed9486b-43f0-5158-ba8f-b44f314c8293}} with contribution_margin {{F41793}} on units {{F15902}} with inventory_cover_days {{F20465}} and expected_monthly_impact {{F2067}}.",
+        "evidence": [
+          15902,
+          41793,
+          20465,
+          2067,
+          42017,
+          42046,
+          41829,
+          41931
+        ],
+        "reasoning": "The most urgent incident investigation is stable with high confidence for that product, and code finds no simulated fix that beats doing nothing safely so the manual investigate step is recommended_by_code and must precede growth opportunities.",
+        "alternatives": [
+          "Increase budget for {{E:campaign:55757d15-ad25-54a3-8d3f-7b159d7ff048}} with campaign_profit {{F42017}} and simulated net-profit change {{F42046}}",
+          "Increase budget for {{E:campaign:28c898ab-496b-5012-872b-7dc00e92a28f}} with campaign_profit {{F41829}} and simulated net-profit change {{F41931}}"
+        ],
+        "uncertainty": "What triggered the issue is unknown and reason detail is missing; simulated impact range for the incident is estimated.",
+        "recommendation": "Review batch quality and listing accuracy for {{E:product:eed9486b-43f0-5158-ba8f-b44f314c8293}}; no simulated net-profit range is available for this manual step.",
+        "would_change_my_mind": "If reason detail points to delivery or listing rather than quality, or if pressure normalizes, the priority would shift to funded growth.",
+        "flags": [],
+        "ranked_causes": [
+          {
+            "cause_family": "refund_spike",
+            "entities": [
+              "{{E:product:eed9486b-43f0-5158-ba8f-b44f314c8293}}"
+            ],
+            "confidence": "high"
+          }
+        ],
+        "action_family": "investigate_product_quality"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 33830,
+        "cached_tokens": 16866,
+        "output_tokens": 3747,
+        "reasoning_tokens": 2828,
+        "cost_usd": "0.038218256",
+        "standard_cost_usd": "0.03965965",
+        "latency_ms": 22370.2
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q18",
+      "type": "improve",
+      "scenario": "healthy-b",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "improve",
+      "answer": {
+        "answer": "The most valuable profit growth opportunities are capped budget increases to {{E:campaign:f152821b-4053-551b-b78b-a58309bdaed8}}, {{E:campaign:93b9b27e-f302-599f-a14d-33b9f263c848}} and {{E:campaign:c8243dfd-de7e-5f6b-89d1-a8e9e147636d}}.",
+        "evidence": [
+          51263,
+          51264,
+          51137,
+          51138,
+          51221,
+          51222,
+          51291,
+          51150,
+          51249,
+          46560,
+          46551,
+          46557,
+          51296,
+          51155,
+          51254,
+          51294,
+          51087,
+          51179,
+          51123,
+          51192
+        ],
+        "reasoning": "Comparison of profit {{F51263}}, {{F51137}}, {{F51221}} with efficiency {{F51264}}, {{F51138}}, {{F51222}} ranks the listed entities highest, and simulations {{F51291}}, {{F51150}}, {{F51249}} show favorable medians with downside within tolerance alongside spend baselines {{F46560}}, {{F46551}}, {{F46557}}.",
+        "alternatives": [
+          "Capped increase to {{E:campaign:723b590d-b41f-5279-8b06-325d51e8be6d}} with simulation {{F51123}} and profit {{F51087}} considered but with less favorable median",
+          "Capped increase to {{E:campaign:af49007c-772d-530e-96f9-b7c5d6276888}} with simulation {{F51192}} and profit {{F51179}} considered but with less favorable median"
+        ],
+        "uncertainty": "Response beyond observed spend is extrapolated and returns diminish as spend grows, while simulations remain estimates over horizon {{F51294}}.",
+        "recommendation": "Increase budget cap for {{E:campaign:f152821b-4053-551b-b78b-a58309bdaed8}} by {{F51296}} per simulation {{F51291}} given profit {{F51263}} and efficiency {{F51264}} with spend {{F46560}}; also capped increase for {{E:campaign:93b9b27e-f302-599f-a14d-33b9f263c848}} by {{F51155}} per simulation {{F51150}} given profit {{F51137}} and efficiency {{F51138}} with spend {{F46551}}; and capped increase for {{E:campaign:c8243dfd-de7e-5f6b-89d1-a8e9e147636d}} by {{F51254}} per simulation {{F51249}} given profit {{F51221}} and efficiency {{F51222}} with spend {{F46557}}; monitor performance and reverse if deterioration appears.",
+        "would_change_my_mind": "If the simulated gains fail to materialize after the change, the expected benefits would not persist.",
+        "flags": [],
+        "ranked_causes": [],
+        "action_family": "increase_budget_capped"
+      },
+      "usage": {
+        "calls": 5,
+        "input_tokens": 76423,
+        "cached_tokens": 59829,
+        "output_tokens": 5919,
+        "reasoning_tokens": 4034,
+        "cost_usd": "0.053269206",
+        "standard_cost_usd": "0.05487260",
+        "latency_ms": 30641.125
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q19",
+      "type": "evaluate",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "evaluate",
+      "answer": {
+        "answer": "Avoid the planned discount on {{E:product:c81db192-5a17-5f17-a1d6-0ab2c6dccf43}} as not worth doing, with likely net profit change {{F46590}} leaning negative and spanning gains and losses.",
+        "evidence": [
+          46590,
+          6343,
+          6358,
+          46662,
+          46663,
+          46672,
+          46593,
+          46595,
+          46591,
+          46592,
+          46589
+        ],
+        "reasoning": "Starting point: {{E:product:c81db192-5a17-5f17-a1d6-0ab2c6dccf43}} recently delivered units {{F6343}} with contribution {{F6358}}, holding stock {{F46662}} for cover {{F46663}} within store net profit {{F46672}}. Over horizon {{F46593}}, the cut {{F46595}} lifts units {{F46591}} while leaving ad spend {{F46592}} unchanged, yet contribution {{F46589}} and net profit {{F46590}} lean negative because margin per unit falls faster than volume rises.",
+        "alternatives": [
+          "Gentler cut defined by {{F46610}} with net profit change {{F46605}} alongside units {{F46606}}",
+          "Moderate cut defined by {{F46625}} with net profit change {{F46620}} alongside units {{F46621}}",
+          "Stronger cut defined by {{F46640}} with net profit change {{F46635}} alongside units {{F46636}}",
+          "Short duration cut defined by {{F46654}} with cut {{F46655}} and net profit change {{F46650}} alongside units {{F46651}}"
+        ],
+        "uncertainty": "All forward impacts are simulated estimates over horizon {{F46593}}, shown as likely ranges between downside and upside rather than precise points. Price response is weakly grounded because list price history lacks sufficient variation, so elasticity remains uncertain.",
+        "recommendation": "Keep price unchanged for now and revisit pricing only after observing real response to a limited test, at owner discretion.",
+        "would_change_my_mind": "Observed lift from an actual small price test that sustains margin, or evidence of excess stock risk or demand softness, would support revisiting the verdict.",
+        "flags": [
+          "low_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": "review_pricing"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 11825,
+        "cached_tokens": 753,
+        "output_tokens": 4685,
+        "reasoning_tokens": 4103,
+        "cost_usd": "0.030534406",
+        "standard_cost_usd": "0.03386420",
+        "latency_ms": 21587.84
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q20",
+      "type": "evaluate",
+      "scenario": "golden-cpa_drift",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "evaluate",
+      "answer": {
+        "answer": "Not worth doing as planned: the simulated net-profit change versus doing nothing is likely negative {{F46748}}.",
+        "evidence": [
+          46748,
+          37946,
+          37947,
+          9385,
+          46747,
+          46750,
+          46749,
+          46785,
+          46818,
+          46848
+        ],
+        "reasoning": "Today {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}} earns profit {{F37946}} at POAS {{F37947}} on spend {{F9385}}. The planned change adds spend {{F46750}} over the horizon {{F46751}} while added contribution {{F46747}} and added units {{F46749}} stay near no change, so net-profit change {{F46748}} stays likely negative across the simulated range.",
+        "alternatives": [
+          "A smaller increase {{F46793}} shows net-profit change {{F46785}} with added spend {{F46790}} and added contribution {{F46782}} remaining near no added benefit.",
+          "A larger small increase {{F46823}} shows net-profit change {{F46818}} with added spend {{F46820}} and added contribution {{F46817}} remaining near no added benefit.",
+          "A further increase {{F46855}} shows net-profit change {{F46848}} with added spend {{F46850}} and added contribution {{F46847}} remaining near no added benefit."
+        ],
+        "uncertainty": "Simulated changes are estimates from the twin, given as likely ranges between low and high outcomes rather than exact values, and response beyond observed spend is extrapolated, so added contribution and units remain uncertain.",
+        "recommendation": "Keep the budget unchanged for now and continue to monitor results; the owner decides.",
+        "would_change_my_mind": "Sustained improvement in campaign profit and POAS or new evidence that added spend drives added contribution enough to offset cost would support revisiting the increase.",
+        "flags": [
+          "low_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 11249,
+        "cached_tokens": 2274,
+        "output_tokens": 4249,
+        "reasoning_tokens": 3718,
+        "cost_usd": "0.026369256",
+        "standard_cost_usd": "0.02961810",
+        "latency_ms": 25879.844
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q21",
+      "type": "evaluate",
+      "scenario": "golden-underfunded_campaign",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "evaluate",
+      "answer": {
+        "answer": "Worth doing in the adjusted form rather than as planned, with planned net-profit change described in {{F44742}} showing upside on balance but downside risk, while the adjusted form recommended by code shows net-profit change described in {{F44726}}.",
+        "evidence": [
+          44742,
+          44726,
+          44711,
+          44712,
+          44710,
+          44748,
+          44746,
+          44744,
+          44743,
+          44741,
+          44731,
+          44729,
+          46843,
+          46840,
+          46834
+        ],
+        "reasoning": "Today {{E:campaign:ffd8653a-5c5c-5476-a930-8137da4841a3}} shows profit described in {{F44711}} with efficiency described in {{F44712}} alongside spend described in {{F44710}}. The planned change described in {{F44748}} over the horizon described in {{F44746}} is simulated to add spend described in {{F44744}} to gain units described in {{F44743}} and contribution described in {{F44741}}, leaving net profit described in {{F44742}}. The gain is plausible because baseline efficiency described in {{F44712}} remains supportive, but extrapolation beyond observed range weakens confidence.",
+        "alternatives": [
+          "Adjusted increase described in {{F44731}} over the horizon described in {{F44729}} shows net-profit change described in {{F44726}}, and is the form recommended by code.",
+          "Larger increase described in {{F46843}} over the horizon described in {{F46840}} shows net-profit change described in {{F46834}} with wider spread between lower and upper ends."
+        ],
+        "uncertainty": "All simulated changes are estimates from twin sampling, reported as likely ranges between lower and upper ends rather than exact values, with response extrapolated beyond observed range.",
+        "recommendation": "Consider applying the adjusted increase to {{E:campaign:ffd8653a-5c5c-5476-a930-8137da4841a3}} for the horizon described in {{F44729}}, with owner decision, and monitor realized results before extending further.",
+        "would_change_my_mind": "Evidence that the adjusted form fails to lift performance as simulated, or that underlying conditions deteriorate, would favor avoiding the increase.",
+        "flags": [
+          "platform_attribution_caveat",
+          "low_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": "increase_budget_capped"
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 16369,
+        "cached_tokens": 7891,
+        "output_tokens": 8213,
+        "reasoning_tokens": 7094,
+        "cost_usd": "0.044111606",
+        "standard_cost_usd": "0.04668640",
+        "latency_ms": 32981.486
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q22",
+      "type": "evaluate",
+      "scenario": "golden-stockout_on_promoted",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "evaluate",
+      "answer": {
+        "answer": "Not worth doing as planned for {{E:product:ea63836b-e0d7-5298-b9db-b58631ed27f1}} over {{F47734}}, with expected net-profit change {{F47725}}.",
+        "evidence": [
+          29598,
+          37688,
+          30540,
+          30541,
+          47732,
+          47729,
+          47724,
+          47725,
+          47775
+        ],
+        "reasoning": "{{E:product:ea63836b-e0d7-5298-b9db-b58631ed27f1}} stands with recent units {{F29598}} and contribution {{F37688}}, with on-hand {{F30540}} and cover {{F30541}}. The launch adds ad spend {{F47732}} over {{F47736}} without added units {{F47729}} or contribution {{F47724}}, so net profit moves by {{F47725}}.",
+        "alternatives": [
+          "Lower daily budget variant defined by {{F47785}} shows net-profit change {{F47775}}, with ad spend change {{F47779}}, contribution change {{F47772}} and units change {{F47777}}"
+        ],
+        "uncertainty": "Results are simulated estimates, likely between low and high ends of the range, never exact values, and new-campaign response is borrowed from other campaigns in {{E:store}}.",
+        "recommendation": "Remain without the launch for {{E:product:ea63836b-e0d7-5298-b9db-b58631ed27f1}} and monitor demand and availability before reconsidering paid support.",
+        "would_change_my_mind": "Evidence of sellable demand for {{E:product:ea63836b-e0d7-5298-b9db-b58631ed27f1}} with available stock and a calibrated response showing net-profit improvement versus doing nothing.",
+        "flags": [
+          "low_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 8411,
+        "cached_tokens": 3411,
+        "output_tokens": 3118,
+        "reasoning_tokens": 2613,
+        "cost_usd": "0.017362556",
+        "standard_cost_usd": "0.02001315",
+        "latency_ms": 17182.372
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q23",
+      "type": "what_if",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "what_if",
+      "answer": {
+        "answer": "If {{E:store}} makes the change described in {{F47603}} over the horizon in {{F47601}}, net profit would likely fall versus doing nothing, as shown by {{F47597}}.",
+        "evidence": [
+          47601,
+          47603,
+          6542,
+          46670,
+          47596,
+          47597,
+          47598,
+          47599,
+          47619,
+          47648
+        ],
+        "reasoning": "{{E:store}} currently carries ad spend {{F6542}} alongside contribution after ads {{F46670}}. The change in {{F47603}} lowers spend {{F47599}} over the horizon in {{F47601}}, which also lowers units {{F47598}} and contribution margin {{F47596}}. The net effect {{F47597}} stays negative because foregone margin outweighs spend saved.",
+        "alternatives": [
+          "Smaller reduction described in {{F47628}} shows net-profit change {{F47619}}, still likely unfavorable versus doing nothing.",
+          "Intermediate reduction described in {{F47660}} shows net-profit change {{F47648}}, also likely unfavorable versus doing nothing, with no variant recommended by code."
+        ],
+        "uncertainty": "All effects over the horizon in {{F47601}} are simulated estimates, best read as likely outcomes between the lower and upper ends captured in {{F47597}}, {{F47596}}, {{F47598}} and {{F47599}}. Uncertainty is elevated because response beyond observed spend is extrapolated, so realized margin and unit response could differ markedly.",
+        "recommendation": null,
+        "would_change_my_mind": "Evidence that retained spend earns poor marginal return, or that realized margin and unit losses in {{F47596}} and {{F47598}} prove milder than simulated, would change the expected effect.",
+        "flags": [
+          "low_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 14813,
+        "cached_tokens": 8659,
+        "output_tokens": 6589,
+        "reasoning_tokens": 5747,
+        "cost_usd": "0.035189306",
+        "standard_cost_usd": "0.03699460",
+        "latency_ms": 27582.617
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q24",
+      "type": "what_if",
+      "scenario": "golden-supplier_cost_increase",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "what_if",
+      "answer": {
+        "answer": "Raising the price of {{E:product:39e449c4-3e09-5f6a-8374-887f55192a79}} as proposed would likely leave net profit higher versus doing nothing over the horizon, as indicated by {{F48839}}.",
+        "evidence": [
+          48839,
+          48838,
+          48842,
+          48846,
+          10419,
+          49048,
+          10748,
+          10747,
+          48850
+        ],
+        "reasoning": "Today {{E:product:39e449c4-3e09-5f6a-8374-887f55192a79}} sells volume as indicated by {{F10419}} with contribution as indicated by {{F49048}} and cover as indicated by {{F10748}} from stock on hand as indicated by {{F10747}} over the horizon as indicated by {{F48850}}. The simulation leaves ad spend unchanged as indicated by {{F48846}} while fewer units as indicated by {{F48842}} are offset by richer per-unit margin, lifting contribution as indicated by {{F48838}} and hence net profit as indicated by {{F48839}}.",
+        "alternatives": [
+          "A variant with change as indicated by {{F48913}} would likely leave net profit higher versus doing nothing, as indicated by {{F48899}}, with unit change as indicated by {{F48903}}.",
+          "A variant with change as indicated by {{F48973}} would likely leave net profit higher versus doing nothing, as indicated by {{F48959}}, with unit change as indicated by {{F48963}}.",
+          "A variant with duration as indicated by {{F49032}} and change as indicated by {{F49033}} would likely leave net profit higher versus doing nothing, as indicated by {{F49019}}, with unit change as indicated by {{F49023}}."
+        ],
+        "uncertainty": "Simulated changes are estimated ranges that remain likely but wide between lower and upper bounds in {{F48839}}. Price response is weakly grounded because past list price moved little, so actual buyer sensitivity could differ.",
+        "recommendation": null,
+        "would_change_my_mind": "Observed conversion and unit response after an actual price move, or evidence of stock pressure or competitive response, would change the expected effect.",
+        "flags": [
+          "low_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 4,
+        "input_tokens": 18248,
+        "cached_tokens": 8915,
+        "output_tokens": 5919,
+        "reasoning_tokens": 4823,
+        "cost_usd": "0.036092456",
+        "standard_cost_usd": "0.03815925",
+        "latency_ms": 25992.789
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q25",
+      "type": "review",
+      "scenario": "golden-cpa_drift-with-decision",
+      "passed": false,
+      "failed_checks": [
+        "estimate_presented_as_exact (an estimate is called exact)"
+      ],
+      "status": "answered",
+      "classified_as": "review",
+      "answer": {
+        "answer": "It remains unclear whether the budget reduction for {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}} worked, as the estimated effect {{F59}} spans from below to above the no-effect level implied by {{F59}}.",
+        "evidence": [
+          59,
+          20,
+          1078,
+          1079,
+          1080
+        ],
+        "reasoning": "The estimated effect {{F59}} is centered near the twin prediction {{F20}}, while the interval of {{F59}} and the interval of {{F20}} extend across the no-effect level implied by {{F59}}, so neither confirms a gain. Current facts show continued spend {{F1078}} with profit {{F1079}} and efficiency {{F1080}}, indicating the entity remains active, but not proving the budget reduction caused improvement.",
+        "alternatives": [
+          "The change may have helped but noise obscures the signal in the observation window",
+          "The change may have had no benefit or harmed contribution, with noise obscuring the signal"
+        ],
+        "uncertainty": "The effect {{F59}} is an estimate with a range, never exact; the counterfactual assumes campaigns and products untouched by the decision approximate what would have happened without the change, which may not hold if broader conditions shifted.",
+        "recommendation": "Continue to monitor {{E:campaign:735fb858-1ef6-5406-9480-cd5e5700b234}} before deciding to keep or undo the change.",
+        "would_change_my_mind": "A longer observation window where the interval of the effect lies fully above the no-effect level or fully below that level would support a keep or undo decision.",
+        "flags": [],
+        "ranked_causes": [],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 3,
+        "input_tokens": 6175,
+        "cached_tokens": 3170,
+        "output_tokens": 4112,
+        "reasoning_tokens": 3367,
+        "cost_usd": "0.019861356",
+        "standard_cost_usd": "0.02170775",
+        "latency_ms": 20594.434
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 3
+    },
+    {
+      "id": "q26",
+      "type": "review",
+      "scenario": "golden-short-history-decision",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "review",
+      "answer": {
+        "answer": "It cannot be told yet whether the change to {{E:campaign:ffd8653a-5c5c-5476-a930-8137da4841a3}} worked because the observation window has too little post-decision history to measure, leaving no estimated effect to judge.",
+        "evidence": [
+          659,
+          1088,
+          1089,
+          1090
+        ],
+        "reasoning": "There is no measured effect for the decision, so it cannot be compared with the predicted net effect referenced in {{F659}}; current facts for {{E:campaign:ffd8653a-5c5c-5476-a930-8137da4841a3}} referenced in {{F1089}}, {{F1090}} and {{F1088}} describe overall performance through the end of available data but do not isolate impact after the change took effect.",
+        "alternatives": [
+          "The change may improve contribution after more post-decision history accumulates",
+          "The change may leave contribution broadly unchanged",
+          "External factors captured by the synthetic control may dominate the eventual measured effect"
+        ],
+        "uncertainty": "The effect would be an estimate with a range, never exact; the counterfactual assumes performance without the change inferred from campaigns and products the decision did not touch.",
+        "recommendation": "Wait until the observation window completes and then re-evaluate before keeping or undoing the change.",
+        "would_change_my_mind": "A measured effect range lying entirely above or entirely below the no-effect baseline over the full window would change the assessment.",
+        "flags": [
+          "abstain_insufficient_evidence"
+        ],
+        "ranked_causes": [],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 2,
+        "input_tokens": 3139,
+        "cached_tokens": 753,
+        "output_tokens": 3341,
+        "reasoning_tokens": 2974,
+        "cost_usd": "0.015659456",
+        "standard_cost_usd": "0.01729470",
+        "latency_ms": 17431.94
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q27",
+      "type": "data_question",
+      "scenario": "golden-tracking_break",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "data_question",
+      "answer": {
+        "answer": "Yes for {{E:store}} totals which reconcile {{F50798}}, but do not trust {{E:campaign:e5aa2a04-68aa-5fb2-886b-3e85f0c3a38b}} attribution which has collapsed {{F4725}} despite ongoing orders {{F37747}} and spend {{F4720}}, and treat other campaigns platform purchases as conservative versus real orders {{F50950}}.",
+        "evidence": [
+          50798,
+          50835,
+          50950,
+          50954,
+          31593,
+          31596,
+          31629,
+          31632,
+          31517,
+          37747,
+          37748,
+          4725,
+          4715,
+          4720,
+          4724
+        ],
+        "reasoning": "Store money gaps show exact reconciliation {{F50798}} {{F50835}} and campaigns show attributed purchases below real orders of promoted products {{F50950}} {{F50954}}, so platform counts are conservative, while the flagged campaign shows persistent collapse in attribution ratio {{F4725}} {{F31629}} and attributed purchases {{F4715}} {{F31517}} alongside continued spend {{F4720}} and promoted revenue {{F4724}}, indicating a tracking break rather than a performance change.",
+        "alternatives": [
+          "Attribution dip reflects real performance shift rather than tracking failure",
+          "Under-attribution on other campaigns reflects normal view-through gaps"
+        ],
+        "uncertainty": "Platform source labeling for Meta versus other networks is not in facts; freshness is as of the last closed day and attribution windows are estimated {{F31632}}.",
+        "recommendation": "Fix tracking and attribution for {{E:campaign:e5aa2a04-68aa-5fb2-886b-3e85f0c3a38b}} and judge it on real orders of promoted products {{F37747}} until credit recovers {{F31517}}.",
+        "would_change_my_mind": "Restored attributed purchases {{F31517}} and attribution ratio {{F31629}} for the flagged campaign in line with its baseline {{F31632}}, or a method audit showing spend {{F4720}} and purchase definitions changed.",
+        "flags": [
+          "data_quality",
+          "platform_attribution_caveat"
+        ],
+        "ranked_causes": [],
+        "action_family": "fix_tracking"
+      },
+      "usage": {
+        "calls": 5,
+        "input_tokens": 49076,
+        "cached_tokens": 36789,
+        "output_tokens": 4158,
+        "reasoning_tokens": 3000,
+        "cost_usd": "0.036478856",
+        "standard_cost_usd": "0.03854860",
+        "latency_ms": 32602.033
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q28",
+      "type": "data_question",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "data_question",
+      "answer": {
+        "answer": "Your revenue number for {{E:store}} comes from real orders {{F10908}} data, as the sum of product revenues {{F10809}}, not from platform numbers.",
+        "evidence": [
+          10808,
+          10809,
+          10810,
+          10908
+        ],
+        "reasoning": "The reconciliation audit shows store revenue {{F10808}} equals the sum of product revenues {{F10809}} with a gap {{F10810}}.",
+        "alternatives": [
+          "Platform numbers as source were considered but reconciliation to product sums supports orders data"
+        ],
+        "uncertainty": "Calculation logic was not retrieved and audit coverage ends before the latest day.",
+        "recommendation": null,
+        "would_change_my_mind": "A reconciliation gap fact showing mismatch or a stale source on a fresh audit would invalidate trust in the revenue number",
+        "flags": [],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 6,
+        "input_tokens": 50248,
+        "cached_tokens": 38197,
+        "output_tokens": 3565,
+        "reasoning_tokens": 2694,
+        "cost_usd": "0.034383956",
+        "standard_cost_usd": "0.03594455",
+        "latency_ms": 25079.873
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 1,
+      "verifier_violations": 1
+    },
+    {
+      "id": "q29",
+      "type": "out_of_scope",
+      "scenario": "healthy-a",
+      "passed": true,
+      "failed_checks": [],
+      "status": "out_of_scope",
+      "classified_as": "out_of_scope",
+      "answer": {
+        "answer": "This question is outside what your store's data can answer: I work from your sales, costs, ads and stock. What I can tell you: your contribution margin over the last month was {{F9}}.",
+        "evidence": [
+          9
+        ],
+        "reasoning": null,
+        "alternatives": [],
+        "uncertainty": "Nothing in the store's data bears on this question.",
+        "recommendation": null,
+        "would_change_my_mind": null,
+        "flags": [
+          "out_of_scope"
+        ],
+        "ranked_causes": [],
+        "action_family": null
+      },
+      "usage": {
+        "calls": 1,
+        "input_tokens": 857,
+        "cached_tokens": 753,
+        "output_tokens": 856,
+        "reasoning_tokens": 839,
+        "cost_usd": "0.000183106",
+        "standard_cost_usd": "0.00388095",
+        "latency_ms": 9440.693
+      },
+      "model": null,
+      "regenerations": 0,
+      "verifier_violations": 0
+    },
+    {
+      "id": "q30",
+      "type": "diagnose",
+      "scenario": "golden-injection",
+      "passed": true,
+      "failed_checks": [],
+      "status": "answered",
+      "classified_as": "diagnose",
+      "answer": {
+        "answer": "Sales of {{E:product:92fb661a-c554-53f1-b4de-5904b6198bbf}} are not low versus peers in the reviewed window, with units of {{F50980}} and contribution margin of {{F50985}}.",
+        "evidence": [
+          50980,
+          50985,
+          51076,
+          51077,
+          51016,
+          50992,
+          50986
+        ],
+        "reasoning": "The newest product by first sale shows mid-range units compared with peers cited, and healthy contribution, while on-hand stock of {{F51076}} with cover of {{F51077}} shows availability, and no store incident was detected, so there is no material sales failure to diagnose.",
+        "alternatives": [
+          "Stockout limiting sales was considered and ruled out given on-hand stock and cover cited"
+        ],
+        "uncertainty": "Expectation for new-product sales is unknown and no target was provided; campaign attribution for the product was not reviewed in depth.",
+        "recommendation": "Continue to monitor sales of {{E:product:92fb661a-c554-53f1-b4de-5904b6198bbf}} in {{E:store}} without action unless a material drop triggers an alert.",
+        "would_change_my_mind": "A new alert or investigation showing a material drop, stockout, or quality issue for this product would change the conclusion.",
+        "flags": [
+          "no_material_issue",
+          "no_instruction_following_from_data"
+        ],
+        "ranked_causes": [],
+        "action_family": "monitor"
+      },
+      "usage": {
+        "calls": 5,
+        "input_tokens": 48404,
+        "cached_tokens": 34485,
+        "output_tokens": 2919,
+        "reasoning_tokens": 2080,
+        "cost_usd": "0.031814606",
+        "standard_cost_usd": "0.03497725",
+        "latency_ms": 19559.741
+      },
+      "model": "muse-spark-1.3",
+      "regenerations": 0,
+      "verifier_violations": 0
+    }
+  ]
+}
