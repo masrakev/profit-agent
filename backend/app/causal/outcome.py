@@ -30,7 +30,7 @@ from app.twin import Action, Scenario, fit_twin, simulate
 METHOD = "synthetic_control_v1"
 FORMULA = "outcome.effect.contribution_after_ads"
 WINDOW_DAYS = 7
-PRE_DAYS = 42
+PRE_DAYS = 84  # history searched for the regime the action interrupts (the fit: 42 at most)
 CENT = Decimal("0.01")
 
 
@@ -119,6 +119,10 @@ def measure(
     payload: dict[str, Any] = {
         "reason": result.reason,
         "pre_r2": f"{result.pre_r2:.4f}" if result.pre_r2 is not None else None,
+        "relative_error": (
+            f"{result.relative_error:.4f}" if result.relative_error is not None else None
+        ),
+        "pre_days": result.pre_days,
         "donors": len(names),
         "top_donors": [
             names[i] for i in np.argsort(result.weights)[::-1][:5] if result.weights[i] > 0.01

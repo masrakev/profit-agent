@@ -11,8 +11,8 @@
    to the store's campaign (META_ACCESS_TOKEN, META_AD_ACCOUNT_ID, META_CAMPAIGN_LINKS), mirrored
    on the simulator so the outcome can be measured. Without sandbox credentials the Meta side
    runs against the documented-contract fake (bench/meta_fake.py), and the report says so.
-5. Seven days pass; the supplier restocks.
-6. The owner rolls the pause back through the API: the campaign resumes.
+5. Seven days pass (the pause's observation window); the supplier restocks.
+6. The owner rolls the pause back through the API: the campaign resumes, the stock is back.
 7. Seven more days pass; the pause's outcome is measured by synthetic control, next to the
    twin's prediction made when the decision was proposed.
 8. The journal, from the API, shows the loop in order.
@@ -127,7 +127,7 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
         engine, {"simulator": SimulatorAdapter(engine), "meta": meta}, meta_links=links
     )
     executor.run_once()
-    advance(engine, store, 7, restock=[product])
+    advance(engine, store, 7)  # the pause's observation window: still out of stock
     with tenant_transaction(engine, store) as conn:
         pauses = list(
             conn.execute(
@@ -141,7 +141,8 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
     for pause in pauses:
         client.post(f"/api/v1/stores/{store}/actions/{pause.action_id}/rollback")
     executor.run_once()
-    advance(engine, store, 7)
+    # The supplier delivers on the day the campaigns resume: after the pause's window.
+    advance(engine, store, 7, restock=[product])
     with tenant_transaction(engine, store) as conn:
         outcomes = [measure(conn, store, p.action_id) for p in pauses]
     journal = client.get(f"/api/v1/stores/{store}/journal").json()
@@ -182,11 +183,12 @@ def markdown(r: dict[str, Any], started: datetime) -> str:
         f"{r['replay_status']}.",
         f"4. Pause executed: {', '.join(f'{a} on {p}' for a, p in r['pauses'])}; Meta mutating "
         f"calls: {r['meta_mutations']}.",
-        "5. Seven days later the supplier restocks.",
+        "5. Seven days later (the pause's observation window) the supplier restocks.",
         "6. Rollback requested through the API: the campaigns resume.",
         "7. Outcome of the pause (synthetic control, 7 days):",
         "",
-        "| Action | Status | Effect P10 / P50 / P90 | Predicted P10 / P50 / P90 | Pre-period R2 |",
+        "| Action | Status | Effect P10 / P50 / P90 | Predicted P10 / P50 / P90 | "
+        "Pre-period days, relative error, R2 |",
         "| --- | --- | --- | --- | --- |",
     ]
     for (action, _), o in zip(r["pauses"], r["outcomes"], strict=True):
@@ -196,7 +198,8 @@ def markdown(r: dict[str, Any], started: datetime) -> str:
             f"| `{action[:8]}` | {o['status']} ({o['reason']}) | "
             f"{effect.get('p10', '-')} / {effect.get('p50', '-')} / {effect.get('p90', '-')} | "
             f"{predicted.get('p10', '-')} / {predicted.get('p50', '-')} / "
-            f"{predicted.get('p90', '-')} | {o.get('pre_r2')} |"
+            f"{predicted.get('p90', '-')} | {o.get('pre_days')}, {o.get('relative_error')}, "
+            f"{o.get('pre_r2')} |"
         )
     lines += [
         "",

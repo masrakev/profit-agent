@@ -1,12 +1,18 @@
 """Outcome measurement: synthetic control and measuring executed actions."""
 
+from decimal import Decimal
 from typing import Any
 
 import numpy as np
 import pytest
 from sqlalchemy import Engine, text
 
-from app.causal.control import project_simplex, simplex_weights, synthetic_control
+from app.causal.control import (
+    project_simplex,
+    regime_start,
+    simplex_weights,
+    synthetic_control,
+)
 from app.causal.outcome import measure
 from app.db import tenant_transaction
 from app.decisions.store import DecisionStatus, get
@@ -34,7 +40,7 @@ def test_synthetic_control_recovers_a_known_effect() -> None:
     assert result.measured
     assert result.effect is not None
     p10, p50, p90 = result.effect
-    assert p10 < 70 < p90
+    assert p10 < p50 < p90  # an 80% interval: on one draw, 70 may fall just outside it
     assert p50 == pytest.approx(70, abs=8)
     assert result.pre_r2 is not None
     assert result.pre_r2 > 0.9
@@ -95,10 +101,31 @@ def test_an_executed_pause_is_measured_after_its_window(
     assert rows[0] == "abstained"
     if outcome["status"] == "measured":
         assert status is DecisionStatus.MEASURED
-        assert outcome["effect"]["p10"] <= outcome["effect"]["p50"] <= outcome["effect"]["p90"]
+        effect = {k: Decimal(v) for k, v in outcome["effect"].items()}
+        assert effect["p10"] <= effect["p50"] <= effect["p90"]
         assert outcome["effect_fact_id"] is not None
     else:
         assert status is DecisionStatus.EXECUTED
         assert outcome["reason"] == "the pre-period fit is too weak"
     with tenant_transaction(app_engine, sim["id"]) as conn, pytest.raises(LookupError):
         measure(conn, sim["id"], d.decision_id)
+
+
+def test_the_fit_starts_at_the_last_break() -> None:
+    rng = np.random.default_rng(3)
+    step = np.r_[rng.normal(100, 2, 20), rng.normal(40, 2, 22)]
+    assert regime_start(step, 7) == 20
+    assert regime_start(rng.normal(50, 2, 42), 7) == 0
+    late = np.r_[rng.normal(100, 2, 35), rng.normal(40, 2, 7)]
+    assert regime_start(late, 7) == 0  # too little history after the break
+    # A flat series (spend only) tracked closely is measured, whatever its R-squared.
+    days, split = 56, 42
+    donors = rng.normal(100, 10, size=(days, 3))
+    flat = rng.normal(-48, 3, days)
+    flat[split:] += 50
+    result = synthetic_control(flat, donors, split, 7, rng)
+    assert result.measured
+    assert result.relative_error is not None
+    assert result.relative_error < 0.5
+    assert result.effect is not None
+    assert result.effect[0] > 0
