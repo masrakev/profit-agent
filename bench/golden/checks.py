@@ -19,7 +19,7 @@ from app.facts.model import Fact, FactKind
 from app.verifier import entity_references, fact_references, verify
 
 GOLDEN_DIR = Path(__file__).resolve().parent
-PENDING_TYPES = frozenset({QuestionType.REVIEW})
+PENDING_TYPES: frozenset[QuestionType] = frozenset()
 TEXT_FIELDS = ("answer", "reasoning", "uncertainty", "recommendation", "would_change_my_mind")
 EXACT_WORDS = re.compile(r"(?i)\b(?:exactly|precisely|exact)\b")
 SENTENCE = re.compile(r"(?<=[.!?;])\s+")

@@ -42,11 +42,13 @@ from bench.golden.checks import (
     cited_fact_ids,
     load_golden,
 )
+from bench.golden.decisions import RECIPES, set_up
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
 from bench.scenarios.manifest import ScenarioManifest, load_suite
 
 GOLDEN_DB = "profit_golden"
+GOLDEN_DECISIONS_DB = "profit_golden_decisions"
 
 
 def _labels(manifest: ScenarioManifest) -> dict[str, str]:
@@ -252,10 +254,12 @@ def main(argv: list[str] | None = None) -> int:
     started = datetime.now(UTC).replace(microsecond=0)
     run_id = f"golden-{started:%Y%m%dT%H%M%SZ}"
     engine = make_engine(prepare_database(GOLDEN_DB))
+    # Decision scenarios are the same stores as their bases: a database of their own.
+    decisions_engine = make_engine(prepare_database(GOLDEN_DECISIONS_DB))
     provider = build_provider(get_settings(), mode=LLMMode(args.mode))
     manifests = {m.scenario_id: m for m in load_suite("golden")}
     rows: list[dict[str, Any]] = []
-    stores: dict[str, tuple[UUID, dict[str, str], dict[str, str]]] = {}
+    stores: dict[str, tuple[Engine, UUID, dict[str, str], dict[str, str]]] = {}
     todo = []
     for q in questions:
         reason = golden.pending_reason(q)
@@ -264,26 +268,36 @@ def main(argv: list[str] | None = None) -> int:
             continue
         if q.scenario not in stores:
             manifest = manifests[q.scenario]
-            data = manifest.generate()
-            load(engine, data, manifest.config)
-            run_pipeline(engine, data.store.store_id)
+            if q.scenario in RECIPES:
+                where = decisions_engine
+                store_id = set_up(where, manifest)
+            else:
+                where = engine
+                data = manifest.generate()
+                load(where, data, manifest.config)
+                store_id = data.store.store_id
+            run_pipeline(where, store_id)
             labels = _labels(manifest)
-            stores[q.scenario] = (
-                data.store.store_id,
-                labels,
-                _names(engine, data.store.store_id, labels),
-            )
+            stores[q.scenario] = (where, store_id, labels, _names(where, store_id, labels))
         todo.append(q)
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = [
-            pool.submit(run_question, q, engine, *stores[q.scenario], provider, routing, run_id)
+            pool.submit(
+                run_question,
+                q,
+                stores[q.scenario][0],
+                *stores[q.scenario][1:],
+                provider,
+                routing,
+                run_id,
+            )
             for q in todo
         ]
         rows.extend(f.result() for f in futures)
     rows.sort(key=lambda r: r["id"])
     summary = summarize(golden, rows)
     summary["investigations"] = investigation_summary(
-        _investigations(engine, [store_id for store_id, _, _ in stores.values()])
+        [p for where, store_id, _, _ in stores.values() for p in _investigations(where, [store_id])]
     )
     meta = {"started": started.isoformat(), "routing": routing.value, "mode": args.mode}
     args.out.mkdir(parents=True, exist_ok=True)

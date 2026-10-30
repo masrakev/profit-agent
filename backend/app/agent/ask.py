@@ -37,6 +37,7 @@ from app.agent.llm.types import InputItem, LLMRequest, LLMResult, ToolCall, User
 from app.agent.opportunities import options_context
 from app.agent.origin import data_origin
 from app.agent.prompts import load_prompt
+from app.agent.review import review_question
 from app.agent.session import UsageSummary, run_session, summarize
 from app.agent.stages import Routing, Stage, StagesConfig, load_stages
 from app.agent.tools import ToolContext, ToolRegistry, build_registry
@@ -59,7 +60,7 @@ class QuestionType(StrEnum):
     OUT_OF_SCOPE = "out_of_scope"
 
 
-NOT_AVAILABLE_YET = frozenset({QuestionType.REVIEW})
+NOT_AVAILABLE_YET: frozenset[QuestionType] = frozenset()
 SIMULATED = frozenset({QuestionType.EVALUATE, QuestionType.WHAT_IF})
 ACTION_CLAIM = re.compile(
     r"(?i)\b(?:i|we)\s+(?:have\s+)?(?:paused|stopped|increased|reduced|raised|lowered|changed|"
@@ -76,7 +77,13 @@ class Classification(BaseModel):
 
 
 AskStatus = Literal[
-    "answered", "fallback", "partial", "not_available_yet", "out_of_scope", "clarification"
+    "answered",
+    "fallback",
+    "partial",
+    "not_available_yet",
+    "out_of_scope",
+    "clarification",
+    "abstained",
 ]
 
 
@@ -342,6 +349,18 @@ def ask(
                 answer=not_available_answer(question_type),
                 stop_reason=None,
             )
+        if question_type is QuestionType.REVIEW:
+            return _reviewed_answer(
+                conn,
+                ctx,
+                provider,
+                question,
+                origin,
+                routing,
+                stages,
+                run_id or str(ask_id),
+                common,
+            )
         if question_type in SIMULATED:
             return _simulated_answer(
                 conn,
@@ -476,4 +495,46 @@ def _simulated_answer(
         refused_tools=[],
         stop_reason=outcome.stop_reason,
         evaluation=outcome.evaluation,
+    )
+
+
+def _reviewed_answer(
+    conn: Connection,
+    ctx: ToolContext,
+    provider: LLMProvider,
+    question: str,
+    origin: DataOrigin,
+    routing: Routing,
+    stages: StagesConfig,
+    run_id: str,
+    common: dict[str, Any],
+) -> AskResult:
+    outcome = review_question(
+        conn,
+        ctx,
+        provider,
+        question,
+        origin=origin,
+        routing=routing,
+        stages=stages,
+        run_id=run_id,
+        store_message=store_context(conn, ctx),
+        base_checks=contract_checks(QuestionType.REVIEW, fact_formulas(conn, ctx.store_id)),
+    )
+    run = outcome.run
+    usage = run.usage() if run else UsageSummary()
+    status: AskStatus = outcome.status  # type: ignore[assignment]
+    prompts = str(common["prompt_version"]).split(":")[0]
+    return AskResult(
+        **{**common, "prompt_version": f"{prompts}:{load_prompt('review').version}"},
+        status=status,
+        answer=outcome.answer,
+        model=outcome.model,
+        usage=usage,
+        tool_calls=0,
+        memo_hits=0,
+        regenerations=run.regenerations if run else 0,
+        verifier_violations=run.violations if run else 0,
+        refused_tools=[],
+        stop_reason=run.stop_reason if run else None,
     )

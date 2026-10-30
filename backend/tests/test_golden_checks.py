@@ -186,7 +186,7 @@ def test_the_golden_set_loads_with_pending_questions() -> None:
     golden = load_golden()
     assert len(golden.questions) == 30
     pending = {q.id for q in golden.questions if golden.pending_reason(q)}
-    assert pending == {"q25", "q26"}  # review: needs measured decisions (Task 4 part B)
+    assert pending == set()  # q25-q26 run on their decision scenarios (bench/golden/decisions.py)
     q13 = next(q for q in golden.questions if q.id == "q13")
     assert "recommend_pause_on_data_quality_issue" in q13.forbidden
     q01 = next(q for q in golden.questions if q.id == "q01")
