@@ -25,7 +25,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Connection, Engine
 
-from app.agent.citations import FormulaLookup, citation_check
+from app.agent.citations import FactLookup, FormulaLookup, citation_check, citation_repair
 from app.agent.contracts import ActionFamily, Answer, Flag, fallback_answer
 from app.agent.evaluate import Evaluation, evaluate_question
 from app.agent.guard import OutputViolation
@@ -42,7 +42,7 @@ from app.agent.session import UsageSummary, run_session, summarize
 from app.agent.stages import Routing, Stage, StagesConfig, load_stages
 from app.agent.tools import ToolContext, ToolRegistry, build_registry
 from app.db import tenant_transaction
-from app.facts.model import Scope
+from app.facts.model import Fact, Scope
 from app.facts.repository import get_facts
 from app.observability import get_logger
 from app.verifier import entity_references, fact_references
@@ -104,6 +104,7 @@ class AskResult(BaseModel):
     tool_calls: int
     memo_hits: int
     regenerations: int
+    citations_attached: int = 0  # facts code attached for metrics the answer named
     verifier_violations: int
     refused_tools: list[str]
     stop_reason: str | None
@@ -246,6 +247,13 @@ def incidents_context(
         ]
     )
     return UserMessage(text=text), entities, reports
+
+
+def fact_lookup(conn: Connection, store_id: UUID) -> FactLookup:
+    def lookup(ids: list[int]) -> dict[int, Fact]:
+        return get_facts(conn, store_id, ids)
+
+    return lookup
 
 
 def fact_formulas(conn: Connection, store_id: UUID) -> FormulaLookup:
@@ -417,6 +425,7 @@ def ask(
             max_input_tokens=cfg.max_input_tokens,
             extra_entities=entities,
             validate=contract_checks(question_type, fact_formulas(conn, store_id)),
+            repair=citation_repair(lambda: set(ctx.seen_fact_ids), fact_lookup(conn, store_id)),
         )
         if run.output is not None:
             status: AskStatus = "answered"
@@ -439,6 +448,7 @@ def ask(
         tool_calls=run.tool_calls,
         memo_hits=registry.memo_hits,
         regenerations=run.regenerations,
+        citations_attached=len(run.attached),
         verifier_violations=run.violations,
         refused_tools=[c.name for c in registry.refused],
         stop_reason=run.stop_reason,
@@ -471,6 +481,7 @@ def _simulated_answer(
         run_id=run_id,
         store_message=store_context(conn, ctx),
         base_checks=contract_checks(question_type, fact_formulas(conn, ctx.store_id)),
+        repair=citation_repair(lambda: set(ctx.seen_fact_ids), fact_lookup(conn, ctx.store_id)),
     )
     answer = outcome.answer
     if ctx.suspicious_entities and Flag.NO_INSTRUCTION_FOLLOWING_FROM_DATA not in answer.flags:
@@ -491,6 +502,7 @@ def _simulated_answer(
         tool_calls=0,
         memo_hits=0,
         regenerations=run.regenerations if run else 0,
+        citations_attached=len(run.attached) if run else 0,
         verifier_violations=run.violations if run else 0,
         refused_tools=[],
         stop_reason=outcome.stop_reason,
@@ -520,6 +532,7 @@ def _reviewed_answer(
         run_id=run_id,
         store_message=store_context(conn, ctx),
         base_checks=contract_checks(QuestionType.REVIEW, fact_formulas(conn, ctx.store_id)),
+        repair=citation_repair(lambda: set(ctx.seen_fact_ids), fact_lookup(conn, ctx.store_id)),
     )
     run = outcome.run
     usage = run.usage() if run else UsageSummary()
@@ -534,6 +547,7 @@ def _reviewed_answer(
         tool_calls=0,
         memo_hits=0,
         regenerations=run.regenerations if run else 0,
+        citations_attached=len(run.attached) if run else 0,
         verifier_violations=run.violations if run else 0,
         refused_tools=[],
         stop_reason=run.stop_reason if run else None,

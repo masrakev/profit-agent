@@ -253,3 +253,36 @@ def test_contract_checks() -> None:
     )
     assert classification_routing(DataOrigin.SYNTHETIC) is Routing.ECONOMY
     assert classification_routing(DataOrigin.REAL) is Routing.PRODUCTION
+
+
+def test_a_named_metric_is_attached_without_a_regeneration(
+    app_engine: Engine, golden_stockout: dict[str, Any]
+) -> None:
+    """The answer names ad spend but cites only the campaign's ROAS: code attaches the
+    campaign's ad spend fact for the same period (ADR 0022), no second model call."""
+    campaign = golden_stockout["campaign"]
+    found: dict[str, int] = {}
+
+    def cite(body: dict[str, Any]) -> f.Reply:
+        views = re.findall(
+            r'fact_id\\?":\s*(\d+).{0,40}?metric\\?":\s*\\?"([a-z_.]+)', json.dumps(body["input"])
+        )
+        found.update({metric: int(fid) for fid, metric in reversed(views)})
+        roas = found["roas"]
+        return f.structured(
+            answer(
+                f"{{{{E:campaign:{campaign}}}}} turns its ad spend into a ROAS of {{{{F{roas}}}}}.",
+                [roas],
+            )
+        )
+
+    steps = [
+        classify("lookup"),
+        f.ok([f.function_call("get_campaign_context", {"campaign_id": str(campaign)})]),
+        cite,
+    ]
+    result, h = run(app_engine, golden_stockout["id"], "Is this campaign worth it?", steps)
+    assert result.status == "answered"
+    assert (result.regenerations, result.citations_attached) == (0, 1)
+    assert len(h.transport.requests) == 3  # no regeneration
+    assert len(result.answer.evidence) == 2

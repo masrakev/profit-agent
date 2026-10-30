@@ -147,6 +147,7 @@ def review_question(
     run_id: str,
     store_message: UserMessage,
     base_checks: Callable[[Answer], list[OutputViolation]],
+    repair: Callable[[Answer], tuple[Answer, list[int]]] | None = None,
 ) -> ReviewOutcome:
     context, measured, entities = decisions_context(conn, ctx)
     if not context:
@@ -190,6 +191,7 @@ def review_question(
         max_input_tokens=cfg.max_input_tokens,
         extra_entities={"store", *entities},
         validate=review_checks(measured, estimates, base_checks),
+        repair=repair,
     )
     if run.output is not None:
         answer, status = run.output, "answered"

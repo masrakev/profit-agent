@@ -96,6 +96,7 @@ class SessionResult[T: BaseModel]:
     tool_calls: int = 0
     regenerations: int = 0
     violations: int = 0  # literal numbers found in rejected outputs
+    attached: list[int] = field(default_factory=list)  # facts code added to the evidence
     stop_reason: str | None = None
     elapsed_ms: float = 0.0
 
@@ -121,6 +122,7 @@ def run_session[T: BaseModel](
     prior_outcomes: list[ToolOutcome] | None = None,
     validate: Callable[[T], list[OutputViolation]] | None = None,
     before_answer: Callable[[list[ToolOutcome]], UserMessage | None] | None = None,
+    repair: Callable[[T], tuple[T, list[int]]] | None = None,
 ) -> SessionResult[T]:
     """`request` holds the prefix and the first input items; tools and schema are set here."""
     items: list[InputItem] = list(request.input)
@@ -200,6 +202,11 @@ def run_session[T: BaseModel](
                 continue
             candidate = result.parsed
             assert isinstance(candidate, schema)
+            if repair is not None:
+                candidate, added = repair(candidate)
+                if added:
+                    run.attached.extend(added)
+                    emit(Step("citation_attached", None, {"facts": added}))
             entities = known_entities([*prior, *run.outcomes]) | (extra_entities or set())
             violations = check_output(
                 candidate, known_facts=set(ctx.seen_fact_ids), known_entities=entities

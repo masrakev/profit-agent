@@ -467,6 +467,7 @@ def evaluate_question(
     run_id: str,
     store_message: UserMessage,
     base_checks: Callable[[Answer], list[OutputViolation]],
+    repair: Callable[[Answer], tuple[Answer, list[int]]] | None = None,
 ) -> EvaluateOutcome:
     model = fit_twin(conn, ctx.store_id)
     parser = load_prompt("intent")
@@ -593,6 +594,7 @@ def evaluate_question(
         validate=evaluate_checks(
             question_type, change.id, estimates, {int(v["fact_id"]) for v in evidence}, base_checks
         ),
+        repair=repair,
     )
     if run.output is not None:
         answer = run.output

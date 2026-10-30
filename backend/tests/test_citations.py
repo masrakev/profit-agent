@@ -1,12 +1,16 @@
 """Citation completeness: a named metric needs a cited fact of that metric."""
 
+from datetime import date
+from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 import pytest
 
 from app.agent.ask import QuestionType, contract_checks
-from app.agent.citations import citation_check, covers, named_metrics
+from app.agent.citations import citation_check, citation_repair, covers, named_metrics, resolve
 from app.agent.contracts import Answer
+from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
 
 FORMULAS = {
     1: "contribution_margin",
@@ -80,3 +84,70 @@ def test_the_contract_includes_citations_only_with_a_lookup() -> None:
     assert contract_checks(QuestionType.LOOKUP)(bare) == []
     assert [v.path for v in contract_checks(QuestionType.LOOKUP, lookup)(bare)] == ["evidence"]
     assert contract_checks(QuestionType.LOOKUP, lookup)(answer("CPA rose {{F4}}.", [4])) == []
+
+
+# --- attached by code (ADR 0022) ---------------------------------------------------------------
+
+CAMPAIGN_X, CAMPAIGN_Y = UUID(int=11), UUID(int=12)
+WEEK = Period.days(date(2026, 9, 21), date(2026, 9, 28))
+LAST_WEEK = Period.days(date(2026, 9, 14), date(2026, 9, 21))
+
+
+def seen_fact(fid: int, metric: str, scope: Scope, period: Period = WEEK) -> Fact:
+    return Fact(
+        id=fid,
+        store_id=UUID(int=1),
+        formula_id=metric,
+        formula_version=1,
+        kind=FactKind.EXACT,
+        scope=scope,
+        period=period,
+        status=FactStatus.DEFINED,
+        value=Decimal("1"),
+        unit=Unit.MONEY,
+        currency="USD",
+        inputs_hash="0" * 64,
+    )
+
+
+POOL = {
+    f.id: f
+    for f in (
+        seen_fact(1, "net_profit", Scope.store()),
+        seen_fact(2, "net_profit", Scope.store(), LAST_WEEK),
+        seen_fact(3, "campaign_profit", Scope.campaign(CAMPAIGN_X)),
+        seen_fact(4, "cpa", Scope.campaign(CAMPAIGN_X)),
+        seen_fact(5, "cpa", Scope.campaign(CAMPAIGN_Y)),
+        seen_fact(6, "profit_driver.refunds", Scope.store()),
+        seen_fact(7, "refunds", Scope.store()),
+    )
+}
+
+
+def repaired(text: str, evidence: list[int]) -> tuple[Any, list[int]]:
+    repair = citation_repair(lambda: set(POOL), lambda ids: {i: POOL[i] for i in ids if i in POOL})
+    return repair(answer(text, evidence))
+
+
+def test_code_attaches_the_one_fact_a_metric_must_mean() -> None:
+    x = f"{{{{E:campaign:{CAMPAIGN_X}}}}}"
+    fixed, added = repaired(f"The campaign profit of {x} fell.", [])
+    assert (added, fixed.evidence) == ([3], [3])
+    _, added = repaired(f"CPA rose for {x}, see {{{{F3}}}}.", [3])
+    assert added == [4]  # the entity the sentence names
+    _, added = repaired("Net profit fell; refunds rose {{F6}}.", [6])
+    assert added == []  # two periods of net profit: ambiguous, the model regenerates
+    _, added = repaired("Net profit fell to {{F1}}.", [1])
+    assert added == []  # already cited
+    _, added = repaired("CPA rose.", [])
+    assert added == []  # two campaigns: ambiguous
+    _, added = repaired("Refunds rose.", [])
+    assert added == [7]  # its own formula before its parts (profit_driver.refunds)
+    _, added = repaired("Revenue grew.", [])
+    assert added == []  # no revenue fact was seen
+
+
+def test_resolve_uses_the_period_of_the_sentence() -> None:
+    cited = {9: seen_fact(9, "revenue", Scope.store(), LAST_WEEK)}
+    assert resolve("net_profit", ["Net profit and revenue {{F9}}."], POOL, cited) == 2
+    assert resolve("net_profit", ["Net profit moved."], POOL, {}) is None

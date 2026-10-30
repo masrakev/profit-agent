@@ -118,6 +118,7 @@ def run_question(
         "usage": usage.model_dump(mode="json"),
         "model": result.model,
         "regenerations": result.regenerations,
+        "citations_attached": result.citations_attached,
         "verifier_violations": result.verifier_violations,
     }
 

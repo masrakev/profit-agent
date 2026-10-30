@@ -269,6 +269,11 @@
             "title": "Ask Id",
             "type": "string"
           },
+          "citations_attached": {
+            "default": 0,
+            "title": "Citations Attached",
+            "type": "integer"
+          },
           "classification_model": {
             "title": "Classification Model",
             "type": "string"
