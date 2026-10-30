@@ -52,6 +52,15 @@ class Intervention:
 
 
 @dataclass(frozen=True)
+class Restock:
+    """The supplier delivers again from `day` on: a stockout fault on the product ends there
+    (the simulator's restock, so a pause "until restock" can be followed by a resume)."""
+
+    day: int
+    product: UUID
+
+
+@dataclass(frozen=True)
 class GeneratedStore:
     store: Store
     products: tuple[Product, ...]
@@ -69,7 +78,7 @@ class GeneratedStore:
     config: GeneratorConfig
     # (order id, campaign id) for every ad-driven order: ground truth, never loaded.
     order_campaigns: tuple[tuple[UUID, UUID], ...] = ()
-    interventions: tuple[Intervention, ...] = ()
+    interventions: tuple[Intervention | Restock, ...] = ()
 
     def counts(self) -> dict[str, int]:
         return {

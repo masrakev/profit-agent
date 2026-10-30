@@ -28,7 +28,13 @@ from app.domain.models import (
 )
 from bench.generator.config import GeneratorConfig
 from bench.generator.faults import Fault, apply_faults
-from bench.generator.model import CampaignTruth, GeneratedStore, Intervention, ProductTruth
+from bench.generator.model import (
+    CampaignTruth,
+    GeneratedStore,
+    Intervention,
+    ProductTruth,
+    Restock,
+)
 
 CENT = Decimal("0.01")
 STORE_NAMESPACE = uuid5(NAMESPACE_URL, "https://profit-agent.dev/bench/store")
@@ -110,16 +116,22 @@ def store_id_for(config: GeneratorConfig) -> UUID:
     return uuid5(STORE_NAMESPACE, f"{config.seed}:{config.fingerprint}")
 
 
-def _budget_multiplier(interventions: Sequence[Intervention], campaign: int, day: int) -> float:
+def _budget_multiplier(
+    interventions: Sequence[Intervention | Restock], campaign: int, day: int
+) -> float:
     """The latest intervention on the campaign in force on `day` (multipliers do not compound)."""
-    active = [i for i in interventions if i.campaign == campaign and i.day <= day]
+    active = [
+        i
+        for i in interventions
+        if isinstance(i, Intervention) and i.campaign == campaign and i.day <= day
+    ]
     return max(active, key=lambda i: i.day).budget_multiplier if active else 1.0
 
 
 def generate(
     config: GeneratorConfig,
     faults: Sequence[Fault] = (),
-    interventions: Sequence[Intervention] = (),
+    interventions: Sequence[Intervention | Restock] = (),
 ) -> GeneratedStore:
     rng = np.random.default_rng(config.seed)
     store_id = store_id_for(config)  # the same store, whatever the owner does

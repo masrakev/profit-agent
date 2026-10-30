@@ -65,15 +65,18 @@ def adjust_inventory(
     data: GeneratedStore,
     deltas: Mapping[UUID, Iterable[tuple[int, int]]],
     zero_from: Mapping[UUID, int] | None = None,
+    zero_until: Mapping[UUID, int] | None = None,
 ) -> GeneratedStore:
-    """Add `delta` units to a product's snapshots from `day` on; force zero from `zero_from`."""
+    """Add `delta` units to a product's snapshots from `day` on; force zero from `zero_from`
+    (until `zero_until`, exclusive, when given)."""
     per_product = {pid: sorted(items) for pid, items in deltas.items()}
     zero_from = zero_from or {}
+    zero_until = zero_until or {}
     snapshots = []
     for snap in data.inventory:
         pid = snap.product_id
         day = (snap.snapshot_date - data.config.start_date).days
-        if pid in zero_from and day >= zero_from[pid]:
+        if pid in zero_from and zero_from[pid] <= day < zero_until.get(pid, day + 1):
             units = 0
         elif pid in per_product:
             units = snap.units_on_hand + sum(d for first, d in per_product[pid] if first <= day)

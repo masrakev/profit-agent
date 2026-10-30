@@ -16,6 +16,7 @@ from bench.generator import (
     GeneratedStore,
     GeneratorConfig,
     Intervention,
+    Restock,
     apply_faults,
     generate,
 )
@@ -157,3 +158,40 @@ def test_faults_still_apply_under_interventions() -> None:
     data = manifest.generate(interventions=[Intervention(100, 0, 0.7)])
     assert data.store.store_id == manifest.generate().store.store_id
     assert data.interventions == (Intervention(100, 0, 0.7),)
+
+
+def test_a_restock_ends_a_stockout() -> None:
+    manifest = next(
+        m for m in load_suite("golden") if m.scenario_id == "golden-stockout_on_promoted"
+    )
+    label = manifest.labels[0]
+    product = next(e.id for e in label.entities if e.kind.value == "product")
+    assert product is not None
+    restock = label.start_day + 10
+
+    def sales_days(data: GeneratedStore) -> set[int]:
+        orders = {o.id: o for o in data.orders}
+        start = manifest.config.start_date
+        return {
+            (orders[line.order_id].ordered_at.date() - start).days
+            for line in data.lines
+            if line.product_id == product
+        }
+
+    def stock(data: GeneratedStore, day: int) -> int:
+        when = manifest.config.start_date + timedelta(days=day)
+        return next(
+            s.units_on_hand
+            for s in data.inventory
+            if s.product_id == product and s.snapshot_date == when
+        )
+
+    plain = manifest.generate()
+    restocked = manifest.generate(interventions=[Restock(day=restock, product=product)])
+    assert not {d for d in sales_days(plain) if d >= label.start_day}  # lasts to the end
+    after = sales_days(restocked)
+    assert not {d for d in after if label.start_day <= d < restock}
+    assert {d for d in after if d >= restock}
+    assert stock(restocked, restock - 1) == 0
+    assert stock(restocked, restock) > 0
+    assert stock(plain, restock) == 0

@@ -26,7 +26,7 @@ from bench.faults.base import (
     recompute_attribution,
     remove_orders,
 )
-from bench.generator.model import GeneratedStore
+from bench.generator.model import GeneratedStore, Restock
 from bench.generator.simulate import money, stable_id
 
 PROFIT = SymptomCategory.PROFITABILITY
@@ -160,14 +160,32 @@ class StockoutOnPromoted(_FaultBase):
 
     def apply(self, data: GeneratedStore, rng: np.random.Generator) -> GeneratedStore:
         orders = {o.id: o for o in data.orders}
+        # A restock (the simulator's) ends the stockout; without one it lasts to the end.
+        end = min(
+            (
+                r.day
+                for r in data.interventions
+                if isinstance(r, Restock)
+                and r.product == self.product_id
+                and r.day > self.start_day
+            ),
+            default=None,
+        )
         lost = {
             line.order_id
             for line in data.lines
             if line.product_id == self.product_id
-            and day_of(data, orders[line.order_id].ordered_at) >= self.start_day
+            and self.start_day
+            <= day_of(data, orders[line.order_id].ordered_at)
+            < (end if end is not None else data.config.days)
         }
         data = remove_orders(data, lost)
-        data = adjust_inventory(data, {}, zero_from={self.product_id: self.start_day})
+        data = adjust_inventory(
+            data,
+            {},
+            zero_from={self.product_id: self.start_day},
+            zero_until={self.product_id: end} if end is not None else None,
+        )
         return recompute_attribution(data, {c.id for c in data.campaigns}, self.start_day)
 
 

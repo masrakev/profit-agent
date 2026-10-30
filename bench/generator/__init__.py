@@ -2,7 +2,7 @@
 
 from bench.generator.config import GeneratorConfig
 from bench.generator.faults import Fault, apply_faults
-from bench.generator.model import GeneratedStore, Intervention
+from bench.generator.model import GeneratedStore, Intervention, Restock
 from bench.generator.simulate import generate
 
 __all__ = [
@@ -10,6 +10,7 @@ __all__ = [
     "GeneratedStore",
     "GeneratorConfig",
     "Intervention",
+    "Restock",
     "apply_faults",
     "generate",
 ]

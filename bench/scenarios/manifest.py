@@ -12,7 +12,7 @@ from bench.faults import AnyFault, FaultLabel
 from bench.faults.conditions import AnyCondition, ConditionLabel
 from bench.generator import GeneratedStore, GeneratorConfig, generate
 from bench.generator.faults import fault_rng
-from bench.generator.model import Intervention
+from bench.generator.model import Intervention, Restock
 
 SCENARIO_DIR = Path(__file__).resolve().parent
 # dev: tuning only. test_v3: reported once the agent and thresholds are frozen.
@@ -37,7 +37,7 @@ class ScenarioManifest(BaseModel):
     def is_healthy(self) -> bool:
         return not self.faults
 
-    def generate(self, interventions: Sequence[Intervention] = ()) -> GeneratedStore:
+    def generate(self, interventions: Sequence[Intervention | Restock] = ()) -> GeneratedStore:
         data = generate(self.config, faults=self.faults, interventions=interventions)
         for index, condition in enumerate(self.conditions):
             rng = fault_rng(self.config.seed, CONDITION_STREAM + index, condition)
