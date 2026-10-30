@@ -63,6 +63,11 @@ factor per action kind is the obvious next step. (Calibration v1, fitted with th
 own over-attribution range, had 79% overall and pause 75%.) The factors were frozen before any
 hold-out use; their version is part of every simulated fact.
 
+**Hold-out check** (`--check --suite test_v3`, once, nothing refitted): on the 70 `test_v3`
+scenarios (1120 intervals) the frozen calibration v2 covers 74% (raw 75%), just below the
+target band; doing nothing 72% (contribution margin and net profit 67%: the dev factors narrowed
+them more than the hold-out supports), budget -30% 80%, budget +20% 82%, pause 63%.
+
 ## Consequences
 
 - Every range the product shows for an action has been checked against real outcomes of that
