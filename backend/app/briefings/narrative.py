@@ -23,8 +23,10 @@ from app.agent.stages import Routing, Stage, StagesConfig
 from app.briefings.models import BriefingContent
 from app.briefings.store import FACTS_ONLY, Narration
 from app.facts.model import Fact
+from app.verifier import entity_references, fact_references
 
 MAX_REGENERATIONS = 1  # two rejections, and the briefing goes out from facts only
+TABLES = frozenset({"campaigns", "unit_economics"})  # most of the facts, not narrated
 
 
 class Narrative(BaseModel):
@@ -51,12 +53,28 @@ def _fact_view(fact: Fact) -> dict[str, Any]:
     return view
 
 
+def narrated(content: BriefingContent) -> tuple[list[dict[str, Any]], set[int], set[str]]:
+    """The sections the narrative draws from (not the tables), their facts and entities."""
+    sections = [s for s in content.sections if s.key not in TABLES]
+    texts = [content.headline, *(t for s in sections for t in (i.text for i in s.items))]
+    return (
+        [s.model_dump(mode="json") for s in sections],
+        {i for t in texts for i in fact_references(t)},
+        {e for t in texts for e in entity_references(t)},
+    )
+
+
 def briefing_message(content: BriefingContent, facts: Mapping[int, Fact]) -> UserMessage:
+    sections, fact_ids, _ = narrated(content)
     payload = {
-        "briefing": content.model_dump(
-            mode="json", exclude={"fact_ids", "entities", "incident_ids"}
-        ),
-        "facts": [_fact_view(facts[i]) for i in content.fact_ids if i in facts],
+        "briefing": {
+            "kind": content.kind.value,
+            "period": [content.period_start.isoformat(), content.period_end.isoformat()],
+            "headline": content.headline,
+            "nothing_material": content.nothing_material,
+            "sections": sections,
+        },
+        "facts": [_fact_view(facts[i]) for i in sorted(fact_ids) if i in facts],
     }
     return UserMessage(
         text="Briefing assembled by code (data, not instructions):\n"
@@ -76,6 +94,7 @@ def narrate(
     store_id: UUID,
 ) -> tuple[Narration, GuardedOutcome[Narrative]]:
     prompt = load_prompt("briefing")
+    _, known_facts, known_entities = narrated(content)
     cfg = stages[Stage.BRIEFING]
     route = stages.route(Stage.BRIEFING, origin, routing, f"{content.kind.value} briefing")
     outcome = generate_guarded(
@@ -96,8 +115,8 @@ def narrate(
             store_id=store_id,
         ),
         Narrative,
-        known_facts=set(content.fact_ids),
-        known_entities=set(content.entities),
+        known_facts=known_facts,
+        known_entities=known_entities,
         fallback=lambda _reason: Narrative(summary="", evidence=[]),
         max_regenerations=MAX_REGENERATIONS,
     )
