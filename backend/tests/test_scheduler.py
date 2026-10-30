@@ -14,6 +14,7 @@ from app.briefings.models import BriefingKind
 from app.channels.email import RecordingSender
 from app.db import tenant_transaction
 from app.delivery.worker import DeliveryWorker
+from app.privacy.retention import Purged
 from app.scheduler import jobs, worker
 from app.scheduler.jobs import Done, briefings_tick, detection_tick, due, store_ids
 from app.settings.models import DailyBrief, StoreSettings
@@ -102,6 +103,9 @@ def test_the_arq_tasks(app_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> N
 
     monkeypatch.setattr(jobs, "briefings_tick", tick("briefings"))
     monkeypatch.setattr(jobs, "detection_tick", tick("detection"))
+    monkeypatch.setattr(
+        worker, "purge", lambda *_, **__: Purged(traces=3, login_links=1, sessions=0)
+    )
     sender = RecordingSender()
     ctx: dict[str, Any] = {
         "engine": app_engine,
@@ -111,9 +115,10 @@ def test_the_arq_tasks(app_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> N
     assert asyncio.run(worker.briefings(ctx)) == 1
     assert asyncio.run(worker.detection(ctx)) == 1
     assert asyncio.run(worker.deliveries(ctx)) >= 0
+    assert asyncio.run(worker.retention(ctx)) == 3
     assert calls == ["briefings", "detection"]
     names = {c.name: c for c in worker.WorkerSettings.cron_jobs}
-    assert set(names) == {"cron:briefings", "cron:detection", "cron:deliveries"}
+    assert set(names) == {"cron:briefings", "cron:detection", "cron:deliveries", "cron:retention"}
     assert all(c.unique for c in names.values())
     assert names["cron:briefings"].minute == set(range(0, 60, 5))
     started: dict[str, Any] = {}

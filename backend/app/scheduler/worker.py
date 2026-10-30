@@ -4,7 +4,8 @@
 
 - briefings: every five minutes; each store's due briefings, in its time zone (`jobs.due`);
 - detection: hourly; each store's detection run, then its alerts;
-- deliveries: every minute; due email deliveries.
+- deliveries: every minute; due email deliveries;
+- retention: daily at 03:17 UTC; model traces past the retention period, expired sign-ins.
 
 Each cron job is unique across workers (arq holds a lock per job), and every piece of work is
 idempotent in the database (one briefing per store, kind and local day; one alert per incident
@@ -26,6 +27,7 @@ from app.config import get_settings
 from app.db import app_engine
 from app.delivery.worker import DeliveryWorker
 from app.observability import configure_logging, get_logger
+from app.privacy.retention import purge
 from app.scheduler import jobs
 
 log = get_logger(__name__)
@@ -67,6 +69,13 @@ async def detection(ctx: dict[str, Any]) -> int:
     return len(done)
 
 
+async def retention(ctx: dict[str, Any]) -> int:
+    days = get_settings().model_trace_retention_days
+    purged = await asyncio.to_thread(purge, ctx["engine"], _now(), days=days)
+    log.info("scheduler.retention", **purged.__dict__)
+    return purged.traces
+
+
 async def deliveries(ctx: dict[str, Any]) -> int:
     worker: DeliveryWorker = ctx["delivery"]
     processed = await asyncio.to_thread(worker.run_once)
@@ -76,11 +85,12 @@ async def deliveries(ctx: dict[str, Any]) -> int:
 
 
 class WorkerSettings:
-    functions = (briefings, detection, deliveries)
+    functions = (briefings, detection, deliveries, retention)
     cron_jobs = (
         cron(briefings, minute=set(range(0, 60, 5)), run_at_startup=True, timeout=1800),
         cron(detection, minute={7}, timeout=3000),
         cron(deliveries, timeout=300),
+        cron(retention, hour={3}, minute={17}, timeout=3000),
     )
     on_startup = startup
     on_shutdown = shutdown

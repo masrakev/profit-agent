@@ -22,6 +22,7 @@ from app.api.decisions import router as decisions_router
 from app.api.deps import EngineDep, ProviderDep, get_engine, get_provider
 from app.api.health import router as health_router
 from app.api.middleware import ApiMiddleware, RateLimiter
+from app.api.privacy import router as privacy_router
 from app.api.problems import RESPONSES
 from app.api.stores import router as stores_router
 from app.db import tenant_transaction
@@ -100,6 +101,7 @@ def create_app(limiter: RateLimiter | None = None) -> FastAPI:
     app.include_router(auth_router)
     app.include_router(router)
     app.include_router(stores_router)
+    app.include_router(privacy_router)
     app.include_router(decisions_router)
     return app
 

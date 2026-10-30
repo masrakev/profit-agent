@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     app_base_url: str = "http://localhost:3000"
     # Session cookies are Secure (HTTPS only); turn off only for plain-HTTP local development.
     session_cookie_secure: bool = True
+    # Master key wrapping the data keys of stores' platform tokens (32 bytes, base64url; ADR
+    # 0021). Rotation: a new key id; tokens are re-wrapped, never re-entered.
+    token_encryption_key: SecretStr | None = None
+    token_encryption_key_id: str = "k1"  # noqa: S105 - the key's name, not the key
+    model_trace_retention_days: int = 30
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

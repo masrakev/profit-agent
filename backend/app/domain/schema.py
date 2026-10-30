@@ -17,6 +17,7 @@ from sqlalchemy import (
     DateTime,
     Identity,
     Integer,
+    LargeBinary,
     MetaData,
     Numeric,
     SmallInteger,
@@ -507,4 +508,19 @@ investigation_steps = Table(
     Column("name", Text, nullable=True),
     Column("detail", JSONB, nullable=False),
     _ts("created_at"),
+)
+
+store_connections = Table(
+    "store_connections",
+    metadata,
+    Column("store_id", Uuid, primary_key=True),
+    Column("provider", Text, primary_key=True),
+    Column("account_id", Text, nullable=False),
+    Column("key_id", Text, nullable=False),
+    Column("wrapped_key", LargeBinary, nullable=False),
+    Column("key_nonce", LargeBinary, nullable=False),
+    Column("ciphertext", LargeBinary, nullable=False),
+    Column("nonce", LargeBinary, nullable=False),
+    _ts("created_at"),
+    _ts("updated_at"),
 )

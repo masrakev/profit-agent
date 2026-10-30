@@ -73,6 +73,8 @@ class Executor:
     breakers: dict[str, CircuitBreaker] = field(default_factory=dict)
     # Test hook: called after the platform change, before the finish transaction.
     after_apply: Callable[[UUID], None] | None = None
+    # A store's own platform credentials (its encrypted connection), when it has some.
+    store_adapter: Callable[[str, UUID], Adapter | None] | None = None
 
     def breaker(self, provider: str) -> CircuitBreaker:
         return self.breakers.setdefault(provider, CircuitBreaker(name=f"executor-{provider}"))
@@ -187,7 +189,10 @@ class Executor:
         )
 
     def _execute(self, job: Claimed) -> None:
-        adapter = self.adapters[job.provider]
+        own = (
+            self.store_adapter(job.provider, job.campaign.store_id) if self.store_adapter else None
+        )
+        adapter = own or self.adapters[job.provider]
         breaker = self.breaker(job.provider)
         try:
             breaker.before_call()
