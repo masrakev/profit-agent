@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bench store 70400: A decision is waiting for your approval.</title></head>
+<body style="margin:0;padding:0;background:#f5f5f4;color:#1c1917;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px"><tr><td style="padding:24px">
+<p style="margin:0 0 4px;font-size:13px;color:#57534e">Bench store 70400</p>
+<h1 style="margin:0 0 16px;font-size:20px">A decision is waiting for your approval.</h1>
+<h2 style="margin:20px 0 8px;font-size:16px">Proposed</h2>
+<div style="margin:0 0 10px">For Deluxe Bottle 23: pause the campaigns that promote it until it is restocked. You approve; it is executed within the spending caps and can be undone.<div style="margin-top:4px"><a href="https://app.example/decisions/<decision>" style="display:inline-block;margin:4px 8px 0 0;padding:6px 12px;border-radius:6px;border:1px solid #d6d3d1;color:#1c1917;text-decoration:none;font-size:13px">Review options</a></div></div>
+<h2 style="margin:20px 0 8px;font-size:16px">Options</h2>
+<div style="margin:0 0 10px">Pause the campaigns that promote it until it is restocked: expected net-profit change $621.89–$665.77 (recommended).<div style="margin-top:4px"><a href="https://app.example/approve#token=token-stockout_on_promoted%3Apause_until_restock%3Aea63836b-e0d7-5298-b9db-b58631ed27f1" style="display:inline-block;margin:4px 8px 0 0;padding:6px 12px;border-radius:6px;background:#1c1917;color:#ffffff;text-decoration:none;font-size:13px">Approve</a></div></div>
+<div style="margin:0 0 10px">Reduce the daily budget: expected net-profit change $186.57–$199.73.<div style="margin-top:4px"><a href="https://app.example/approve#token=token-stockout_on_promoted%3Areduce_budget%3A-0.3%3Aea63836b-e0d7-5298-b9db-b58631ed27f1" style="display:inline-block;margin:4px 8px 0 0;padding:6px 12px;border-radius:6px;background:#1c1917;color:#ffffff;text-decoration:none;font-size:13px">Approve</a></div></div>
+<div style="margin:0 0 10px">Prepare a reorder for the supplier.<div style="margin-top:4px"><a href="https://app.example/approve#token=token-stockout_on_promoted%3Aprepare_reorder%3Aea63836b-e0d7-5298-b9db-b58631ed27f1" style="display:inline-block;margin:4px 8px 0 0;padding:6px 12px;border-radius:6px;background:#1c1917;color:#ffffff;text-decoration:none;font-size:13px">Approve</a></div></div>
+<h2 style="margin:20px 0 8px;font-size:16px">Expiry</h2>
+<div style="margin:0 0 10px">If nobody approves it, the decision expires and nothing changes.</div>
+<p style="margin:24px 0 0;font-size:12px;color:#78716c">Every number in this message is a fact with its formula and source rows: open it in Profit Agent to check it. You receive this message because email is one of this store&#x27;s channels. <a href="https://app.example/settings" style="color:#57534e">Settings</a></p>
+</td></tr></table></td></tr></table></body></html>

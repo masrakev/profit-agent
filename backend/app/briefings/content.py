@@ -170,7 +170,7 @@ def _finish(
 # --- shared pieces ---------------------------------------------------------------------------
 
 
-def _entity_ref(ctx: Context, entity: str) -> str:
+def entity_ref(ctx: Context, entity: str) -> str:
     return ctx.cited.entity("store" if entity in ("store", "") else entity)
 
 
@@ -184,23 +184,23 @@ def open_incidents(conn: Connection, store_id: UUID) -> list[Incident]:
     return sorted(current, key=lambda i: (ALERT_RANK[i.alert], -i.severity_score, i.incident_id))
 
 
-def _incident_entity(incident: Incident) -> str:
+def incident_entity(incident: Incident) -> str:
     top = incident.candidates[0] if incident.candidates else None
     ref = top.entity if top is not None else (incident.entities[0] if incident.entities else None)
     return "store" if ref is None or ref.id is None else str(ref)
 
 
-def _family(incident: Incident) -> FaultFamily | None:
+def top_family(incident: Incident) -> FaultFamily | None:
     return incident.candidates[0].family if incident.candidates else None
 
 
-def _impact(ctx: Context, incident: Incident) -> Fact | None:
+def impact_of(ctx: Context, incident: Incident) -> Fact | None:
     if incident.monthly_impact_fact_id is None:
         return None
     return ctx.cited.load([incident.monthly_impact_fact_id]).get(incident.monthly_impact_fact_id)
 
 
-def _decision_for(ctx: Context, incident_id: str) -> DecisionView | None:
+def decision_for(ctx: Context, incident_id: str) -> DecisionView | None:
     found = ctx.conn.execute(
         text(
             "SELECT decision_id FROM decisions WHERE store_id = :s AND incident_id = :i "
@@ -232,17 +232,16 @@ def _recommended(ctx: Context, decision: DecisionView) -> tuple[str, tuple[Butto
 
 
 def incident_item(ctx: Context, incident: Incident) -> Item:
-    entity = _entity_ref(ctx, _incident_entity(incident))
-    level = wording.LEVELS[incident.alert]
-    parts = [f"{entity}: {wording.cause(_family(incident))} ({level})."]
-    impact = _impact(ctx, incident)
+    entity = entity_ref(ctx, incident_entity(incident))
+    parts = [f"{entity}: {wording.cause(top_family(incident))}."]
+    impact = impact_of(ctx, incident)
     loss = ctx.cited.loss(impact) if impact is not None else None
     if loss is not None:
         parts.append(f"It costs about {ctx.cited.ref(loss)} a month.")
     elif impact is not None and impact.is_defined:
         parts.append(f"Expected impact: {ctx.cited.ref(impact)} a month.")
     evidence = Button(kind=ButtonKind.EVIDENCE, label="Evidence", incident_id=incident.incident_id)
-    decision = _decision_for(ctx, incident.incident_id)
+    decision = decision_for(ctx, incident.incident_id)
     if decision is not None:
         words, buttons = _recommended(ctx, decision)
         parts.append(f"Recommended: {words}.")
@@ -263,9 +262,9 @@ def incident_item(ctx: Context, incident: Incident) -> Item:
 
 
 def data_quality_item(ctx: Context, incident: Incident) -> Item:
-    entity = _entity_ref(ctx, _incident_entity(incident))
+    entity = entity_ref(ctx, incident_entity(incident))
     return Item(
-        text=f"Data issue, not a profit issue: {entity}: {wording.cause(_family(incident))}. "
+        text=f"Data issue, not a profit issue: {entity}: {wording.cause(top_family(incident))}. "
         "Its reported numbers are unreliable until it is fixed; no budget action is "
         "recommended until then.",
         level=AlertLevel.DATA_QUALITY.value,
@@ -290,7 +289,7 @@ def pending_decisions(ctx: Context) -> Section:
         words, buttons = _recommended(ctx, decision)
         items.append(
             Item(
-                text=f"{_entity_ref(ctx, decision.entity)}: {words}.",
+                text=f"{entity_ref(ctx, decision.entity)}: {words}.",
                 decision_id=str(did),
                 incident_id=decision.incident_id,
                 buttons=buttons,
@@ -369,7 +368,7 @@ def daily_brief(ctx: Context) -> BriefingContent:
         and i.category is SymptomCategory.PROFITABILITY
         and i.alert is not AlertLevel.DATA_QUALITY
     ]
-    impacts = [f for f in (_impact(ctx, i) for i in alerts) if f is not None]
+    impacts = [f for f in (impact_of(ctx, i) for i in alerts) if f is not None]
     losses = [x for x in (c.loss(f) for f in impacts) if x is not None]
     stake = c.stake(losses, *periods.day_period(day))
     money = Section(
@@ -640,7 +639,7 @@ def decisions_and_outcomes(ctx: Context, kind: BriefingKind) -> Section:
         option = d.option(d.approved_option_id or d.recommended_option_id)
         items.append(
             Item(
-                text=f"Decision on {_entity_ref(ctx, d.entity)}: {wording.option(option.kind)}, "
+                text=f"Decision on {entity_ref(ctx, d.entity)}: {wording.option(option.kind)}, "
                 f"{d.status.value}.",
                 decision_id=str(d.decision_id),
             )
@@ -739,7 +738,7 @@ def opportunities(ctx: Context) -> Section:
 def watchlist(ctx: Context) -> Section:
     items = [
         Item(
-            text=f"{_entity_ref(ctx, _incident_entity(i))}: {wording.cause(_family(i))}, not "
+            text=f"{entity_ref(ctx, incident_entity(i))}: {wording.cause(top_family(i))}, not "
             "material yet.",
             level=AlertLevel.WATCHLIST.value,
             incident_id=i.incident_id,
@@ -866,7 +865,7 @@ def decision_review(ctx: Context) -> Section:
     ).scalars():
         d = get(ctx.conn, ctx.store_id, did)
         option = d.option(d.approved_option_id or d.recommended_option_id)
-        line = f"{_entity_ref(ctx, d.entity)}: {wording.option(option.kind)}, {d.status.value}"
+        line = f"{entity_ref(ctx, d.entity)}: {wording.option(option.kind)}, {d.status.value}"
         if d.status is DecisionStatus.MEASURED:
             row = ctx.conn.execute(
                 text(

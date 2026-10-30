@@ -1,0 +1,35 @@
+Bench store 70400
+Critical alert: Deluxe Bottle 23: ads keep spending on a product that is out of stock.
+
+== What was detected ==
+- [critical] Deluxe Bottle 23: ads keep spending on a product that is out of stock.
+
+== Why it matters ==
+- It costs about $5,900.05–$6,491.80 a month.
+
+== Evidence ==
+- Cost per purchase for Campaign 1: n/a, against $7.73 before.
+- Stock cover for Deluxe Bottle 23: 0.0 days, against 0.0 days before.
+- Campaign profit for Campaign 1: -$322.15, against $3,584.61 before.
+- Every number links to its formula and source rows.
+  Evidence: https://app.example/incidents/inc-0806cd14e96b
+
+== Still uncertain ==
+- The monthly loss is an estimate from the store's own history, a range rather than a forecast; the cause is ranked by code from the symptoms.
+- Another possible cause: Compact Journal 22: ads keep spending on a product that is out of stock.
+
+== Options ==
+- Pause the campaigns that promote it until it is restocked: expected net-profit change $621.89–$665.77 (recommended).
+  Approve: https://app.example/approve#token=token-stockout_on_promoted%3Apause_until_restock%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
+- Reduce the daily budget: expected net-profit change $186.57–$199.73.
+  Approve: https://app.example/approve#token=token-stockout_on_promoted%3Areduce_budget%3A-0.3%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
+- Prepare a reorder for the supplier.
+  Approve: https://app.example/approve#token=token-stockout_on_promoted%3Aprepare_reorder%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
+
+== Recommended next step ==
+- Recommended: pause the campaigns that promote it until it is restocked. You approve; it is executed within the spending caps and can be undone.
+  Approve: https://app.example/approve#token=token-stockout_on_promoted%3Apause_until_restock%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
+  Review options: https://app.example/decisions/<decision>
+
+Every number in this message is a fact with its formula and source rows: open it in Profit Agent to check it. You receive this message because email is one of this store's channels.
+Settings: https://app.example/settings

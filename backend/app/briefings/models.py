@@ -57,16 +57,14 @@ class Section(_Frozen):
     empty: str | None = None  # shown when the section has nothing
 
 
-class BriefingContent(_Frozen):
-    kind: BriefingKind
-    period_start: date  # data days covered: [period_start, period_end)
-    period_end: date
+class Document(_Frozen):
+    """A message's content: a headline and sections, citing facts and entities by reference
+    (a briefing, an alert or a decision)."""
+
     headline: str
-    nothing_material: bool = False
     sections: tuple[Section, ...]
     fact_ids: tuple[int, ...] = Field(default=())  # every fact the text cites
     entities: tuple[str, ...] = ()  # every entity the text cites
-    incident_ids: tuple[str, ...] = ()  # incidents shown as top items (alerts briefed)
 
     def texts(self) -> list[str]:
         out = [self.headline]
@@ -79,3 +77,11 @@ class BriefingContent(_Frozen):
                 out.extend(section.table.columns)
                 out.extend(cell for row in section.table.rows for cell in row)
         return out
+
+
+class BriefingContent(Document):
+    kind: BriefingKind
+    period_start: date  # data days covered: [period_start, period_end)
+    period_end: date
+    nothing_material: bool = False
+    incident_ids: tuple[str, ...] = ()  # incidents shown as top items (alerts briefed)

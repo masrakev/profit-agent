@@ -10,7 +10,8 @@ merchant-provided (products, campaigns, ad text) and treated as hostile:
 - HTML (web, email): HTML-escaped, quotes included;
 - WhatsApp (plain text): its formatting markers (`*` `_` `~` and backtick) are replaced by
   look-alike characters so a name cannot restyle the message, and links are defanged so a name
-  cannot become a clickable URL.
+  cannot become a clickable URL;
+- plain text (an email's text part, a subject line): links are defanged, nothing else changes.
 
 A substituted name is never scanned again, so a product named `{{F1}}` stays that text.
 """
@@ -43,6 +44,7 @@ class Channel(StrEnum):
     WEB = "web"
     EMAIL = "email"
     WHATSAPP = "whatsapp"
+    TEXT = "text"
 
     @property
     def is_html(self) -> bool:
@@ -60,14 +62,19 @@ def clean(value: str, *, single_line: bool) -> str:
     return out
 
 
+def _defang(value: str) -> str:
+    return _WWW.sub("www[.]", _SCHEME.sub(r"\1[:]//", value))
+
+
 def _whatsapp(value: str) -> str:
-    defanged = _WWW.sub("www[.]", _SCHEME.sub(r"\1[:]//", value))
-    return defanged.translate(_WHATSAPP_MARKERS)
+    return _defang(value).translate(_WHATSAPP_MARKERS)
 
 
 def escape(value: str, channel: Channel, *, single_line: bool = False) -> str:
     cleaned = clean(value, single_line=single_line)
-    return html.escape(cleaned, quote=True) if channel.is_html else _whatsapp(cleaned)
+    if channel.is_html:
+        return html.escape(cleaned, quote=True)
+    return _defang(cleaned) if channel is Channel.TEXT else _whatsapp(cleaned)
 
 
 def escape_name(name: str, channel: Channel) -> str:

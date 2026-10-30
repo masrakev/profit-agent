@@ -39,6 +39,17 @@ class Settings(BaseSettings):
     meta_ad_account_id: str | None = None  # act_<id>: the only account actions may touch
     # Our campaign id -> Meta campaign id, for synthetic stores mirrored on the sandbox (JSON).
     meta_campaign_links: dict[str, str] = {}
+    # Email (ADR 0019). The default is Mailpit from docker compose (its inbox: localhost:8025);
+    # a real provider is any SMTP relay, configured here.
+    email_smtp_host: str = "localhost"
+    email_smtp_port: int = 1025
+    email_smtp_security: Literal["none", "starttls", "ssl"] = "none"
+    email_smtp_username: str | None = None
+    email_smtp_password: SecretStr | None = None
+    email_smtp_timeout_s: float = 10.0
+    email_from: str = "Profit Agent <briefings@profit-agent.localhost>"
+    # Links in messages: the web platform (evidence, decisions, the approval confirmation page).
+    app_base_url: str = "http://localhost:3000"
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

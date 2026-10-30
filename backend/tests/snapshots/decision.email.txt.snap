@@ -1,0 +1,20 @@
+Bench store 70400
+A decision is waiting for your approval.
+
+== Proposed ==
+- For Deluxe Bottle 23: pause the campaigns that promote it until it is restocked. You approve; it is executed within the spending caps and can be undone.
+  Review options: https://app.example/decisions/<decision>
+
+== Options ==
+- Pause the campaigns that promote it until it is restocked: expected net-profit change $621.89–$665.77 (recommended).
+  Approve: https://app.example/approve#token=token-stockout_on_promoted%3Apause_until_restock%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
+- Reduce the daily budget: expected net-profit change $186.57–$199.73.
+  Approve: https://app.example/approve#token=token-stockout_on_promoted%3Areduce_budget%3A-0.3%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
+- Prepare a reorder for the supplier.
+  Approve: https://app.example/approve#token=token-stockout_on_promoted%3Aprepare_reorder%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
+
+== Expiry ==
+- If nobody approves it, the decision expires and nothing changes.
+
+Every number in this message is a fact with its formula and source rows: open it in Profit Agent to check it. You receive this message because email is one of this store's channels.
+Settings: https://app.example/settings

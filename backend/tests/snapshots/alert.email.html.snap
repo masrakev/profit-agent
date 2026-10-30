@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bench store 70400: Critical alert: Deluxe Bottle 23: ads keep spending on a product that is out of stock.</title></head>
+<body style="margin:0;padding:0;background:#f5f5f4;color:#1c1917;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px"><tr><td style="padding:24px">
+<p style="margin:0 0 4px;font-size:13px;color:#57534e">Bench store 70400</p>
+<h1 style="margin:0 0 16px;font-size:20px">Critical alert: Deluxe Bottle 23: ads keep spending on a product that is out of stock.</h1>
+<h2 style="margin:20px 0 8px;font-size:16px">What was detected</h2>
+<div style="margin:0 0 10px"><span style="display:inline-block;margin-right:6px;padding:1px 6px;border-radius:4px;background:#b91c1c;color:#ffffff;font-size:12px">critical</span>Deluxe Bottle 23: ads keep spending on a product that is out of stock.</div>
+<h2 style="margin:20px 0 8px;font-size:16px">Why it matters</h2>
+<div style="margin:0 0 10px">It costs about $5,900.05–$6,491.80 a month.</div>
+<h2 style="margin:20px 0 8px;font-size:16px">Evidence</h2>
+<div style="margin:0 0 10px">Cost per purchase for Campaign 1: n/a, against $7.73 before.</div>
+<div style="margin:0 0 10px">Stock cover for Deluxe Bottle 23: 0.0 days, against 0.0 days before.</div>
+<div style="margin:0 0 10px">Campaign profit for Campaign 1: -$322.15, against $3,584.61 before.</div>
+<div style="margin:0 0 10px">Every number links to its formula and source rows.<div style="margin-top:4px"><a href="https://app.example/incidents/inc-0806cd14e96b" style="display:inline-block;margin:4px 8px 0 0;padding:6px 12px;border-radius:6px;border:1px solid #d6d3d1;color:#1c1917;text-decoration:none;font-size:13px">Evidence</a></div></div>
+<h2 style="margin:20px 0 8px;font-size:16px">Still uncertain</h2>
+<div style="margin:0 0 10px">The monthly loss is an estimate from the store&#x27;s own history, a range rather than a forecast; the cause is ranked by code from the symptoms.</div>
+<div style="margin:0 0 10px">Another possible cause: Compact Journal 22: ads keep spending on a product that is out of stock.</div>
+<h2 style="margin:20px 0 8px;font-size:16px">Options</h2>
+<p style="margin:0 0 10px;color:#78716c">The options are being prepared.</p>
+<h2 style="margin:20px 0 8px;font-size:16px">Recommended next step</h2>
+<div style="margin:0 0 10px">Review the evidence before acting.<div style="margin-top:4px"><a href="https://app.example/incidents/inc-0806cd14e96b" style="display:inline-block;margin:4px 8px 0 0;padding:6px 12px;border-radius:6px;border:1px solid #d6d3d1;color:#1c1917;text-decoration:none;font-size:13px">Evidence</a></div></div>
+<p style="margin:24px 0 0;font-size:12px;color:#78716c">Every number in this message is a fact with its formula and source rows: open it in Profit Agent to check it. You receive this message because email is one of this store&#x27;s channels. <a href="https://app.example/settings" style="color:#57534e">Settings</a></p>
+</td></tr></table></td></tr></table></body></html>

@@ -32,10 +32,10 @@ DRIVERS: dict[Driver, str] = {
     Driver.FIXED_COSTS: "fixed costs",
 }
 OPTIONS: dict[OptionKind, str] = {
-    OptionKind.REDUCE_BUDGET: "reduce its daily budget",
+    OptionKind.REDUCE_BUDGET: "reduce the daily budget",
     OptionKind.PAUSE_CAMPAIGN: "pause the campaign",
     OptionKind.PAUSE_UNTIL_RESTOCK: "pause the campaigns that promote it until it is restocked",
-    OptionKind.INCREASE_BUDGET: "raise its daily budget, within the cap",
+    OptionKind.INCREASE_BUDGET: "raise the daily budget, within the cap",
     OptionKind.PREPARE_REORDER: "prepare a reorder for the supplier",
     OptionKind.PREPARE_PRICE_CHANGE: "prepare a price change",
     OptionKind.REVIEW_SUPPLIER: "review the supplier",
