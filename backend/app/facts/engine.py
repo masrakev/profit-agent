@@ -102,8 +102,11 @@ class FactEngine:
 
     def adopt(self, fact: Fact) -> Fact:
         """Register a fact built outside the registry (e.g. a Shapley contribution) so that facts
-        naming it as a parent can be persisted."""
+        naming it as a parent can be persisted. A fact read back with its id is already
+        persisted, with its parents: it is not written again."""
         self._by_hash.setdefault(fact.fact_hash, fact)
+        if fact.id is not None:
+            self._ids.setdefault(fact.fact_hash, fact.id)
         return fact
 
     def persist(self, fact: Fact) -> Fact:

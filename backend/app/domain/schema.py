@@ -437,3 +437,26 @@ simulator_stores = Table(
     Column("events", JSONB, nullable=False),
     _ts("updated_at"),
 )
+
+briefings = Table(
+    "briefings",
+    metadata,
+    Column("briefing_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("kind", Text, nullable=False),
+    Column("local_date", Date, nullable=False),
+    Column("period_start", Date, nullable=False),
+    Column("period_end", Date, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("content", JSONB, nullable=False),
+    Column("narrative", Text, nullable=True),
+    Column("fact_ids", ARRAY(BigInteger), nullable=False),
+    Column("prompt_version", Text, nullable=True),
+    Column("model", Text, nullable=True),
+    Column("attempts", Integer, nullable=False),
+    Column("fallback_reason", Text, nullable=True),
+    Column("input_tokens", Integer, nullable=False),
+    Column("output_tokens", Integer, nullable=False),
+    Column("cost_usd", Numeric(12, 6), nullable=False),
+    _ts("created_at"),
+)

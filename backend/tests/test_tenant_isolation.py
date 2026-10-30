@@ -40,6 +40,7 @@ TENANT_TABLES = (
     "store_controls",
     "outcomes",
     "simulator_stores",
+    "briefings",
 )
 
 
