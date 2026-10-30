@@ -40,6 +40,8 @@ def test_openapi_contract(client: TestClient) -> None:
         "/api/v1/stores/{store_id}/ask",
         "/api/v1/stores/{store_id}/incidents/{incident_id}/investigate",
         "/api/v1/stores/{store_id}/investigations/{investigation_id}",
+        "/api/v1/health",
+        "/api/v1/ready",
         "/api/v1/auth/magic-links",
         "/api/v1/auth/sessions",
         "/api/v1/auth/session",

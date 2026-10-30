@@ -123,3 +123,14 @@ def golden_stockout(app_engine: Engine) -> dict[str, Any]:
         "fault_day": manifest.config.start_date + timedelta(days=label.start_day),
         "impact_fact": result.incidents[0].monthly_impact_fact_id,
     }
+
+
+@pytest.fixture(autouse=True)
+def _no_rate_limits() -> None:
+    """Tests make many requests from one address: production limits do not apply to them
+    (test_api_conventions.py tests the limiter itself)."""
+    from app.api.main import app
+    from app.api.middleware import Limits, RateLimiter
+
+    unlimited = 10**9
+    app.state.limiter = RateLimiter(Limits(unlimited, unlimited, unlimited))

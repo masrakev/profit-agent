@@ -15,10 +15,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.agent.ask import AskResult, ask
 from app.agent.investigator import Investigation, investigate, load_investigation
+from app.api import problems
 from app.api.auth import StoreDep
 from app.api.auth import router as auth_router
 from app.api.decisions import router as decisions_router
 from app.api.deps import EngineDep, ProviderDep, get_engine, get_provider
+from app.api.health import router as health_router
+from app.api.middleware import ApiMiddleware, RateLimiter
+from app.api.problems import RESPONSES
 from app.db import tenant_transaction
 
 API_VERSION = "v1"
@@ -79,12 +83,19 @@ def get_investigation(
     return found
 
 
-def create_app() -> FastAPI:
+def create_app(limiter: RateLimiter | None = None) -> FastAPI:
     app = FastAPI(
         title="Verifiable Profit Agent API",
         version=API_VERSION,
-        description="Every number is a fact with an id; model text cites facts, never numbers.",
+        description="Every number is a fact with an id; model text cites facts, never numbers. "
+        "Errors are RFC 9457 problem details; lists are cursor-paginated; every response "
+        "carries an X-Request-ID.",
+        responses=RESPONSES,
     )
+    problems.install(app)
+    app.state.limiter = limiter or RateLimiter()
+    app.add_middleware(ApiMiddleware)
+    app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(router)
     app.include_router(decisions_router)

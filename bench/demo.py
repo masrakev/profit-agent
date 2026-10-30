@@ -149,7 +149,8 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
     advance(engine, store, 7, restock=[product])
     with tenant_transaction(engine, store) as conn:
         outcomes = [measure(conn, store, p.action_id) for p in pauses]
-    journal = client.get(f"/api/v1/stores/{store}/journal").json()
+    newest_first = client.get(f"/api/v1/stores/{store}/journal", params={"limit": 200}).json()
+    journal = list(reversed(newest_first["items"]))
     final = client.get(f"/api/v1/stores/{store}/decisions/{decision.decision_id}").json()
     app.dependency_overrides.clear()
     return {

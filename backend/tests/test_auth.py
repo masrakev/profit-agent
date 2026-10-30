@@ -81,7 +81,7 @@ def test_the_email_link_signs_in_once(
     me = client.get("/api/v1/auth/session")
     assert (me.status_code, me.json()["store_ids"]) == (200, [str(stores["a"])])
     again = client.post("/api/v1/auth/sessions", json={"token": token.group(1)})
-    assert (again.status_code, again.json()["detail"]["code"]) == (409, "used_link")
+    assert (again.status_code, again.json()["code"]) == (409, "used_link")
     bad = client.post("/api/v1/auth/sessions", json={"token": "x" * 43})
     assert bad.status_code == 401
 
@@ -95,7 +95,7 @@ def test_unknown_addresses_and_expired_links(
     old = request_link(app_engine, stores["email"], datetime.now(UTC) - timedelta(minutes=16))
     assert old is not None
     expired = client.post("/api/v1/auth/sessions", json={"token": old})
-    assert (expired.status_code, expired.json()["detail"]["code"]) == (410, "expired_link")
+    assert (expired.status_code, expired.json()["code"]) == (410, "expired_link")
 
 
 def test_links_are_rate_limited_per_address(
@@ -116,7 +116,7 @@ def test_state_changes_need_the_csrf_token_and_the_origin(
     path = f"/api/v1/stores/{stores['a']}/kill-switch"
     body = {"enabled": False, "reason": "csrf test"}
     missing = client.put(path, json=body)
-    assert (missing.status_code, missing.json()["detail"]["code"]) == (403, "csrf")
+    assert (missing.status_code, missing.json()["code"]) == (403, "csrf")
     wrong = client.put(path, json=body, headers={"X-CSRF-Token": "not-it"})
     assert wrong.status_code == 403
     foreign = client.put(
@@ -202,6 +202,6 @@ def test_no_store_route_reaches_another_store(
         url = _fill(path, stores["b"])
         theirs = client.request(method, url, json={}, headers={"X-CSRF-Token": csrf})
         assert theirs.status_code == 404, (method, path, theirs.text)
-        assert theirs.json()["detail"]["message"] == "no such store", (method, path)
+        assert theirs.json()["detail"] == "no such store", (method, path)
         nobody = anonymous.request(method, _fill(path, stores["a"]), json={})
         assert nobody.status_code == 401, (method, path, nobody.text)

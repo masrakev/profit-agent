@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.auth import PrincipalDep, StoreDep
 from app.api.deps import EngineDep, OwnerEngineDep, SettingsDep
+from app.api.pagination import Cursor, Limit, Page, paginate
 from app.config import Settings
 from app.db import tenant_transaction
 from app.decisions.journal import JournalEntry, journal
@@ -118,10 +119,19 @@ def _found(fn: Any) -> Any:
         raise _error(exc) from exc
 
 
-@router.get("/stores/{store_id}/decisions", response_model=list[DecisionView], tags=["decisions"])
-def get_decisions(store_id: StoreDep, engine: EngineDep) -> list[DecisionView]:
+@router.get("/stores/{store_id}/decisions", response_model=Page[DecisionView], tags=["decisions"])
+def get_decisions(
+    store_id: StoreDep, engine: EngineDep, limit: Limit = 50, cursor: Cursor = None
+) -> Page[DecisionView]:
+    """The store's decisions, newest first."""
     with tenant_transaction(engine, store_id) as conn:
-        return list_decisions(conn, store_id)
+        found = list_decisions(conn, store_id)
+    return paginate(
+        found,
+        key=lambda d: (d.created_at.isoformat(), str(d.decision_id)),
+        limit=limit,
+        cursor=cursor,
+    )
 
 
 @router.get(
@@ -312,10 +322,16 @@ def post_rollback(
     return RollbackResponse(action_id=new)
 
 
-@router.get("/stores/{store_id}/journal", response_model=list[JournalEntry], tags=["journal"])
-def get_journal(store_id: StoreDep, engine: EngineDep) -> list[JournalEntry]:
+@router.get("/stores/{store_id}/journal", response_model=Page[JournalEntry], tags=["journal"])
+def get_journal(
+    store_id: StoreDep, engine: EngineDep, limit: Limit = 50, cursor: Cursor = None
+) -> Page[JournalEntry]:
+    """Incidents, decisions, approvals, actions and outcomes, newest first."""
     with tenant_transaction(engine, store_id) as conn:
-        return journal(conn, store_id)
+        entries = journal(conn, store_id, limit=10_000)
+    return paginate(
+        entries, key=lambda e: (e.at.isoformat(), e.kind, e.id), limit=limit, cursor=cursor
+    )
 
 
 @router.post("/stores/{store_id}/policy/preview", response_model=PolicyResult, tags=["policy"])

@@ -60,7 +60,7 @@ def test_the_api_reads_the_loop(loop: dict[str, Any]) -> None:
     try:
         client = TestClient(app, headers={"Authorization": f"Bearer {loop['api_token']}"})
         store = loop["store"]
-        decisions = client.get(f"/api/v1/stores/{store}/decisions").json()
+        decisions = client.get(f"/api/v1/stores/{store}/decisions").json()["items"]
         assert [d["decision_id"] for d in decisions] == [str(loop["decision"].decision_id)]
         trust = {t["action_type"]: t for t in client.get(f"/api/v1/stores/{store}/trust").json()}
         assert trust["pause_campaign"]["rollbacks"] >= 1
