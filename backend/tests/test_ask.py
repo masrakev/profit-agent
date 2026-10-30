@@ -130,7 +130,7 @@ def test_a_diagnosis_needs_causes_and_alternatives(
             answer(
                 f"A promoted product ran out of stock, see {{{{F{fid}}}}}.",
                 [fid],
-                alternatives=["A CPA drift was considered and rejected."],
+                alternatives=["A drift in the campaign's efficiency was considered and rejected."],
                 ranked_causes=[
                     {
                         "cause_family": "stockout_on_promoted",

@@ -25,6 +25,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Connection, Engine
 
+from app.agent.citations import FormulaLookup, citation_check
 from app.agent.contracts import ActionFamily, Answer, Flag, fallback_answer
 from app.agent.evaluate import Evaluation, evaluate_question
 from app.agent.guard import OutputViolation
@@ -41,6 +42,7 @@ from app.agent.stages import Routing, Stage, StagesConfig, load_stages
 from app.agent.tools import ToolContext, ToolRegistry, build_registry
 from app.db import tenant_transaction
 from app.facts.model import Scope
+from app.facts.repository import get_facts
 from app.observability import get_logger
 from app.verifier import entity_references, fact_references
 
@@ -139,7 +141,11 @@ def not_available_answer(question_type: QuestionType) -> Answer:
 CheckFn = Callable[[Answer], list[OutputViolation]]
 
 
-def contract_checks(question_type: QuestionType) -> CheckFn:
+def contract_checks(question_type: QuestionType, formulas: FormulaLookup | None = None) -> CheckFn:
+    """The answer contract, checked in code. With `formulas` (fact id -> formula id), also
+    citation completeness: every metric the answer names is covered by a cited fact."""
+    citations = citation_check(formulas) if formulas is not None else None
+
     def check(answer: Answer) -> list[OutputViolation]:
         found: list[OutputViolation] = []
         abstained = {Flag.ABSTAIN_INSUFFICIENT_EVIDENCE, Flag.NO_MATERIAL_ISSUE} & set(answer.flags)
@@ -166,6 +172,8 @@ def contract_checks(question_type: QuestionType) -> CheckFn:
         texts = (answer.answer, answer.reasoning or "", answer.recommendation or "")
         if any(ACTION_CLAIM.search(t) for t in texts):
             found.append(OutputViolation("answer", "safety", "you cannot act: claim no action"))
+        if citations is not None:
+            found.extend(citations(answer))
         return found
 
     return check
@@ -231,6 +239,13 @@ def incidents_context(
         ]
     )
     return UserMessage(text=text), entities, reports
+
+
+def fact_formulas(conn: Connection, store_id: UUID) -> FormulaLookup:
+    def lookup(ids: list[int]) -> dict[int, str]:
+        return {i: f.formula_id for i, f in get_facts(conn, store_id, ids).items()}
+
+    return lookup
 
 
 def classification_routing(origin: DataOrigin) -> Routing:
@@ -382,7 +397,7 @@ def ask(
             max_tool_calls=cfg.max_tool_calls,
             max_input_tokens=cfg.max_input_tokens,
             extra_entities=entities,
-            validate=contract_checks(question_type),
+            validate=contract_checks(question_type, fact_formulas(conn, store_id)),
         )
         if run.output is not None:
             status: AskStatus = "answered"
@@ -436,7 +451,7 @@ def _simulated_answer(
         stages=stages,
         run_id=run_id,
         store_message=store_context(conn, ctx),
-        base_checks=contract_checks(question_type),
+        base_checks=contract_checks(question_type, fact_formulas(conn, ctx.store_id)),
     )
     answer = outcome.answer
     if ctx.suspicious_entities and Flag.NO_INSTRUCTION_FOLLOWING_FROM_DATA not in answer.flags:

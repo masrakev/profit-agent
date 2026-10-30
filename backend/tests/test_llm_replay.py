@@ -4,6 +4,7 @@ import json
 import re
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import httpx2
 import pytest
@@ -159,6 +160,19 @@ SECRET_PATTERNS = [
 ]
 
 
+def without_ciphertext(value: Any) -> Any:
+    """The cassette without the provider's encrypted reasoning: opaque random text, where a
+    key-shaped pattern ("sk-" followed by 16 letters) can occur by chance."""
+    if isinstance(value, dict):
+        return {
+            k: "<ciphertext>" if k == "encrypted_content" else without_ciphertext(v)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [without_ciphertext(v) for v in value]
+    return value
+
+
 def test_no_cassette_contains_a_secret() -> None:
     key = get_settings().model_api_key
     secret = key.get_secret_value() if key is not None else ""
@@ -176,11 +190,12 @@ def test_no_cassette_contains_a_secret() -> None:
             "x-ratelimit-limit-tokens",
             "x-ratelimit-remaining-tokens",
         }, path.name
-        if secret:
+        if secret:  # the real key, everywhere (ciphertext included)
             assert secret not in text, path.name
             assert secret[-12:] not in text, path.name
+        readable = json.dumps(without_ciphertext(data))
         for pattern in SECRET_PATTERNS:
-            assert not pattern.search(text), (path.name, pattern.pattern)
+            assert not pattern.search(readable), (path.name, pattern.pattern)
 
 
 def test_the_secret_scan_catches_a_leak(tmp_path: Path) -> None:
@@ -237,3 +252,13 @@ def test_smoke_script(
 def test_repo_paths() -> None:
     assert repo_path("backend") == REPO_ROOT / "backend"
     assert repo_path(str(REPO_ROOT)) == REPO_ROOT
+
+
+def test_only_ciphertext_is_left_out_of_the_pattern_scan() -> None:
+    cassette = {
+        "a": "sk-AAAAAAAAAAAAAAAAAAAA",
+        "b": [{"encrypted_content": "sk-BBBBBBBBBBBBBBBBBB"}],
+    }
+    readable = json.dumps(without_ciphertext(cassette))
+    assert "sk-AAAA" in readable
+    assert "sk-BBBB" not in readable
