@@ -20,6 +20,8 @@ from app.twin.calibration import Calibration, load_calibration, widen
 from app.twin.facts import input_facts, simulation_facts
 from app.twin.fit import PRIOR_ELASTICITY, _elasticity, fit_curve, profile_fit
 from app.twin.model import CampaignModel, Elasticity, ProductModel, Range, TwinModel
+from bench.generator.load import load
+from bench.scenarios.manifest import load_suite
 
 RAW = Calibration.identity()
 METRIC_NAMES = ("contribution_margin", "net_profit", "units", "ad_spend")
@@ -218,9 +220,24 @@ def test_calibration_widens_intervals(model: TwinModel, tmp_path: Path) -> None:
     assert load_calibration(tmp_path / "missing.toml") == RAW
 
 
+@pytest.fixture(scope="module")
+def own_store(app_engine: Engine) -> dict[str, Any]:
+    """A stockout store of the twin tests' own: no other test writes to it, so the twin's view
+    of it can be compared exactly with what was generated."""
+    manifest = next(m for m in load_suite("dev") if m.scenario_id == "dev-stockout_on_promoted-02")
+    data = manifest.generate()
+    load(app_engine, data, manifest.config)
+    label = manifest.labels[0]
+    return {
+        "id": data.store.store_id,
+        "products": [p.id for p in data.products],
+        "product": next(e.id for e in label.entities if e.kind.value == "product"),
+    }
+
+
 @pytest.mark.db
-def test_fit_on_a_store(app_engine: Engine, golden_stockout: dict[str, Any]) -> None:
-    store = golden_stockout["id"]
+def test_fit_on_a_store(app_engine: Engine, own_store: dict[str, Any]) -> None:
+    store = own_store["id"]
     with tenant_transaction(app_engine, store) as conn:
         model = fit_twin(conn, store)
         earlier = fit_twin(conn, store, as_of=model.as_of - timedelta(days=14))
@@ -228,26 +245,23 @@ def test_fit_on_a_store(app_engine: Engine, golden_stockout: dict[str, Any]) -> 
             fit_twin(conn, store, as_of=date(2000, 1, 1))
     assert earlier.as_of == model.as_of - timedelta(days=14)
     assert earlier.fingerprint != model.fingerprint
-    # Other tests may add products to this shared store; the generated ones are all there.
-    assert set(golden_stockout["products"]) <= set(model.products)
-    stockout = model.products[golden_stockout["product"]]
+    assert set(model.products) == set(own_store["products"])
+    stockout = model.products[own_store["product"]]
     assert stockout.on_hand == 0
     assert not stockout.elasticity.estimated  # bench list prices never change
     assert any(c.curve is not None for c in model.campaigns.values())
-    launch = Action(kind=ActionKind.LAUNCH_CAMPAIGN, entity=golden_stockout["product"])
+    launch = Action(kind=ActionKind.LAUNCH_CAMPAIGN, entity=own_store["product"])
     sim = simulate(model, Scenario(actions=(launch,)), calibration=RAW)
     assert sim.change["net_profit"].p90 < 0  # pure spend on a product that cannot be sold
 
 
 @pytest.mark.db
-def test_simulations_become_estimate_facts(
-    app_engine: Engine, golden_stockout: dict[str, Any]
-) -> None:
-    store = golden_stockout["id"]
+def test_simulations_become_estimate_facts(app_engine: Engine, own_store: dict[str, Any]) -> None:
+    store = own_store["id"]
     with tenant_transaction(app_engine, store) as conn:
         engine = FactEngine(conn, store)
         model = fit_twin(conn, store)
-        launch = Action(kind=ActionKind.LAUNCH_CAMPAIGN, entity=golden_stockout["product"])
+        launch = Action(kind=ActionKind.LAUNCH_CAMPAIGN, entity=own_store["product"])
         sim = simulate(model, Scenario(actions=(launch,)))
         facts = simulation_facts(engine, model, sim, input_facts(engine, model, sim))
         again = simulation_facts(engine, model, sim, input_facts(engine, model, sim))
