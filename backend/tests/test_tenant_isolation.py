@@ -31,6 +31,15 @@ TENANT_TABLES = (
     "store_settings",
     "incidents",
     "investigations",
+    "decisions",
+    "decision_options",
+    "approvals",
+    "approval_links",
+    "actions",
+    "outbox",
+    "store_controls",
+    "outcomes",
+    "simulator_stores",
 )
 
 

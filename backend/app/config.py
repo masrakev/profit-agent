@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     # replay: committed cassettes only, never the network (the default, and the only CI mode).
     llm_mode: Literal["live", "record", "replay"] = "replay"
     llm_cassette_dir: str = "backend/tests/cassettes"
+    # Decisions and execution (ADRs 0016-0017).
+    approval_link_secret: SecretStr | None = None  # HMAC key of email approval links
+    admin_token: SecretStr | None = None  # the global kill switch endpoint
+    meta_access_token: SecretStr | None = None  # Marketing API, sandbox ad account
+    meta_ad_account_id: str | None = None  # act_<id>: the only account actions may touch
+    # Our campaign id -> Meta campaign id, for synthetic stores mirrored on the sandbox (JSON).
+    meta_campaign_links: dict[str, str] = {}
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

@@ -293,3 +293,147 @@ investigations = Table(
     Column("payload", JSONB, nullable=False),
     _ts("created_at"),
 )
+
+decisions = Table(
+    "decisions",
+    metadata,
+    Column("decision_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("source", Text, nullable=False),
+    Column("incident_id", Text, nullable=True),
+    Column("cause", Text, nullable=False),
+    Column("entity", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("recommended_option_id", Text, nullable=False),
+    Column("approved_option_id", Text, nullable=True),
+    Column("horizon_days", Integer, nullable=False),
+    _money("floor"),
+    _currency(),
+    Column("as_of", Date, nullable=False),
+    _ts("expires_at"),
+    Column("payload", JSONB, nullable=False),
+    _ts("created_at"),
+    _ts("updated_at"),
+)
+
+decision_options = Table(
+    "decision_options",
+    metadata,
+    Column("store_id", Uuid, primary_key=True),
+    Column("decision_id", Uuid, primary_key=True),
+    Column("option_id", Text, primary_key=True),
+    Column("rank", SmallInteger, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("action_family", Text, nullable=False),
+    Column("entity", Text, nullable=False),
+    Column("actions", JSONB, nullable=False),
+    Column("executable", Boolean, nullable=False),
+    Column("reversibility", Text, nullable=False),
+    Column("impact_fact_id", BigInteger, nullable=True),
+    _money("p10", nullable=True),
+    _money("p50", nullable=True),
+    _money("p90", nullable=True),
+    Column("risks", JSONB, nullable=False),
+    Column("invalidated_if", JSONB, nullable=False),
+    Column("flags", JSONB, nullable=False),
+)
+
+approvals = Table(
+    "approvals",
+    metadata,
+    Column("approval_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("decision_id", Uuid, nullable=False),
+    Column("option_id", Text, nullable=True),
+    Column("verdict", Text, nullable=False),
+    Column("channel", Text, nullable=False),
+    Column("actor", Text, nullable=False),
+    _ts("created_at"),
+)
+
+approval_links = Table(
+    "approval_links",
+    metadata,
+    Column("link_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("decision_id", Uuid, nullable=False),
+    Column("option_id", Text, nullable=False),
+    Column("verdict", Text, nullable=False),
+    _ts("expires_at"),
+    Column("used_at", DateTime(timezone=True), nullable=True),
+    _ts("created_at"),
+)
+
+actions = Table(
+    "actions",
+    metadata,
+    Column("action_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("decision_id", Uuid, nullable=False),
+    Column("option_id", Text, nullable=False),
+    Column("seq", SmallInteger, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("campaign_id", Uuid, nullable=False),
+    Column("provider", Text, nullable=False),
+    Column("params", JSONB, nullable=False),
+    Column("idempotency_key", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("rollback_of", Uuid, nullable=True),
+    Column("attempts", Integer, nullable=False),
+    Column("last_error", Text, nullable=True),
+    Column("before_state", JSONB, nullable=True),
+    Column("after_state", JSONB, nullable=True),
+    _ts("created_at"),
+    Column("executed_at", DateTime(timezone=True), nullable=True),
+)
+
+outbox = Table(
+    "outbox",
+    metadata,
+    Column("outbox_id", BigInteger, Identity(always=True), primary_key=True),
+    _store_id(),
+    Column("action_id", Uuid, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("attempts", Integer, nullable=False),
+    _ts("available_at"),
+    Column("last_error", Text, nullable=True),
+    _ts("created_at"),
+    Column("processed_at", DateTime(timezone=True), nullable=True),
+)
+
+store_controls = Table(
+    "store_controls",
+    metadata,
+    Column("store_id", Uuid, primary_key=True),
+    Column("kill_switch", Boolean, nullable=False),
+    Column("reason", Text, nullable=True),
+    Column("updated_by", Text, nullable=False),
+    _ts("updated_at"),
+)
+
+outcomes = Table(
+    "outcomes",
+    metadata,
+    Column("outcome_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("decision_id", Uuid, nullable=False),
+    Column("action_id", Uuid, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("method", Text, nullable=False),
+    Column("window_start", Date, nullable=False),
+    Column("window_end", Date, nullable=False),
+    Column("effect_fact_id", BigInteger, nullable=True),
+    Column("payload", JSONB, nullable=False),
+    _ts("created_at"),
+)
+
+simulator_stores = Table(
+    "simulator_stores",
+    metadata,
+    Column("store_id", Uuid, primary_key=True),
+    Column("suite", Text, nullable=False),
+    Column("scenario_id", Text, nullable=False),
+    Column("current_day", Integer, nullable=False),
+    Column("events", JSONB, nullable=False),
+    _ts("updated_at"),
+)
