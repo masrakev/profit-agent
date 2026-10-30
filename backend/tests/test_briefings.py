@@ -1,5 +1,6 @@
 """Briefings assembled from facts (SPEC sections 5.1-5.3): periods, content and storage."""
 
+import re
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -12,12 +13,14 @@ from app.briefings.content import build
 from app.briefings.models import BriefingContent, BriefingKind
 from app.briefings.store import FACTS_ONLY, exists, get, list_briefings, save
 from app.causal.outcome import measure
+from app.channels.render import Channel, load_entity_names, render
 from app.db import tenant_transaction
 from app.decisions.options import build_options
 from app.decisions.store import propose
 from app.detection import pipeline
 from app.detection.models import AlertLevel
 from app.facts.engine import FactEngine
+from app.facts.repository import get_facts
 from app.twin import fit_twin
 from app.verifier import entity_references, fact_references, verify
 from bench.generator.load import load
@@ -127,6 +130,14 @@ def test_the_weekly_report(app_engine: Engine, golden_stockout: dict[str, Any]) 
     assert table is not None
     assert table.columns[0] == "Campaign"
     assert len(table.rows) >= 1
+    with tenant_transaction(app_engine, store) as conn:
+        facts = get_facts(conn, store, week.fact_ids)
+        names = load_entity_names(conn, store, week.entities)
+    shown = [render(t, facts, names, Channel.TEXT) for t in week.texts()]
+    assert not [t for t in shown if re.search(r"\b(lost|down|gained|up) -", t)]
+    assert all(" lost {{F" in i.text for i in sections["products_down"].items)
+    assert all(" gained {{F" in i.text for i in sections["products_up"].items)
+    assert re.search(r": (lost|gained) \{\{F", bridge[1].text)
     product = f"{{{{E:product:{golden_stockout['product']}}}}}"
     stock = sections["inventory"].items
     assert stock[0].text.startswith(product)

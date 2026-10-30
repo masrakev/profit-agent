@@ -2,17 +2,21 @@
 is unavailable or rejected twice; one briefing per store, kind and local day."""
 
 import json
+import re
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import Engine
 
 from app.agent.llm import fake as f
 from app.briefings.models import BriefingKind
+from app.briefings.narrative import Narrative, loss_signs, sentences
 from app.briefings.service import generate
 from app.detection import pipeline
+from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
 from bench.generator.load import load
 from bench.scenarios.manifest import load_suite
 from tests.llm_helpers import Harness
@@ -107,3 +111,73 @@ def test_an_unavailable_model_sends_it_from_facts_only(app_engine: Engine, store
     assert record.status == "facts_only"
     assert record.narration.fallback_reason is not None
     assert "unavailable" in record.narration.fallback_reason
+
+
+def money(fid: int, value: str) -> Fact:
+    return Fact(
+        id=fid,
+        store_id=uuid4(),
+        formula_id="m",
+        formula_version=1,
+        kind=FactKind.EXACT,
+        scope=Scope.store(),
+        period=Period.days(date(2026, 9, 1), date(2026, 9, 2)),
+        status=FactStatus.DEFINED,
+        value=Decimal(value),
+        unit=Unit.MONEY,
+        currency="USD",
+        inputs_hash="0" * 64,
+    )
+
+
+def test_a_loss_is_never_a_negative_amount() -> None:
+    check = loss_signs({1: money(1, "-50"), 2: money(2, "50")})
+
+    def narrative(text: str) -> Narrative:
+        return Narrative(summary=text, evidence=[])
+
+    assert check(narrative("Refunds lost {{F2}} this week.")) == []
+    assert check(narrative("Net profit changed by {{F1}}.")) == []  # no loss word
+    assert len(check(narrative("Refunds lost {{F1}} this week."))) == 1
+    assert len(check(narrative("Profit was down by about {{F1}}."))) == 1
+    assert len(check(narrative("A margin of -{{F1}}."))) == 1
+    assert sentences("One {{F1}}. Two! Three? Four.") == ["One {{F1}}.", "Two!", "Three?", "Four."]
+
+
+WORDS = ("alpha", "beta", "gamma", "delta", "epsilon")
+
+
+def long_then(second: int) -> list[Any]:
+    def reply(n: int) -> Any:
+        def step(body: dict[str, Any]) -> f.Reply:
+            first = briefing_facts(body)[0]["fact_id"]
+            text = " ".join(f"Point {WORDS[i]} cites {{{{F{first}}}}}." for i in range(n))
+            return f.structured({"summary": text, "evidence": [first]}, model="muse-spark-1.3")
+
+        return step
+
+    return [reply(4), reply(second)]
+
+
+def test_a_long_narrative_is_rewritten_once(app_engine: Engine, store: Any) -> None:
+    h = Harness(long_then(2))
+    record = generate(
+        app_engine, store, BriefingKind.DAILY, h.provider, local_today=date(2026, 10, 2), now=NOW
+    )
+    assert record.narration.narrative is not None
+    assert len(sentences(record.narration.narrative)) == 2
+    assert record.narration.attempts == 2
+    assert len(h.transport.requests) == 2
+    assert "at most three sentences" in json.dumps(h.transport.requests[1]["input"])
+
+
+def test_then_cut_at_a_sentence_end(app_engine: Engine, store: Any) -> None:
+    h = Harness(long_then(5))
+    record = generate(
+        app_engine, store, BriefingKind.DAILY, h.provider, local_today=date(2026, 10, 3), now=NOW
+    )
+    narrative = record.narration.narrative
+    assert narrative is not None
+    [first] = set(re.findall(r"\{\{F(\d+)\}\}", narrative))
+    assert sentences(narrative) == [f"Point {WORDS[i]} cites {{{{F{first}}}}}." for i in range(3)]
+    assert (record.status, record.narration.attempts) == ("narrated", 2)

@@ -63,6 +63,36 @@ class Cited:
             compute(f"F{current.id} - F{previous.id}", {current.id: current, previous.id: previous})
         )
 
+    def magnitude(self, fact: Fact) -> Fact:
+        """The fact itself when it is not negative, else its negation (an exact derived fact):
+        a loss is always written as a positive amount with a word that says it is a loss."""
+        if fact.value is None or fact.value >= 0:
+            return fact
+        assert fact.id is not None
+        return self.keep(compute(f"-F{fact.id}", {fact.id: fact}))
+
+    def direction(self, fact: Fact) -> str:
+        """`up <amount>` or `down <amount>` (`unchanged` when zero; `n/a` when undefined)."""
+        if fact.value is None:
+            return self.ref(fact)
+        if fact.value == 0:
+            return f"unchanged ({self.ref(fact)})"
+        word = "up" if fact.value > 0 else "down"
+        return f"{word} {self.ref(self.magnitude(fact))}"
+
+    def gain_or_loss(self, fact: Fact) -> str:
+        """`gained <amount>` or `lost <amount>`."""
+        if fact.value is None:
+            return self.ref(fact)
+        word = "gained" if fact.value >= 0 else "lost"
+        return f"{word} {self.ref(self.magnitude(fact))}"
+
+    def amount(self, fact: Fact) -> str:
+        """A money level, `lost <amount>` when negative (a campaign's profit, say)."""
+        if fact.value is None or fact.value >= 0:
+            return self.ref(fact)
+        return f"lost {self.ref(self.magnitude(fact))}"
+
     def average(self, parts: Sequence[Fact], start: date, end: date) -> Fact:
         return self.keep(mean(parts, Period.days(start, end), parts[0]))
 

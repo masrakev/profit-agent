@@ -355,8 +355,8 @@ def daily_brief(ctx: Context) -> BriefingContent:
         items=(
             Item(
                 text=f"Net profit yesterday {c.ref(yesterday)}; this week {c.ref(this_week)} "
-                f"against {c.ref(last_week)} the week before, a change of "
-                f"{c.ref(c.change(this_week, last_week))}."
+                f"against {c.ref(last_week)} the week before, "
+                f"{c.direction(c.change(this_week, last_week))}."
             ),
         ),
     )
@@ -442,8 +442,8 @@ def summary(ctx: Context, period: tuple[date, date], *, monthly: bool, unit: str
         current = c.get(metric, store, *period)
         last = c.get(metric, store, *before[0])
         line = (
-            f"{label}: {c.ref(current)} this {unit} against {c.ref(last)} last {unit} (change "
-            f"{c.ref(c.change(current, last))})"
+            f"{label}: {c.ref(current)} this {unit} against {c.ref(last)} last {unit} "
+            f"({c.direction(c.change(current, last))})"
         )
         if len(history) >= 2:
             parts = [c.get(metric, store, *p) for p in history]
@@ -488,14 +488,16 @@ def profit_bridge(
             None,
         )
     facts = c.load([attribution.delta_fact_id, *(x.fact_id for x in attribution.level1.values())])
-    items = [Item(text=f"Change in net profit: {c.ref(facts[attribution.delta_fact_id])}.")]
+    delta = facts[attribution.delta_fact_id]
+    items = [Item(text=f"Change in net profit: {c.direction(delta)}.")]
     for driver in LEVEL1_DRIVERS:
         contribution = attribution.level1.get(driver)
         if contribution is None:
             continue
         note = " (not significant)" if contribution.significant is False else ""
         label = wording.DRIVERS[driver].capitalize()
-        items.append(Item(text=f"{label}: {c.ref(facts[contribution.fact_id])}{note}."))
+        part = facts[contribution.fact_id]
+        items.append(Item(text=f"{label}: {c.gain_or_loss(part)}{note}."))
     return Section(key="profit_bridge", title="Profit bridge", items=tuple(items)), attribution
 
 
@@ -516,9 +518,9 @@ def campaigns(ctx: Context, period: tuple[date, date], baseline: tuple[date, dat
                     c.entity(f"campaign:{cid}"),
                     c.ref(spend),
                     c.ref(c.get("attributed_contribution", scope, *period)),
-                    c.ref(profit),
+                    c.amount(profit),
                     c.ref(c.get("poas", scope, *period)),
-                    c.ref(c.change(profit, last)),
+                    c.direction(c.change(profit, last)),
                     c.ref(c.get("attribution_ratio", scope, *period)),
                 ),
             )
@@ -567,8 +569,8 @@ def products(
     def item(entry: tuple[Decimal, UUID, Fact, Driver, Fact]) -> Item:
         _, pid, whole, driver, part = entry
         return Item(
-            text=f"{c.entity(f'product:{pid}')}: {c.ref(whole)}, mostly "
-            f"{wording.DRIVERS[driver]} ({c.ref(part)})."
+            text=f"{c.entity(f'product:{pid}')} {c.gain_or_loss(whole)}, mostly "
+            f"through {wording.DRIVERS[driver]} ({c.gain_or_loss(part)})."
         )
 
     gainers = sorted((t for t in totals if t[0] > 0), key=lambda t: (-t[0], str(t[1])))
@@ -828,7 +830,7 @@ def fixed_costs(ctx: Context, month: tuple[date, date]) -> Section:
         items=(
             Item(
                 text=f"Fixed costs: {c.ref(now_)} this month against {c.ref(last)} last month "
-                f"(change {c.ref(c.change(now_, last))})."
+                f"({c.direction(c.change(now_, last))})."
             ),
         ),
     )

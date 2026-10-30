@@ -121,6 +121,7 @@ def generate_guarded[T: BaseModel](
     known_entities: set[str],
     fallback: Callable[[str], T],
     max_regenerations: int = MAX_REGENERATIONS,
+    validate: Callable[[T], list[OutputViolation]] | None = None,
 ) -> GuardedOutcome[T]:
     if request.output_schema is not schema:
         request = request.model_copy(update={"output_schema": schema})
@@ -158,6 +159,8 @@ def generate_guarded[T: BaseModel](
                 violations = check_output(
                     result.parsed, known_facts=known_facts, known_entities=known_entities
                 )
+                if validate is not None:
+                    violations.extend(validate(result.parsed))
                 if not violations:
                     return GuardedOutcome(result.parsed, "model", attempt, history, results)
                 rejected = result.parsed.model_dump_json()
