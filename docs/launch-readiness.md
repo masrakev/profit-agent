@@ -39,7 +39,7 @@ and followed closely.
 | Email approval links HMAC-signed, single use, 24 h expiry; above cap only a confirmation page | Ready |
 | Secrets only in environment; gitleaks in CI; cassettes scanned for keys | Ready |
 | Dependency audit (pip-audit) in CI | Ready |
-| `SECURITY DEFINER` function hardened (fixed search_path, no arguments, no PUBLIC grant) | Ready |
+| `SECURITY DEFINER` function hardened (fixed search_path, no free-form arguments, typed parameters only, no PUBLIC grant) | Ready |
 | API authentication, rate limiting, security headers | Planned (Task 5) |
 | Access tokens to Meta and Shopify encrypted at rest | Planned (Task 5) |
 
@@ -126,6 +126,9 @@ from the spend ledger (`bench/reports/unit-economics.md`).
 - **Benchmark realism.** The store generator uses the same ad-response curve shape as the twin, which
   makes twin results optimistic; price effects cannot be calibrated because simulated demand ignores
   price.
+- **Data days.** Facts and briefings count days as UTC calendar days, not days in the store's
+  time zone: for a store far from UTC, "yesterday" in a briefing is the UTC day, which can
+  differ by a few hours from the owner's local day. Schedules do use the store's time zone.
 - **Scope.** One currency per store, Meta Ads only, English only.
 
 ## 9. Launch plan
