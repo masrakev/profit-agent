@@ -9,6 +9,7 @@ from bench.twin.calibrate import (
     conformal_factor,
     covered,
     fit_calibration,
+    main,
     markdown,
     score,
     summarize,
@@ -63,3 +64,15 @@ def test_fit_and_summarize() -> None:
     assert summary["overall"]["calibrated_coverage"] >= summary["overall"]["raw_coverage"]
     text = markdown(summary, cal, datetime(2026, 10, 29, tzinfo=UTC))
     assert "calibration v4" in text
+
+
+def test_the_hold_out_is_only_checked() -> None:
+    records = [record(f"s{i}", "do_nothing", "units", 100) for i in range(6)]
+    cal = fit_calibration(records, version=2)
+    every = summarize(records, cal, every_scenario=True)["overall"]
+    assert (every["n_evaluation"], every["evaluation_scenarios"]) == (6, 6)
+    text = markdown(summarize(records, cal, every_scenario=True), cal, datetime.now(UTC), "test_v3")
+    assert "# Twin calibration (`test_v3`)" in text
+    assert "nothing was refitted" in text
+    with pytest.raises(SystemExit):
+        main(["--suite", "test_v3"])  # fitting on the hold-out is refused

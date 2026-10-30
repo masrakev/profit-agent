@@ -26,15 +26,21 @@ from app.detection.series import StoreSeries, load_series
 from app.domain.hashing import canonical_json, sha256_hex
 from app.twin.model import CampaignModel, CurveFit, Elasticity, FloatArray, ProductModel, TwinModel
 
-TWIN_VERSION = 1
+TWIN_VERSION = 2  # v2: over-attribution prior independent of the benchmark world
 WINDOW_DAYS = 42
 RECENT_DAYS = 14  # spend level and unit cost follow the last two weeks
 MIN_CAMPAIGN_DAYS = 14
 BOOTSTRAP = 500
 B_GRID = np.geomspace(1e-3, 0.2, 80)  # half saturation between ~3.5 and ~700 per day of spend
-# Platforms over-report the purchases their ads caused; real = attributed / factor, the factor
-# drawn uniformly from this range (reconciliation studies; the bench world assumes the same).
-OVER_ATTRIBUTION = (0.9, 1.35)
+# Platform-attributed purchases per purchase the ads really caused: real = attributed / factor,
+# the factor drawn uniformly from this range for each draw. Below 1, platforms miss conversions
+# (cross-device journeys, browser privacy limits); up to 2, they also credit buyers who would
+# have bought anyway (view-through and last-touch credit). Field experiments comparing platform
+# attribution with randomized lift find attribution overstating incremental effects, often by a
+# wide margin (Gordon, Zettelmeyer, Bhargava and Chapsky, Marketing Science 2019; Blake, Nosko
+# and Tadelis, Econometrica 2015). Chosen from that evidence, not from the benchmark generator;
+# a store with an incrementality test would replace it with its measured factor.
+OVER_ATTRIBUTION = (0.8, 2.0)
 # Own-price elasticity when the list price never changed enough to estimate it: uniform on this
 # range (consumer goods sold online). Wide on purpose; answers built on it carry low_evidence.
 PRIOR_ELASTICITY = Elasticity(estimated=False, low=-3.0, high=-0.5, mean=-1.75, sd=0.72)

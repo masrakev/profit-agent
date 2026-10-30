@@ -2,6 +2,7 @@
 
     uv run python -m bench.twin.calibrate            # writes calibration.toml and the report
     uv run python -m bench.twin.calibrate --check    # coverage of the frozen calibration only
+    uv run python -m bench.twin.calibrate --check --suite test_v3   # once, on the hold-out
 
 For every dev scenario the twin is fitted on the data before day T (the last `HORIZON` days are
 held back) and predicts those days, then the prediction is compared with what the generator
@@ -11,7 +12,9 @@ generator really applying an action from day T to its largest campaign: budget -
 Split conformal: scenarios with an even index calibrate, odd ones evaluate. Per metric and per
 kind ("do nothing" or action) the factor `q` is the conformal quantile of
 `max(P10 - y, y - P90) / half-width`, so that the widened intervals cover 80% of outcomes. The
-coverage reported is the one on the evaluation half, which the factors never saw.
+coverage reported is the one on the evaluation half, which the factors never saw. The hold-out
+suite (`test_v3`) is never used to fit: `--suite test_v3` only checks the frozen calibration, on
+all its scenarios.
 """
 
 import argparse
@@ -19,7 +22,7 @@ import json
 import math
 import os
 import sys
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from datetime import UTC, datetime
 from decimal import Decimal
 from functools import lru_cache
@@ -43,6 +46,7 @@ from bench.scenarios.manifest import ScenarioManifest, load_suite
 HORIZON = 14
 TARGET = 0.8
 TWIN_DB = "profit_twin"  # one database per variant: the variants are the same store
+NEWLINE = chr(10)
 VARIANTS: tuple[tuple[str, float | None], ...] = (
     ("do_nothing", None),
     ("budget_-30%", 0.7),
@@ -89,46 +93,62 @@ def run_scenario(job: tuple[ScenarioManifest, tuple[str, ...]]) -> list[dict[str
     campaign = _largest_campaign(manifest, day)
     records: list[dict[str, Any]] = []
     for (name, multiplier), url in zip(VARIANTS, urls, strict=True):
-        engine = _engine(url)
         if multiplier is not None and campaign is None:
             continue
-        interventions = [] if multiplier is None else [Intervention(day, campaign or 0, multiplier)]
-        data = manifest.generate(interventions=interventions)
-        store = data.store.store_id
-        load(engine, data, manifest.config)
-        with tenant_transaction(engine, store) as conn:
-            series = load_series(conn, store)
-            as_of = series.day(day)
-            model = fit_twin(conn, store, as_of=as_of, series=series)
-        actions: tuple[Action, ...] = ()
-        if multiplier is not None:
-            cid = data.campaigns[campaign or 0].id
-            kind = ActionKind.PAUSE_CAMPAIGN if multiplier == 0 else ActionKind.CHANGE_BUDGET
-            change = Decimal(str(round(multiplier - 1, 4)))
-            actions = (Action(kind=kind, entity=cid, change=change if multiplier else Decimal(0)),)
-        sim = simulate(
-            model,
-            Scenario(actions=actions, horizon_days=HORIZON),
-            calibration=Calibration.identity(),
+        try:
+            records += _variant(manifest, name, multiplier, url, day, campaign)
+        except Exception as exc:  # one failed variant is reported, not fatal
+            records.append({"scenario": manifest.scenario_id, "variant": name, "error": repr(exc)})
+    return records
+
+
+def _variant(
+    manifest: ScenarioManifest,
+    name: str,
+    multiplier: float | None,
+    url: str,
+    day: int,
+    campaign: int | None,
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    engine = _engine(url)
+    interventions = [] if multiplier is None else [Intervention(day, campaign or 0, multiplier)]
+    data = manifest.generate(interventions=interventions)
+    store = data.store.store_id
+    load(engine, data, manifest.config)
+    with tenant_transaction(engine, store) as conn:
+        series = load_series(conn, store)
+        as_of = series.day(day)
+        model = fit_twin(conn, store, as_of=as_of, series=series)
+    actions: tuple[Action, ...] = ()
+    if multiplier is not None:
+        cid = data.campaigns[campaign or 0].id
+        kind = ActionKind.PAUSE_CAMPAIGN if multiplier == 0 else ActionKind.CHANGE_BUDGET
+        change = Decimal(str(round(multiplier - 1, 4)))
+        actions = (Action(kind=kind, entity=cid, change=change if multiplier else Decimal(0)),)
+    sim = simulate(
+        model,
+        Scenario(actions=actions, horizon_days=HORIZON),
+        calibration=Calibration.identity(),
+    )
+    truth = actuals(series, day, day + HORIZON)
+    for metric in METRICS:
+        r = sim.totals.get(metric)
+        if r is None:
+            continue
+        records.append(
+            {
+                "scenario": manifest.scenario_id,
+                "variant": name,
+                "kind": "do_nothing" if multiplier is None else "action",
+                "metric": metric,
+                "p10": r.p10,
+                "p50": r.p50,
+                "p90": r.p90,
+                "actual": truth[metric],
+                "low_evidence": list(sim.low_evidence),
+            }
         )
-        truth = actuals(series, day, day + HORIZON)
-        for metric in METRICS:
-            r = sim.totals.get(metric)
-            if r is None:
-                continue
-            records.append(
-                {
-                    "scenario": manifest.scenario_id,
-                    "variant": name,
-                    "kind": "do_nothing" if multiplier is None else "action",
-                    "metric": metric,
-                    "p10": r.p10,
-                    "p50": r.p50,
-                    "p90": r.p90,
-                    "actual": truth[metric],
-                    "low_evidence": list(sim.low_evidence),
-                }
-            )
     return records
 
 
@@ -153,9 +173,12 @@ def covered(r: dict[str, Any], q: float) -> bool:
     return bool(r["p10"] - q * half <= r["actual"] <= r["p90"] + q * half)
 
 
-def summarize(records: list[dict[str, Any]], cal: Calibration) -> dict[str, Any]:
+def summarize(
+    records: list[dict[str, Any]], cal: Calibration, *, every_scenario: bool = False
+) -> dict[str, Any]:
+    """Coverage on the evaluation half (odd index), or on every scenario (a hold-out check)."""
     scenarios = sorted({r["scenario"] for r in records})
-    evaluation = {s for i, s in enumerate(scenarios) if i % 2 == 1}
+    evaluation = {s for i, s in enumerate(scenarios) if every_scenario or i % 2 == 1}
     out: dict[str, Any] = {"by_metric": {}, "by_variant": {}}
     for kind in ("do_nothing", "action"):
         for metric in METRICS:
@@ -239,16 +262,29 @@ def _pct(x: float | None) -> str:
     return "n/a" if x is None else f"{x * 100:.0f}%"
 
 
-def markdown(summary: dict[str, Any], cal: Calibration, started: datetime) -> str:
+def markdown(
+    summary: dict[str, Any], cal: Calibration, started: datetime, suite: str = "dev"
+) -> str:
     o = summary["overall"]
+    if suite == "dev":
+        split = (
+            f"{o['scenarios']} scenarios, {o['evaluation_scenarios']} held out for evaluation "
+            "(odd index), the others calibrate."
+        )
+    else:
+        split = (
+            f"{o['scenarios']} hold-out scenarios, all evaluated with the frozen calibration "
+            "(fitted on dev only; nothing was refitted)."
+        )
     lines = [
-        "# Twin calibration (`dev`)",
+        f"# Twin calibration (`{suite}`)",
         "",
         f"Run {started.isoformat()} - calibration v{cal.version} ({cal.method}) - horizon "
-        f"{HORIZON} days - {o['scenarios']} scenarios, {o['evaluation_scenarios']} held out for "
-        "evaluation (odd index), the others calibrate.",
+        f"{HORIZON} days - {split}",
         "",
-        "P10-P90 coverage on the held-out scenarios (target 75-85%):",
+        "P10-P90 coverage on the evaluated scenarios (target 75-85%)"
+        + (f"; {len(o['errors'])} variant(s) failed and are left out" if o.get("errors") else "")
+        + ":",
         "",
         "| | Intervals | Raw coverage | Calibrated coverage |",
         "| --- | --- | --- | --- |",
@@ -276,26 +312,71 @@ def markdown(summary: dict[str, Any], cal: Calibration, started: datetime) -> st
     return "\n".join(lines)
 
 
+STALL = 900  # seconds without any finished scenario: the rest are reported as errors
+
+
+def collect(
+    jobs: list[tuple[ScenarioManifest, tuple[str, ...]]], workers: int
+) -> list[dict[str, Any]]:
+    """Run the scenarios in worker processes; a worker that stalls does not hang the run."""
+    pool = ProcessPoolExecutor(max_workers=workers)
+    pending = {pool.submit(run_scenario, job): job[0].scenario_id for job in jobs}
+    out: list[dict[str, Any]] = []
+    try:
+        while pending:
+            done, _ = wait(pending, timeout=STALL, return_when=FIRST_COMPLETED)
+            if not done:
+                out += [
+                    {"scenario": s, "variant": "all", "error": "stalled"} for s in pending.values()
+                ]
+                for process in list(getattr(pool, "_processes", {}).values()):
+                    process.kill()
+                break
+            for future in done:
+                scenario = pending.pop(future)
+                try:
+                    out += future.result()
+                except Exception as exc:
+                    out.append({"scenario": scenario, "variant": "all", "error": repr(exc)})
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Calibrate the twin on dev scenarios")
     parser.add_argument("--check", action="store_true", help="coverage of the frozen calibration")
     parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
     parser.add_argument("--only", type=int, help="first N scenarios (smoke runs)")
     parser.add_argument("--out", type=Path, default=REPORT_DIR)
+    parser.add_argument("--suite", choices=["dev", "test_v3"], default="dev")
     args = parser.parse_args(argv)
+    if args.suite != "dev" and not args.check:
+        parser.error("the calibration is fitted on dev only; use --check on the hold-out")
     configure_logging("WARNING")
-    manifests = load_suite("dev")[: args.only]
+    manifests = load_suite(args.suite)[: args.only]
     started = datetime.now(UTC).replace(microsecond=0)
     urls = tuple(prepare_database(f"{TWIN_DB}_{i}") for i in range(len(VARIANTS)))
     jobs = [(m, urls) for m in manifests]
-    with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        records = [r for batch in pool.map(run_scenario, jobs) for r in batch]
+    collected = collect(jobs, args.workers)
+    errors = [r for r in collected if "error" in r]
+    records = [r for r in collected if "error" not in r]
     if args.check:
         cal = load_calibration()
     else:
         cal = fit_calibration(records, version=load_calibration().version + 1)
-    summary = summarize(records, cal)
+    summary = summarize(records, cal, every_scenario=args.suite != "dev")
+    summary["overall"]["errors"] = [f"{e['scenario']} {e['variant']}: {e['error']}" for e in errors]
     stamp = f"{started:%Y%m%dT%H%M%SZ}"
+    if args.suite != "dev" and args.only is None:
+        args.out.mkdir(parents=True, exist_ok=True)
+        (args.out / f"twin-calibration-{args.suite}-{stamp}.json").write_text(
+            json.dumps({"summary": summary, "records": records}, indent=1) + NEWLINE,
+            encoding="utf-8",
+        )
+        (args.out / f"twin-calibration-{args.suite}.md").write_text(
+            markdown(summary, cal, started, args.suite), encoding="utf-8", newline=NEWLINE
+        )
     if not args.check and args.only is None:
         write_calibration(cal, summary, started)
         args.out.mkdir(parents=True, exist_ok=True)
@@ -306,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
         (args.out / "twin-calibration.md").write_text(
             markdown(summary, cal, started), encoding="utf-8", newline="\n"
         )
-    sys.stdout.write(markdown(summary, cal, started))
+    sys.stdout.write(markdown(summary, cal, started, args.suite))
     return 0
 
 

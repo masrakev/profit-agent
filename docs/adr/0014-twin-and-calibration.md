@@ -20,7 +20,14 @@ handful of campaigns whose daily spend moves little, and list prices that rarely
   days give the parameter uncertainty. Campaigns with fewer than 14 days of spend get no curve
   (budget actions on them are not simulated).
 - *Platform over-attribution*: real ad-driven purchases are attributed purchases divided by a
-  factor drawn uniformly from [0.9, 1.35] per simulation draw.
+  factor drawn uniformly from [0.8, 2.0] per simulation draw (twin v2). Below 1, platforms miss
+  conversions (cross-device journeys, browser privacy limits); up to 2, they also credit buyers
+  who would have bought anyway. Field experiments comparing platform attribution with randomized
+  lift find attribution overstating incremental effects, often by a wide margin (Gordon,
+  Zettelmeyer, Bhargava and Chapsky, Marketing Science 2019; Blake, Nosko and Tadelis,
+  Econometrica 2015). The range is chosen from that evidence and is independent of the benchmark
+  generator (twin v1 used the generator's own range, 0.9-1.35: a leak, replaced). A store with an
+  incrementality test would use its measured factor instead.
 - *Organic demand* per product: the observed rate (Gamma posterior) minus its ad-driven part,
   Poisson around it; ad-driven purchases are spread evenly over a campaign's promoted products.
 - *Unit economics* from the same daily series as the exact facts: net price, unit cost of the
@@ -48,9 +55,13 @@ the generator really applying a budget -30%, +20% or a pause to the largest camp
 day (`bench.generator.Intervention`). Even-index scenarios set one factor `q` per metric and per
 kind (doing nothing, action): the conformal quantile of `max(P10 - y, y - P90) / half-width` at
 80%. An interval becomes `[P10 - q w, P90 + q w]`; a difference is widened by the larger factor,
-never narrowed. Calibration v1, on the 77 held-out dev scenarios: coverage 74% raw, 79%
-calibrated (doing nothing 79%, -30% 80%, +20% 81%, pause 75%; per metric 76-82%). The factors
-were frozen before any hold-out use; their version is part of every simulated fact.
+never narrowed. Calibration v2 (twin v2, the independent over-attribution prior), on the 77
+held-out dev scenarios: coverage 77% raw, 78% calibrated; per metric 77-80%; per variant doing
+nothing 78%, budget -30% 80%, budget +20% 86% (above the target band), pause 70% (below it).
+One factor serves every action kind, so pauses are under-covered and increases over-covered; a
+factor per action kind is the obvious next step. (Calibration v1, fitted with the generator's
+own over-attribution range, had 79% overall and pause 75%.) The factors were frozen before any
+hold-out use; their version is part of every simulated fact.
 
 ## Consequences
 

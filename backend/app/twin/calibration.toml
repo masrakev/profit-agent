@@ -1,18 +1,18 @@
 # Twin interval calibration (ADR 0014). Written by `python -m bench.twin.calibrate` on
 # dev scenarios, then frozen: any change bumps `version` (part of every simulated fact).
-# Run 2026-10-29T19:32:50+00:00: 154 dev scenarios, horizon 14 days;
-# P10-P90 coverage on the 77 held-out scenarios: raw 0.7419, calibrated 0.7881 (target 0.8).
-version = 1
+# Run 2026-10-30T02:36:03+00:00: 154 dev scenarios, horizon 14 days;
+# P10-P90 coverage on the 77 held-out scenarios: raw 0.7744, calibrated 0.7849 (target 0.8).
+version = 2
 method = "split_conformal_v1"
 
 [do_nothing]
-contribution_margin = 0.1434
-net_profit = 0.138
-units = -0.1846
-ad_spend = 0.2612
+contribution_margin = -0.1272
+net_profit = -0.1376
+units = -0.2843
+ad_spend = 0.2676
 
 [action]
-contribution_margin = 0.1456
-net_profit = 0.1392
-units = -0.0166
-ad_spend = 0.3713
+contribution_margin = 0.0579
+net_profit = 0.0784
+units = -0.1886
+ad_spend = 0.3844
