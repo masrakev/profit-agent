@@ -47,6 +47,18 @@ DEFAULT_HORIZON = 14
 MAX_HORIZON = 60
 EXACT_WORDS = re.compile(r"(?i)\b(?:exactly|precisely|exact)\b")
 SENTENCE = re.compile(r"(?<=[.!?;])\s+")
+
+
+def calls_an_estimate_exact(answer: Answer, estimates: set[int]) -> bool:
+    """A sentence of the answer cites an estimate fact and calls it exact."""
+    texts = (answer.answer, answer.reasoning or "", answer.uncertainty, *answer.alternatives)
+    return any(
+        EXACT_WORDS.search(sentence) and fact_references(sentence) & estimates
+        for t in texts
+        for sentence in SENTENCE.split(t)
+    )
+
+
 VERDICT_WORDS = {
     Verdict.GO: "worth doing as planned",
     Verdict.ADJUST: "worth doing only in the adjusted form",
@@ -352,12 +364,7 @@ def evaluate_checks(
                 )
         elif not answer.reasoning:
             found.append(OutputViolation("reasoning", "contract", "explain the effect"))
-        texts = (answer.answer, answer.reasoning or "", answer.uncertainty, *answer.alternatives)
-        if any(
-            EXACT_WORDS.search(sentence) and fact_references(sentence) & estimates
-            for t in texts
-            for sentence in SENTENCE.split(t)
-        ):
+        if calls_an_estimate_exact(answer, estimates):
             found.append(
                 OutputViolation("uncertainty", "contract", "a simulated range is never exact")
             )

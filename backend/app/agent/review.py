@@ -15,6 +15,7 @@ from typing import Any
 from sqlalchemy import Connection, text
 
 from app.agent.contracts import Answer, Flag
+from app.agent.evaluate import calls_an_estimate_exact
 from app.agent.guard import OutputViolation
 from app.agent.llm.models import DataOrigin
 from app.agent.llm.provider import LLMProvider
@@ -105,12 +106,14 @@ def decisions_context(
 
 
 def review_checks(
-    measured: list[int], base: Callable[[Answer], list[OutputViolation]]
+    measured: list[int], estimates: set[int], base: Callable[[Answer], list[OutputViolation]]
 ) -> Callable[[Answer], list[OutputViolation]]:
     def check(answer: Answer) -> list[OutputViolation]:
         found = base(answer)
         if measured and not set(measured) & set(answer.evidence):
             found.append(OutputViolation("evidence", "contract", "cite the measured effect"))
+        if calls_an_estimate_exact(answer, estimates):
+            found.append(OutputViolation("uncertainty", "contract", "an estimate is never exact"))
         return found
 
     return check
@@ -147,6 +150,12 @@ def review_question(
         return ReviewOutcome(
             "abstained", abstention("no decision has been executed on this store"), None, None, []
         )
+    estimates = {
+        int(fact["fact_id"])
+        for d in context
+        for fact in (d["outcome"]["effect"], d["prediction_at_decision"])
+        if fact is not None
+    }
     prompt = load_prompt("review")
     cfg = stages[Stage.EXPLANATION]
     route = stages.route(Stage.EXPLANATION, origin, routing, "review explanation")
@@ -177,7 +186,7 @@ def review_question(
         max_tool_calls=0,
         max_input_tokens=cfg.max_input_tokens,
         extra_entities={"store", *entities},
-        validate=review_checks(measured, base_checks),
+        validate=review_checks(measured, estimates, base_checks),
     )
     if run.output is not None:
         answer, status = run.output, "answered"

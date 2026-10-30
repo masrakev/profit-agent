@@ -7,8 +7,9 @@ import pytest
 from sqlalchemy import Engine
 
 from app.agent.ask import QuestionType, ask
-from app.agent.contracts import Flag
+from app.agent.contracts import Answer, Flag
 from app.agent.llm import fake as f
+from app.agent.review import review_checks
 from bench.simulator import advance
 from tests.action_helpers import Rig, approved, option_set, simulator_store
 from tests.llm_helpers import Harness
@@ -71,3 +72,27 @@ def test_review_answers_cite_the_measured_effect(app_engine: Engine, sim: dict[s
     assert out.question_type is QuestionType.REVIEW
     assert out.status == "answered"
     assert out.answer.evidence
+
+
+def test_a_review_never_calls_an_estimate_exact() -> None:
+    check = review_checks([7], {7, 8}, lambda _: [])
+
+    def answer(uncertainty: str) -> Answer:
+        return Answer(
+            answer="The pause earned {{F7}}.",
+            evidence=[7],
+            reasoning=None,
+            alternatives=[],
+            uncertainty=uncertainty,
+            recommendation=None,
+            would_change_my_mind=None,
+            flags=[],
+        )
+
+    assert check(answer("The effect {{F7}} is likely between its bounds.")) == []
+    [exact] = check(answer("The effect {{F7}} is an estimate, never exact."))
+    assert (exact.path, exact.detail) == ("uncertainty", "an estimate is never exact")
+    assert check(answer("The prediction {{F8}} was exactly right.")) != []
+    assert check(answer("Spend is an exact fact.")) == []  # no estimate cited
+    missing = check(answer("{{F8}} only.").model_copy(update={"evidence": [8]}))
+    assert [v.detail for v in missing] == ["cite the measured effect"]

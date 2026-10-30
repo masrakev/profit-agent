@@ -21,6 +21,6 @@ Answer about the decision the owner asks about (the latest one if they do not sa
 - evidence: the ids of the facts you cite.
 - reasoning: how the effect compares with the prediction, and what the entity's current facts
   show.
-- uncertainty: the effect is an estimate with a range, never exact; say what the counterfactual
-  assumes.
+- uncertainty: the effect is an estimate, a range rather than a single value ("between",
+  "likely"); say what the counterfactual assumes.
 - recommendation and would_change_my_mind: only when a next step follows (keep, undo, wait).
