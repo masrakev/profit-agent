@@ -38,6 +38,18 @@ def test_openapi_contract(client: TestClient) -> None:
         "/api/v1/stores/{store_id}/ask",
         "/api/v1/incidents/{incident_id}/investigate",
         "/api/v1/investigations/{investigation_id}",
+        "/api/v1/stores/{store_id}/decisions",
+        "/api/v1/stores/{store_id}/decisions/{decision_id}",
+        "/api/v1/stores/{store_id}/decisions/{decision_id}/approve",
+        "/api/v1/stores/{store_id}/decisions/{decision_id}/reject",
+        "/api/v1/stores/{store_id}/decisions/{decision_id}/links",
+        "/api/v1/approval-links/{token}",
+        "/api/v1/stores/{store_id}/actions/{action_id}/rollback",
+        "/api/v1/stores/{store_id}/journal",
+        "/api/v1/stores/{store_id}/policy/preview",
+        "/api/v1/stores/{store_id}/trust",
+        "/api/v1/stores/{store_id}/kill-switch",
+        "/api/v1/admin/kill-switch",
     }
 
 

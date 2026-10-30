@@ -7,45 +7,19 @@ Until authentication exists, investigation routes name the tenant in the `X-Stor
 row-level security. The engine and the model provider are dependencies, replaced in tests.
 """
 
-from functools import cache
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path
+from fastapi import APIRouter, FastAPI, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Engine
 
 from app.agent.ask import AskResult, ask
 from app.agent.investigator import Investigation, investigate, load_investigation
-from app.agent.llm.factory import build_provider
-from app.agent.llm.provider import LLMProvider
-from app.config import get_settings
-from app.db import make_engine, tenant_transaction
+from app.api.decisions import router as decisions_router
+from app.api.deps import EngineDep, ProviderDep, StoreHeader, get_engine, get_provider
+from app.db import tenant_transaction
 
 API_VERSION = "v1"
-
-
-@cache
-def _engine() -> Engine:
-    return make_engine(get_settings().app_database_url)
-
-
-@cache
-def _provider() -> LLMProvider:
-    return build_provider(get_settings())
-
-
-def get_engine() -> Engine:
-    return _engine()
-
-
-def get_provider() -> LLMProvider:
-    return _provider()
-
-
-EngineDep = Annotated[Engine, Depends(get_engine)]
-ProviderDep = Annotated[LLMProvider, Depends(get_provider)]
-StoreHeader = Annotated[UUID, Header(alias="X-Store-Id", description="the store (tenant)")]
 
 
 class AskRequest(BaseModel):
@@ -106,7 +80,9 @@ def create_app() -> FastAPI:
         description="Every number is a fact with an id; model text cites facts, never numbers.",
     )
     app.include_router(router)
+    app.include_router(decisions_router)
     return app
 
 
 app = create_app()
+__all__ = ["app", "create_app", "get_engine", "get_provider"]
