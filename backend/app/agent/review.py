@@ -84,6 +84,9 @@ def decisions_context(
         effect = _view(ctx, outcome.effect_fact_id) if outcome else None
         if effect is not None and outcome is not None and outcome.status == "measured":
             measured.append(int(effect["fact_id"]))
+        # The prediction for the measured window when there is one, else the option's own.
+        window = (outcome.payload or {}).get("predicted_fact_id") if outcome else None
+        prediction = int(window) if window is not None else r.impact_fact_id
         out.append(
             {
                 "decision_cause": r.cause,
@@ -98,7 +101,7 @@ def decisions_context(
                     else None,
                     "effect": effect,
                 },
-                "prediction_at_decision": _view(ctx, r.impact_fact_id),
+                "prediction_at_decision": _view(ctx, prediction),
                 "current_facts": current,
             }
         )

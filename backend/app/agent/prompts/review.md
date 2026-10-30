@@ -8,8 +8,8 @@ executed on this store (latest first), each with:
   campaign's contribution after ads, against a counterfactual built from the campaigns and
   products the decision did not touch (synthetic control), with P10, P50 and P90; or the reason
   it could not be measured yet;
-- the prediction the twin made when the decision was proposed (an estimate fact), when there is
-  one;
+- the prediction the twin made as it saw the store when the decision was proposed, for the same
+  window when the outcome was measured (an estimate fact), when there is one;
 - the entity's current facts.
 
 Answer about the decision the owner asks about (the latest one if they do not say which):

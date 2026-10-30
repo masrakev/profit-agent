@@ -1,5 +1,6 @@
 """Outcome measurement: synthetic control and measuring executed actions."""
 
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -16,6 +17,7 @@ from app.causal.control import (
 from app.causal.outcome import measure
 from app.db import tenant_transaction
 from app.decisions.store import DecisionStatus, get
+from app.facts.repository import get_facts
 from bench.simulator import advance
 from tests.action_helpers import Rig, actions, approved, option_set, simulator_store
 
@@ -98,6 +100,14 @@ def test_an_executed_pause_is_measured_after_its_window(
         )
     assert spend_after == 0  # the simulator really paused the campaign
     assert outcome["predicted"] is not None
+    with tenant_transaction(app_engine, sim["id"]) as conn:
+        predicted = get_facts(conn, sim["id"], [outcome["predicted_fact_id"]])
+    [fact] = predicted.values()
+    assert fact.formula_id == "twin.change.net_profit"
+    assert fact.p10 is not None
+    assert fact.p90 is not None
+    assert str(fact.p50) == outcome["predicted"]["p50"]
+    assert fact.period.end - fact.period.start == timedelta(days=7)
     assert rows[0] == "abstained"
     if outcome["status"] == "measured":
         assert status is DecisionStatus.MEASURED

@@ -5,8 +5,9 @@ contribution margin minus its spend). Donors: every other campaign that shares n
 it (same series), and every product it does not promote (daily contribution margin). The effect
 over the observation window (default 7 days from the day the action took effect) is estimated by
 synthetic control (`app.causal.control`), stored as an `estimate` fact with the campaign's exact
-facts before and after as parents, next to the twin's prediction for the same window. The
-decision becomes `measured`; an abstention leaves it `executed`, to be measured again later.
+facts before and after as parents, next to the twin's prediction for the same window (an
+estimate fact too, `predicted_fact_id`). The decision becomes `measured`; an abstention leaves it
+`executed`, to be measured again later.
 """
 
 import json
@@ -26,6 +27,7 @@ from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.engine import FactEngine
 from app.facts.model import Fact, FactKind, FactStatus, Lineage, ParentRef, Period, Scope, Unit
 from app.twin import Action, Scenario, fit_twin, simulate
+from app.twin.facts import input_facts, simulation_facts
 
 METHOD = "synthetic_control_v1"
 FORMULA = "outcome.effect.contribution_after_ads"
@@ -68,22 +70,32 @@ def _decimal(x: float) -> Decimal:
 
 
 def _prediction(
-    conn: Connection, store_id: UUID, decision_as_of: date, actions: list[dict[str, Any]], days: int
-) -> dict[str, str] | None:
+    engine: FactEngine,
+    store_id: UUID,
+    decision_as_of: date,
+    actions: list[dict[str, Any]],
+    days: int,
+) -> tuple[dict[str, str] | None, int | None]:
     """The twin's net-profit change for the approved option over the observation window, as
-    the twin saw the store when the decision was proposed."""
+    the twin saw the store when the decision was proposed; persisted as an estimate fact."""
     try:
-        model = fit_twin(conn, store_id, as_of=decision_as_of)
+        model = fit_twin(engine.conn, store_id, as_of=decision_as_of)
     except ValueError:
-        return None
+        return None, None
     scenario = Scenario(
         actions=tuple(Action.model_validate(a) for a in actions), horizon_days=max(days, 7)
     )
     sim = simulate(model, scenario)
-    r = sim.change.get("net_profit")
-    if r is None:
-        return None
-    return {"p10": str(_decimal(r.p10)), "p50": str(_decimal(r.p50)), "p90": str(_decimal(r.p90))}
+    if sim.change.get("net_profit") is None:
+        return None, None
+    fact = simulation_facts(engine, model, sim, input_facts(engine, model, sim))[
+        "twin.change.net_profit"
+    ]
+    assert fact.p10 is not None
+    assert fact.p50 is not None
+    assert fact.p90 is not None
+    quantiles = {"p10": str(fact.p10), "p50": str(fact.p50), "p90": str(fact.p90)}
+    return quantiles, fact.id
 
 
 def measure(
@@ -116,6 +128,10 @@ def measure(
         target, donors[first:], split - first, window_days, rng
     )
     option = decision.option(action.option_id)
+    engine = FactEngine(conn, store_id)
+    predicted, predicted_fact_id = _prediction(
+        engine, store_id, date.fromisoformat(decision.as_of), option.actions, window_days
+    )
     payload: dict[str, Any] = {
         "reason": result.reason,
         "pre_r2": f"{result.pre_r2:.4f}" if result.pre_r2 is not None else None,
@@ -129,14 +145,12 @@ def measure(
         ]
         if result.weights
         else [],
-        "predicted": _prediction(
-            conn, store_id, date.fromisoformat(decision.as_of), option.actions, window_days
-        ),
+        "predicted": predicted,
+        "predicted_fact_id": predicted_fact_id,
     }
     window = Period.days(effective, effective + timedelta(days=window_days))
     fact_id = None
     if result.measured and result.effect is not None:
-        engine = FactEngine(conn, store_id)
         scope = Scope.campaign(action.campaign_id)
         before = Period.days(effective - timedelta(days=window_days), effective)
         parents = [
