@@ -27,7 +27,7 @@ Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), Docker, GNU mak
 
 ```bash
 cp .env.example .env
-make up                                   # PostgreSQL 16 + Redis, then migrations
+make up                                   # PostgreSQL 16, Redis, Mailpit, then migrations
 uv run python -m bench.generator --seed 42
 uv run python -m app.facts.recompute --store <store_id printed above>
 uv run python -m app.detection.pipeline --store <store_id>   # symptoms, incidents, attribution
@@ -36,6 +36,7 @@ make lint
 make eval                                 # detection benchmark (test_v3 suite), ~5 minutes
 make api                                  # HTTP API on http://127.0.0.1:8000 (/docs)
 make demo                                 # the stockout loop: alert -> approval -> action -> outcome
+make scheduler                            # briefings, detection and alerts, email (arq + Redis)
 make smoke-live                           # one live call per Meta model (needs MODEL_API_KEY)
 ```
 
@@ -70,10 +71,13 @@ Each Makefile target runs these commands:
 | `make smoke-live` | `uv run python scripts/smoke_live.py` (`--mode record` writes cassettes) |
 | `make api` | `uv run uvicorn app.api.main:app --app-dir backend` |
 | `make worker` | `uv run python -m app.executor --loop 30` (the outbox worker) |
+| `make scheduler` | `uv run arq app.scheduler.worker.WorkerSettings` (cron jobs) |
 | `make demo` | `uv run python -m bench.demo` (writes `bench/reports/demo-stockout.md`) |
 
 The compose stack publishes PostgreSQL on port 55432 and Redis on 56379 to avoid clashing with
-local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them).
+local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them), and Mailpit, which
+receives every email locally: SMTP on 1025, its inbox on http://localhost:8025. Briefing costs
+are measured with `uv run python -m bench.briefing_costs` (live, golden scenarios).
 
 ## Layout
 
@@ -92,8 +96,12 @@ backend/app/
   policies/       policy engine (kill switches, autonomy, caps), trust ledger
   executor/       outbox worker, Meta Marketing API and simulator adapters, rollback
   causal/         outcome measurement with synthetic control
+  briefings/      daily brief, weekly report, monthly review from facts; alert and decision
+                  messages; the model's short narrative, or facts only
+  delivery/       alerts (severity, quiet hours, budget, deduplication), deliveries, worker
+  scheduler/      arq cron jobs per store time zone: briefings, detection, deliveries
   api/            FastAPI: Ask, investigate an incident, read an investigation (/api/v1)
-  channels/       per-channel rendering of merchant text (HTML escaping, plain text)
+  channels/       per-channel rendering of merchant text; email (SMTP) and its templates
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
 backend/migrations/  Alembic (schema, row-level security, grants)
@@ -106,6 +114,7 @@ bench/runner/        benchmark runner, scoring, agent arm, reports, audit propos
 bench/twin/          twin calibration on dev scenarios, options report on golden scenarios
 bench/simulator.py   synthetic stores that live day by day, with the owner's actions applied
 bench/demo.py        the demo loop on the golden stockout store
+bench/briefing_costs.py  what briefings cost, measured live on the golden scenarios
 bench/reports/       committed benchmark reports (latest.md = test_v3 suite)
 docs/adr/            architecture decision records
 docs/product/        product specification
@@ -217,3 +226,18 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - Citations enforced in code: an answer that names a metric cites a fact of it.
   - Golden questions, all 30 active: 73% with production routing and 80% with economy routing,
     below the 90% target (`bench/reports/golden-latest-*.md`).
+- **Day 7 - briefings, alerts and email**
+  - Daily brief, weekly report and monthly review assembled by code from facts (SPEC 5.1-5.3),
+    "Nothing needs your attention today" when nothing is material; Spark writes only a short
+    narrative, verified, and the briefing goes out from facts only when it fails twice.
+  - Alerts after each detection run: critical at once, others after quiet hours and within the
+    daily budget, deferred to the next brief over it; one alert per incident and level; a
+    decision with simulated options for each profitability alert. ADR 0019.
+  - Delivery records per message and channel; email through SMTP (Mailpit locally, any
+    provider's relay), HTML and text templates with every merchant string escaped, golden
+    snapshots; a worker with SKIP LOCKED, retries with backoff and a circuit breaker.
+  - arq cron jobs in each store's time zone: briefings, detection and alerts, deliveries.
+  - Email approval links: opening one no longer decides (mail scanners open links); the
+    confirmation page posts it.
+  - Briefing costs measured on the golden scenarios: about USD 0.007 a daily brief, 0.014 a
+    weekly report and 0.014 a monthly review (`bench/reports/briefing-costs.md`).
