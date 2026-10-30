@@ -496,3 +496,15 @@ deliveries = Table(
     _ts("created_at"),
     Column("sent_at", DateTime(timezone=True), nullable=True),
 )
+
+investigation_steps = Table(
+    "investigation_steps",
+    metadata,
+    Column("store_id", Uuid, primary_key=True),
+    Column("investigation_id", Uuid, primary_key=True),
+    Column("seq", Integer, primary_key=True),
+    Column("kind", Text, nullable=False),
+    Column("name", Text, nullable=True),
+    Column("detail", JSONB, nullable=False),
+    _ts("created_at"),
+)

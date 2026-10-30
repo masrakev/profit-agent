@@ -43,6 +43,7 @@ TENANT_TABLES = (
     "briefings",
     "alerts",
     "deliveries",
+    "investigation_steps",
 )
 
 

@@ -27,6 +27,7 @@ from app.agent.llm.types import (
     UserMessage,
 )
 from app.agent.loop import known_entities
+from app.agent.steps import Step, emit
 from app.agent.tools import ToolContext, ToolOutcome, ToolRegistry
 
 MAX_REGENERATIONS = 2
@@ -144,8 +145,20 @@ def run_session[T: BaseModel](
                 continue
             except LLMError as exc:
                 run.stop_reason = f"model unavailable ({type(exc).__name__})"
+                emit(Step("stopped", None, {"reason": run.stop_reason}))
                 return run
             run.results.append(result)
+            emit(
+                Step(
+                    "model",
+                    result.model,
+                    {
+                        "input_tokens": result.usage.input_tokens,
+                        "output_tokens": result.usage.output_tokens,
+                        "tool_calls": len(result.tool_calls),
+                    },
+                )
+            )
             if result.tool_calls:
                 items.extend(ReplayedItem(item=i) for i in result.replay_items)
                 for call in result.tool_calls:
@@ -159,11 +172,23 @@ def run_session[T: BaseModel](
                         items.append(
                             ToolOutput(call_id=call.call_id, output=refused.model_dump_json())
                         )
+                        emit(Step("tool", call.name, {"ok": False, "error_code": "tool_budget"}))
                         continue
                     run.tool_calls += 1
                     outcome, output = registry.execute(ctx, call)
                     run.outcomes.append(outcome)
                     items.append(output)
+                    emit(
+                        Step(
+                            "tool",
+                            call.name,
+                            {
+                                "ok": outcome.ok,
+                                "error_code": outcome.error_code,
+                                "arguments": call.arguments[:500],
+                            },
+                        )
+                    )
                 if run.tool_calls >= max_tool_calls:
                     items.append(TOOL_BUDGET_REACHED)
                 continue
@@ -183,9 +208,11 @@ def run_session[T: BaseModel](
                 violations.extend(validate(candidate))
             if not violations:
                 run.output = candidate
+                emit(Step("answer"))
                 return run
             run.violations += sum(v.kind == "number" for v in violations)
             run.regenerations += 1
+            emit(Step("regeneration", None, {"violations": [v.describe() for v in violations[:5]]}))
             if run.regenerations > MAX_REGENERATIONS:
                 run.stop_reason = "its output failed verification after every regeneration"
                 return run

@@ -1,4 +1,4 @@
-.PHONY: up down migrate test lint format eval eval-dev scenarios smoke-live api worker scheduler demo
+.PHONY: up down migrate test lint format eval eval-dev scenarios smoke-live api openapi worker scheduler demo
 
 up:
 	docker compose up -d --wait
@@ -36,6 +36,9 @@ smoke-live:
 
 api:
 	uv run uvicorn app.api.main:app --app-dir backend
+
+openapi:
+	uv run python -m app.api.openapi
 
 worker:
 	uv run python -m app.executor --loop 30

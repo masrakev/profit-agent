@@ -35,6 +35,7 @@ from app.agent.origin import data_origin
 from app.agent.prompts import load_prompt
 from app.agent.session import UsageSummary, run_session
 from app.agent.stages import Route, Routing, Stage, StagesConfig, load_stages
+from app.agent.steps import Step, emit
 from app.agent.tools import ToolContext, ToolOutcome, build_registry
 from app.agent.untrusted import data_block
 from app.db import tenant_transaction
@@ -347,6 +348,7 @@ def investigate(
     stages: StagesConfig | None = None,
     use_cache: bool = True,
     run_id: str | None = None,
+    investigation_id: UUID | None = None,
 ) -> Investigation:
     stages = stages or load_stages()
     prompt = load_prompt("investigator")
@@ -364,13 +366,14 @@ def investigate(
         key = _cache_key(conn, store_id, incident, route, prompt.version, stages)
         if use_cache and (hit := _cached(conn, store_id, key)) is not None:
             log.info("agent.investigation_cache_hit", incident=incident_id)
+            emit(Step("cache_hit", None, {"investigation_id": str(hit.investigation_id)}))
             return hit.model_copy(update={"cache_hit": True, "usage": UsageSummary()})
         ctx = ToolContext.open(conn, store_id)
         registry = build_registry(stages.max_result_chars)
         details, _ = registry.execute(
             ctx, ToolCall("prefetch", "get_incident", json.dumps({"incident_id": incident_id}))
         )
-        investigation_id = uuid4()
+        investigation_id = investigation_id or uuid4()
         reminded = False
 
         def remind(outcomes: list[ToolOutcome]) -> UserMessage | None:

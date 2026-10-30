@@ -34,32 +34,10 @@ def client(app_engine: Engine, harness: Harness) -> Iterator[TestClient]:
 
 
 def test_openapi_contract(client: TestClient) -> None:
+    """The full contract is frozen in docs/api/openapi.json (test_api_stores.py)."""
     spec = client.get("/openapi.json").json()
     assert spec["info"]["version"] == "v1"
-    assert set(spec["paths"]) == {
-        "/api/v1/stores/{store_id}/ask",
-        "/api/v1/stores/{store_id}/incidents/{incident_id}/investigate",
-        "/api/v1/stores/{store_id}/investigations/{investigation_id}",
-        "/api/v1/health",
-        "/api/v1/ready",
-        "/api/v1/auth/magic-links",
-        "/api/v1/auth/sessions",
-        "/api/v1/auth/session",
-        "/api/v1/stores/{store_id}/api-tokens",
-        "/api/v1/stores/{store_id}/api-tokens/{token_id}",
-        "/api/v1/stores/{store_id}/decisions",
-        "/api/v1/stores/{store_id}/decisions/{decision_id}",
-        "/api/v1/stores/{store_id}/decisions/{decision_id}/approve",
-        "/api/v1/stores/{store_id}/decisions/{decision_id}/reject",
-        "/api/v1/stores/{store_id}/decisions/{decision_id}/links",
-        "/api/v1/approval-links/{token}",
-        "/api/v1/stores/{store_id}/actions/{action_id}/rollback",
-        "/api/v1/stores/{store_id}/journal",
-        "/api/v1/stores/{store_id}/policy/preview",
-        "/api/v1/stores/{store_id}/trust",
-        "/api/v1/stores/{store_id}/kill-switch",
-        "/api/v1/admin/kill-switch",
-    }
+    assert "/api/v1/stores/{store_id}/overview" in spec["paths"]
 
 
 def test_ask_route(client: TestClient, harness: Harness, golden_stockout: dict[str, Any]) -> None:
