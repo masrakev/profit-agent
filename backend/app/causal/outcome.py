@@ -106,7 +106,8 @@ def measure(
     window_days: int = WINDOW_DAYS,
     seed: int | None = None,
 ) -> dict[str, Any]:
-    """Measure one executed action; returns the outcome row's payload with its status."""
+    """Measure one executed action; returns the outcome row's payload with its status. The
+    bootstrap is seeded by the action, or by `seed` alone when given (a replayable demo)."""
     action = conn.execute(
         text(
             "SELECT decision_id, option_id, campaign_id, kind, after_state FROM actions "
@@ -123,7 +124,8 @@ def measure(
     first = max(0, split - PRE_DAYS)
     target = campaign_series(series, action.campaign_id)[first:]
     donors, names = donor_matrix(series, action.campaign_id)
-    rng = np.random.default_rng(int(sha256_hex(canonical_json([str(action_id), seed]))[:16], 16))
+    by_action = int(sha256_hex(canonical_json([str(action_id), None]))[:16], 16)
+    rng = np.random.default_rng(by_action if seed is None else seed)
     result: ControlResult = synthetic_control(
         target, donors[first:], split - first, window_days, rng
     )

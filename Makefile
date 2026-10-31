@@ -1,4 +1,4 @@
-.PHONY: up down migrate test lint format eval eval-dev scenarios smoke-live api openapi worker scheduler demo
+.PHONY: up down migrate test lint format eval eval-dev scenarios smoke-live api openapi worker scheduler demo-seed demo
 
 up:
 	docker compose up -d --wait
@@ -45,6 +45,9 @@ worker:
 
 scheduler:
 	uv run arq app.scheduler.worker.WorkerSettings
+
+demo-seed:
+	uv run python -m bench.demo_seed
 
 demo:
 	uv run python -m bench.demo

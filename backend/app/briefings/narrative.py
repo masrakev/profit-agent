@@ -72,8 +72,10 @@ def narrated(content: BriefingContent) -> tuple[list[dict[str, Any]], set[int], 
     """The sections the narrative draws from (not the tables), their facts and entities."""
     sections = [s for s in content.sections if s.key not in TABLES]
     texts = [content.headline, *(t for s in sections for t in (i.text for i in s.items))]
+    # Buttons and ids are for the reader, not the narrative (and decision ids are random).
+    hidden = {"items": {"__all__": {"buttons", "decision_id", "incident_id"}}}
     return (
-        [s.model_dump(mode="json") for s in sections],
+        [s.model_dump(mode="json", exclude=hidden) for s in sections],
         {i for t in texts for i in fact_references(t)},
         {e for t in texts for e in entity_references(t)},
     )

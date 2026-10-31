@@ -1,22 +1,24 @@
-"""The demo loop on the golden stockout store (Task 4, SPEC section 0).
+"""The demo loop on the seeded demo store (Task 4, SPEC section 0; Task 5 B7).
 
-    uv run python -m bench.demo        # writes bench/reports/demo-stockout.md
+    uv run python -m bench.demo        # make demo: seeds the store afresh, writes
+                                       # bench/reports/demo-stockout.md
 
-1. The golden stockout store enters the simulator 14 days before its data end; detection
-   raises the critical alert (ads still spending on a product that is out of stock).
-2. Options for the cause, simulated by the twin; the recommended one pauses the campaigns that
-   promote the product until it is restocked. The decision is proposed.
-3. The owner approves it through the signed, single-use email link (the API's email channel):
+1. The demo store is seeded as `make demo-seed` does (bench/demo_seed.py): 14 days before its
+   data end, the critical stockout alert (ads still spending on a product that is out of
+   stock) with its investigation, and its decision pending: the options for the cause,
+   simulated by the twin; the recommended one pauses the campaigns that promote the product
+   until it is restocked.
+2. The owner approves it through the signed, single-use email link (the API's email channel):
    opening the link shows the decision; confirming it decides.
-4. The worker runs the policy engine and executes the pause: on the Meta sandbox campaign linked
+3. The worker runs the policy engine and executes the pause: on the Meta sandbox campaign linked
    to the store's campaign (META_ACCESS_TOKEN, META_AD_ACCOUNT_ID, META_CAMPAIGN_LINKS), mirrored
    on the simulator so the outcome can be measured. Without sandbox credentials the Meta side
    runs against the documented-contract fake (bench/meta_fake.py), and the report says so.
-5. Seven days pass (the pause's observation window); the supplier restocks.
-6. The owner rolls the pause back through the API: the campaign resumes, the stock is back.
-7. Seven more days pass; the pause's outcome is measured by synthetic control, next to the
+4. Seven days pass (the pause's observation window); the supplier restocks.
+5. The owner rolls the pause back through the API: the campaign resumes, the stock is back.
+6. Seven more days pass; the pause's outcome is measured by synthetic control, next to the
    twin's prediction made when the decision was proposed.
-8. The journal, from the API, shows the loop in order.
+7. The journal, from the API, shows the loop in order, after the store's past decisions.
 """
 
 import sys
@@ -31,28 +33,21 @@ from sqlalchemy import Engine, text
 
 from app.api.deps import get_app_settings, get_engine
 from app.api.main import app
-from app.auth.service import create_api_token
 from app.causal.outcome import measure
 from app.config import Settings, get_settings
 from app.db import make_engine, tenant_transaction
-from app.decisions.options import build_options
-from app.decisions.store import propose
-from app.detection.pipeline import run_pipeline
+from app.decisions.store import get
 from app.executor.adapters import Adapter
 from app.executor.meta import MetaAdsAdapter
 from app.executor.simulator import SimulatorAdapter
 from app.executor.worker import Executor
-from app.facts.engine import FactEngine
 from app.observability import configure_logging
-from app.twin import fit_twin
+from bench.demo_seed import DEMO_DB, SCENARIO, Seeded, demo_provider, seed
 from bench.meta_fake import ACCOUNT, FakeCampaign, FakeGraph
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
-from bench.scenarios.manifest import load_suite
-from bench.simulator import advance, register
+from bench.simulator import advance
 
-SCENARIO = "golden-stockout_on_promoted"
-DEMO_DB = "profit_demo"
 FAKE_CAMPAIGN = "120200000000001"
 
 
@@ -83,43 +78,27 @@ def _meta(
     )
 
 
-def run(engine: Engine, settings: Settings) -> dict[str, Any]:
-    manifest = next(m for m in load_suite("golden") if m.scenario_id == SCENARIO)
-    label = manifest.labels[0]
+def run(engine: Engine, settings: Settings, seeded: Seeded) -> dict[str, Any]:
+    """The loop on the seeded store: approve its pending decision, execute, restock, measure."""
+    store = seeded.store_id
+    label = seeded.manifest.labels[0]
     product = next(e.id for e in label.entities if e.kind.value == "product")
     campaign = next(e.id for e in label.entities if e.kind.value == "campaign")
     assert product is not None
     assert campaign is not None
-    today = manifest.config.days - 14
-    store = register(engine, manifest, today)
-    result = run_pipeline(engine, store)
-    alert = next(i for i in result.incidents if i.is_alert)
     with tenant_transaction(engine, store) as conn:
         budget = conn.execute(
             text("SELECT daily_budget FROM ad_campaigns WHERE store_id = :s AND id = :c"),
             {"s": store, "c": campaign},
         ).scalar_one()
+        decision = get(conn, store, seeded.decision_id)
     meta, links, meta_mode, graph = _meta(settings, campaign, budget)
     settings = settings.model_copy(update={"meta_campaign_links": links})
     if settings.approval_link_secret is None:
         settings = settings.model_copy(update={"approval_link_secret": SecretStr("demo-secret")})
     app.dependency_overrides[get_engine] = lambda: engine
     app.dependency_overrides[get_app_settings] = lambda: settings
-    _, api_token = create_api_token(engine, store, "demo", None, datetime.now(UTC))
-    client = TestClient(app, headers={"Authorization": f"Bearer {api_token}"})
-    with tenant_transaction(engine, store) as conn:
-        model = fit_twin(conn, store)
-        options = build_options(
-            model, "stockout_on_promoted", f"product:{product}", floor_monthly=Decimal(100)
-        )
-        decision = propose(
-            conn,
-            FactEngine(conn, store),
-            model,
-            options,
-            source="incident",
-            incident_id=alert.incident_id,
-        )
+    client = TestClient(app, headers={"Authorization": f"Bearer {seeded.api_token}"})
     token = client.post(
         f"/api/v1/stores/{store}/decisions/{decision.decision_id}/links",
         json={"option_id": decision.recommended_option_id, "verdict": "approved"},
@@ -155,8 +134,10 @@ def run(engine: Engine, settings: Settings) -> dict[str, Any]:
     app.dependency_overrides.clear()
     return {
         "store": store,
-        "api_token": api_token,
-        "alert": alert,
+        "api_token": seeded.api_token,
+        "alert": seeded.incident,
+        "investigation_id": seeded.investigation_id,
+        "past": seeded.past,
         "decision": decision,
         "preview": preview,
         "approval": approval,
@@ -177,23 +158,28 @@ def markdown(r: dict[str, Any], started: datetime) -> str:
     lines = [
         "# Demo: the stockout loop",
         "",
-        f"Run {started.isoformat()} on `{SCENARIO}` (simulator, 14 days before the data end). "
-        f"Meta side: {r['meta_mode']}.",
+        f"Run {started.isoformat()} on the demo store seeded from `{SCENARIO}` "
+        f"(`make demo-seed`: simulator, 14 days before the data end). Meta side: "
+        f"{r['meta_mode']}.",
+        "",
+        "Before the loop the store has "
+        + ", ".join(f"a {p.label} decision {p.outcome['status']}" for p in r["past"])
+        + f", and the alert's investigation `{r['investigation_id']}`.",
         "",
         f"1. Alert: `{r['alert'].incident_id}`, level **{r['alert'].alert.value}** "
-        f"({r['alert'].category.value}).",
-        f"2. Decision `{d.decision_id}` proposed with {len(d.options)} options; recommended "
-        f"`{rec.kind}` (net-profit change over {d.horizon_days} days, P10 / P50 / P90: "
-        f"{rec.p10} / {rec.p50} / {rec.p90} {d.currency}).",
-        f"3. Approved through the email link: opening it left the decision "
+        f"({r['alert'].category.value}). Its decision `{d.decision_id}`, pending, has "
+        f"{len(d.options)} options; recommended `{rec.kind}` (net-profit change over "
+        f"{d.horizon_days} days, P10 / P50 / P90: {rec.p10} / {rec.p50} / {rec.p90} "
+        f"{d.currency}).",
+        f"2. Approved through the email link: opening it left the decision "
         f"`{r['preview']['decision']['status']}`; confirming it made it "
         f"`{r['approval']['decision']['status']}`; the same link replayed: HTTP "
         f"{r['replay_status']}.",
-        f"4. Pause executed: {', '.join(f'{a} on {p}' for a, p in r['pauses'])}; Meta mutating "
+        f"3. Pause executed: {', '.join(f'{a} on {p}' for a, p in r['pauses'])}; Meta mutating "
         f"calls: {r['meta_mutations']}.",
-        "5. Seven days later (the pause's observation window) the supplier restocks.",
-        "6. Rollback requested through the API: the campaigns resume.",
-        "7. Outcome of the pause (synthetic control, 7 days):",
+        "4. Seven days later (the pause's observation window) the supplier restocks.",
+        "5. Rollback requested through the API: the campaigns resume.",
+        "6. Outcome of the pause (synthetic control, 7 days):",
         "",
         "| Action | Status | Effect P10 / P50 / P90 | Predicted P10 / P50 / P90 | "
         "Pre-period days, relative error, R2 |",
@@ -211,7 +197,7 @@ def markdown(r: dict[str, Any], started: datetime) -> str:
         )
     lines += [
         "",
-        f"8. Final decision status: `{r['final_status']}`. Journal:",
+        f"7. Final decision status: `{r['final_status']}`. Journal:",
         "",
         "| At | Kind | Summary |",
         "| --- | --- | --- |",
@@ -230,7 +216,8 @@ def main() -> int:
     configure_logging("WARNING")
     started = datetime.now(UTC).replace(microsecond=0)
     engine = make_engine(prepare_database(DEMO_DB))
-    result = run(engine, get_settings())
+    settings = get_settings()
+    result = run(engine, settings, seed(engine, demo_provider(settings)))
     text_ = markdown(result, started)
     (REPORT_DIR / "demo-stockout.md").write_text(text_, encoding="utf-8", newline="\n")
     sys.stdout.write(text_)

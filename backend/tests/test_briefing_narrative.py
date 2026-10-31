@@ -12,8 +12,15 @@ import pytest
 from sqlalchemy import Engine
 
 from app.agent.llm import fake as f
-from app.briefings.models import BriefingKind
-from app.briefings.narrative import Narrative, loss_signs, sentences
+from app.briefings.models import (
+    BriefingContent,
+    BriefingKind,
+    Button,
+    ButtonKind,
+    Item,
+    Section,
+)
+from app.briefings.narrative import Narrative, loss_signs, narrated, sentences
 from app.briefings.service import generate
 from app.detection import pipeline
 from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
@@ -181,3 +188,26 @@ def test_then_cut_at_a_sentence_end(app_engine: Engine, store: Any) -> None:
     [first] = set(re.findall(r"\{\{F(\d+)\}\}", narrative))
     assert sentences(narrative) == [f"Point {WORDS[i]} cites {{{{F{first}}}}}." for i in range(3)]
     assert (record.status, record.narration.attempts) == ("narrated", 2)
+
+
+def test_the_narrative_sees_no_buttons_or_ids() -> None:
+    """They are for the reader; decision ids are random, so a recorded narrative would never
+    replay with them in its input."""
+    decision = str(uuid4())
+    item = Item(
+        text="Approve the pause? {{F7}} at stake.",
+        level="critical",
+        incident_id="inc-0123456789ab",
+        decision_id=decision,
+        buttons=(Button(kind=ButtonKind.APPROVE, label="Approve", decision_id=decision),),
+    )
+    content = BriefingContent(
+        kind=BriefingKind.DAILY,
+        headline="A critical problem needs your attention today.",
+        sections=(Section(key="pending_decisions", title="Waiting for you", items=(item,)),),
+        period_start=DATA_END,
+        period_end=DATA_END,
+    )
+    sections, facts, _ = narrated(content)
+    assert sections[0]["items"] == [{"text": item.text, "level": "critical"}]
+    assert facts == {7}

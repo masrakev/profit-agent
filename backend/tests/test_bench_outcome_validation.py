@@ -1,6 +1,7 @@
 """Outcome validation against the truth (bench/outcome_validation.py)."""
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -86,7 +87,8 @@ def test_a_run_against_untreated_twins(
 ) -> None:
     """One scenario, with a threshold no fit passes: the withheld estimate is still made."""
     monkeypatch.setattr(control, "MAX_RELATIVE_ERROR", 0.0)
-    databases = ("profit_outcomes_treated_test", "profit_outcomes_control_test")
+    test_db = os.environ.get("TEST_DATABASE_NAME", "profit_test")  # two runs never share them
+    databases = (f"{test_db}_outcomes_treated", f"{test_db}_outcomes_control")
     run_id, cases = run(len(load_suite("dev")), tmp_path, databases)
     [result] = cases
     assert result.scenario == load_suite("dev")[0].scenario_id
