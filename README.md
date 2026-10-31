@@ -107,6 +107,7 @@ backend/app/
                   problem details, request ids, rate limits, security headers, frozen contract
   auth/           owners, email sign-in links, sessions, per-store API tokens
   privacy/        export, deletion, trace retention, encrypted platform tokens
+  goals/          forecasts to a deadline, the probability of reaching a target, its verdict
   channels/       per-channel rendering of merchant text; email (SMTP) and its templates
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
@@ -114,8 +115,8 @@ backend/migrations/  Alembic (schema, row-level security, grants)
 backend/tests/       golden, property-based, RLS, audit and red-team tests; model cassettes
 bench/generator/     deterministic synthetic store generator
 bench/faults/        fault catalogue and non-fault conditions with ground-truth labels
-bench/scenarios/     committed scenario manifests (dev, test_v3, golden, outcomes_v1) and their
-                     builder
+bench/scenarios/     committed scenario manifests (dev, test_v3, golden, outcomes_v1, goals_dev,
+                     goals_test) and their builder
 bench/golden/        golden question set, its checks and runner, pending scenarios
 bench/runner/        benchmark runner, scoring, agent arm, reports, audit proposals
 bench/twin/          twin calibration on dev scenarios, options report on golden scenarios
@@ -126,6 +127,7 @@ bench/outcome_validation.py   outcome intervals against the truth (the store wit
 bench/outcome_calibration.py  the outcome intervals' conformal widening, fitted on dev
 bench/unit_economics.py       unit economics from measured costs
 bench/citation_attach.py      golden questions before and after attaching citations in code
+bench/goals_backtest.py       goal forecasts and probabilities against what happened
 bench/briefing_costs.py  what briefings cost, measured live on the golden scenarios
 bench/reports/       committed benchmark reports (latest.md = test_v3 suite)
 docs/adr/            architecture decision records
@@ -278,3 +280,16 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - A demo store with a history (`make demo-seed`): past decisions measured, the stockout
     alert and its pending decision, an investigation, briefings; `make demo` runs the loop on
     it.
+- **Day 9 - goals: forecast and probability (Task 6 part A)**
+  - Long store histories in the generator (up to 400 days: drifting growth, a yearly cycle,
+    regime changes), off by default so every existing scenario rebuilds byte for byte; two
+    suites of 42 growing, flat and declining stores, `goals_dev` and `goals_test`.
+  - A metric's forecast to a deadline (net profit, contribution margin or revenue): least
+    squares on the last 8 weeks with a damped trend and the day of week, 2,000 block-bootstrap
+    paths, calibrated per horizon by split conformal on `goals_dev` and frozen. The probability
+    of reaching a target, its verdict (likely, possible, stretch, unlikely), the gap and
+    `low_evidence`, all estimate facts. ADR 0023.
+  - Backtest on the `goals_test` hold-out, run once: coverage 80-81% to 90 days, 89% at 180;
+    reliability within 4.2 points; Brier 0.121 against 0.159 for the naive run rate. 180-day
+    probabilities are overconfident and flagged low evidence
+    (`bench/reports/goals-backtest.md`).
