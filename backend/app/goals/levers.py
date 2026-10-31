@@ -8,7 +8,8 @@ outcome), a `manual` step the owner does (a reorder), or an `experiment`.
 
 - `reallocate_budget`: from a campaign losing money to one making money, within the budget cap.
 - `scale_profitable`: raise a profitable campaign in steps up to the cap, stopping where the
-  twin's marginal profit turns negative.
+  twin's marginal profit turns negative; for a revenue goal, any campaign with a response
+  curve, stopping where the next step brings less in sales than it costs in ads.
 - `prevent_stockout`: reorder a product that sells and that the store does not keep supplied
   (no stock arrived in six weeks, and too little left for its lead time), before it runs
   out, timed with its supplier lead time.

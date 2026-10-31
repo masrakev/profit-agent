@@ -107,7 +107,8 @@ backend/app/
                   problem details, request ids, rate limits, security headers, frozen contract
   auth/           owners, email sign-in links, sessions, per-store API tokens
   privacy/        export, deletion, trace retention, encrypted platform tokens
-  goals/          forecasts to a deadline, the probability of reaching a target, its verdict
+  goals/          forecasts to a deadline, the probability of reaching a target, its verdict;
+                  the lever library, plans, tracking and re-forecasts
   channels/       per-channel rendering of merchant text; email (SMTP) and its templates
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
@@ -128,6 +129,7 @@ bench/outcome_calibration.py  the outcome intervals' conformal widening, fitted 
 bench/unit_economics.py       unit economics from measured costs
 bench/citation_attach.py      golden questions before and after attaching citations in code
 bench/goals_backtest.py       goal forecasts and probabilities against what happened
+bench/goals_plans.py          goal plans followed in the simulator, against the same store without
 bench/briefing_costs.py  what briefings cost, measured live on the golden scenarios
 bench/reports/       committed benchmark reports (latest.md = test_v3 suite)
 docs/adr/            architecture decision records
@@ -293,3 +295,30 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     reliability within 4.2 points; Brier 0.121 against 0.159 for the naive run rate. 180-day
     probabilities are overconfident and flagged low evidence
     (`bench/reports/goals-backtest.md`).
+- **Day 10 - goals: plans, Ask and tracking (Task 6 part B)**
+  - Beyond 90 days a goal shows no point probability: the verdict band and a probability range,
+    flagged low evidence, with quarterly checkpoints; its plan is detailed for the first 90
+    days and its forecast redone every month (SPEC 17.2, ADR 0023).
+  - A lever library in code (budget reallocation, scaling a profitable campaign, reorders before
+    a stockout, cutting spend on products that cannot sell, shifting spend to higher margins)
+    and three experiments that are never counted until measured. A greedy plan search with
+    re-simulation in the twin, one change per campaign and a downside limit; weekly milestones,
+    the probability with and without the plan, and for a goal still unlikely the targets and the
+    deadline within reach. ADR 0024.
+  - Goals, plans, steps and progress in the database and the API (`/goals`): a goal is a draft
+    until the owner confirms its restatement; accepting a plan turns its due steps into
+    decisions to approve; weekly tracking proposes a revision, never applies one; the weekly
+    report shows each goal's progress.
+  - Ask takes goals: parsed, restated for confirmation, asked back when incomplete, then the
+    feasibility or the plan explained from facts; a revenue plan that lowers net profit says
+    so first, in code's words. Six golden goal questions pass, on a new golden store whose
+    campaigns spend past their most profitable budget.
+  - Plans followed in the simulator against the same store without them, on the `goals_test`
+    hold-out, run once: the success rate rises by 4.8 points (90% interval 2.0 to 7.5 over
+    stores; the twin predicted about 6), 81% of milestone weeks inside their P10-P90 bands, the
+    realised effect on net profit at least the predicted one (`bench/reports/goals-plans.md`).
+  - The plan validation also showed that goal forecasts are calibrated over the year, not at
+    each time of year (no yearly term; the suites' stores peak on the same day): recorded in
+    ADR 0023 as a known limitation.
+  - The demo store (`make demo-seed`) has a 90-day goal with its plan accepted and two weeks of
+    tracking.

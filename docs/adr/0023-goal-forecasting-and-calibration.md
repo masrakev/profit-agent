@@ -1,6 +1,7 @@
 # ADR 0023: Goal forecasting and calibration
 
-- Status: accepted, amended 2026-10-31 (goals beyond 90 days)
+- Status: accepted, amended 2026-10-31 (goals beyond 90 days; the time of year, a known
+  limitation)
 - Date: 2026-10-31
 
 ## Context
@@ -94,6 +95,16 @@ is the last 28 days' mean times the horizon, with a normal spread.
   by shorter horizons, does not show this.
 - Calibration widens the raw intervals 1.5 to 3 times: the honest uncertainty of a store's
   profit months ahead is wide, and the verdict says so.
+- Calibrated on average over the year, not at every time of year (found 2026-10-31 by the
+  plan validation, ADR 0024). Per cut, at 60 days, the share of outcomes above the calibrated
+  70th percentile (expected 30%) is 2%, 14%, 42%, 56% and 60% at days 150, 190, 230, 270 and
+  310 of `goals_test` (8% to 60% on `goals_dev`). The suites' stores all peak on the same day of
+  the year (the generator's default) and the forecast has no yearly term: a forecast made while
+  the season falls extrapolates the fall, one made at the trough misses the rise, and every
+  store errs the same way at the same cut. The pooled reliability averages these out. A real
+  store with a season would see the same. Not fixed here: a yearly term needs more than a year
+  of history; the options are a seasonal prior by category, a yearly term once a store has two
+  years, and suites whose stores peak on different days.
 - The benchmark stores grow and shift by the generator's own rules; a real store's trend can
   change for reasons none of this models. The backtest on real stores' histories is the next
   check, with the design partners.

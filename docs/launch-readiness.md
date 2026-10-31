@@ -135,6 +135,14 @@ figure above is now measured, and total cost includes payment processing.
   outcomes abstain on a weak pre-period fit; the 0.5 threshold withholds worse estimates on the
   fresh stores and no worse ones on dev, so it stays under review. Validated on simulated
   stores only, with a 7-day window; real stores will be noisier.
+- **Goal forecasts** (ADR 0023) are calibrated on average over the year (80-81% coverage to
+  90 days on the hold-out), not at each time of year: with no yearly term, a forecast made
+  while a store's season falls or at its trough errs one way (at 60 days, 2% to 60% of
+  outcomes above the 70th percentile depending on the day, expected 30%). Beyond 90 days a
+  goal shows a probability range, never a point.
+- **Goal plans** (ADR 0024) raise the chance of reaching a goal by 4.8 points on the hold-out
+  (interval 2.0 to 7.5), validated on simulated stores only; almost every plan scales
+  profitable campaigns, and reorder steps are not validated (the simulator cannot).
 - **Benchmark realism.** The store generator uses the same ad-response curve shape as the twin, which
   makes twin results optimistic; price effects cannot be calibrated because simulated demand ignores
   price.
