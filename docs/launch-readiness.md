@@ -1,6 +1,6 @@
 # Launch readiness review
 
-Status: v1 · Owner: Kevin Masra · Last updated: 2026-10-30
+Status: v1.1 · Owner: Kevin Masra · Last updated: 2026-10-31
 
 This is the review a product goes through before real merchants connect real stores. Each item is
 marked **Ready** (built and tested), **Partial** (built, with a known gap) or **Planned** (not built
@@ -21,10 +21,11 @@ and followed closely.
 | Prompt injection from store data cannot cause harm | Ready | Real-model red team: 0 unsafe of 10; scripted: 0 of 14 |
 | Tenant isolation | Ready | Row-level security, tested on every tenant table |
 | Real store data never used for model training | Ready | Contributor mode refused in code for non-synthetic stores; Standard mode only |
-| Store data deletion and export on request | Planned | Task 5 |
-| Owner authentication | Planned | Task 5 |
+| Store data deletion and export on request | Ready | `GET /stores/{id}/export`, `DELETE /stores/{id}` (ADR 0021): after a deletion through the API, a test finds no row of the store in any of the 30+ tenant tables nor in the access tables, and the deletion recorded |
+| Owner authentication | Ready | Email sign-in links (single use, 15 minutes), HTTP-only session cookies with CSRF, per-store API tokens (ADR 0020); every store route tested with another store's credentials (404) and with none (401) |
 | Alert precision on healthy stores | Ready | 1 false alert in 30 healthy hold-out stores |
 | Root-cause accuracy | Partial | 70% top-1 on unseen stores (hold-out); see section 8 |
+| Outcome intervals hold the truth | Ready | Calibrated P10-P90 holds the true effect 82% of the time on 70 fresh stores (target 80%); widening fitted on dev and frozen first (ADR 0018); 10% abstain |
 | Live execution on Meta | Partial | Built against Meta's published API; live sandbox run pending credentials |
 | Cost per store under control | Ready | Budget guard on every call; see section 7 |
 
@@ -40,8 +41,9 @@ and followed closely.
 | Secrets only in environment; gitleaks in CI; cassettes scanned for keys | Ready |
 | Dependency audit (pip-audit) in CI | Ready |
 | `SECURITY DEFINER` function hardened (fixed search_path, no free-form arguments, typed parameters only, no PUBLIC grant) | Ready |
-| API authentication, rate limiting, security headers | Planned (Task 5) |
-| Access tokens to Meta and Shopify encrypted at rest | Planned (Task 5) |
+| API authentication (sessions with CSRF, per-store API tokens), rate limits per address and per store, security headers, problem details with request ids (ADR 0020) | Ready |
+| Every store route scoped to the caller's stores; another store is answered 404, tested route by route | Ready |
+| Access tokens to Meta and Shopify encrypted at rest: AES-256-GCM envelope, a data key per token, the master key from the environment, bound to the store and provider (ADR 0021) | Ready |
 
 ## 3. Privacy and data protection
 
@@ -50,9 +52,12 @@ and followed closely.
 - **No training on merchant data.** Real stores use Standard mode only; requests are sent with
   `store: false`.
 - **Retention.** Raw store data kept while the store is connected; facts, decisions and the audit
-  log kept for the life of the account; model traces kept 30 days. (Retention job: Task 5.)
+  log kept for the life of the account; model traces kept 30 days (a daily job deletes older
+  step traces, and expired sign-in links and sessions; ADR 0021). Database backups follow the
+  hosting provider's retention, to be kept within the 30-day target below.
 - **Rights.** Export and deletion of all of a store's data on request, with the deletion itself
-  recorded (Task 5). Target: completed within 30 days of the request.
+  recorded outside the store's data (`GET /stores/{id}/export`, `DELETE /stores/{id}`; ADR 0021).
+  Both run at once; target: completed within 30 days of the request, backups included.
 - **Sub-processors.** Meta Model API (model inference), hosting provider, transactional email
   provider. Listed publicly before the beta.
 - **GDPR.** Required before onboarding any store in the European Union: a data processing
@@ -118,9 +123,18 @@ figure above is now measured, and total cost includes payment processing.
 
 - **Root-cause accuracy** is 70% top-1 and 75% top-3 on unseen stores; the detectors reach 86% on
   the scenarios they were tuned on. The investigator agent does not yet improve the ranking.
-- **Golden questions** pass at 73–80% depending on routing and run, against a 90% target.
+- **Golden questions** pass at 73–83% depending on routing and run, against a 90% target (six
+  economy runs before and after citations were attached in code: 77.8% and 78.9% on average,
+  `bench/reports/citation-attach.md`). Most misses are answers that do not cite the fact of the
+  metric the question asks about.
 - **Twin calibration** covers 74% of outcomes on unseen stores (target 75–85%); pauses are the
   weakest at 63%.
+- **Outcome measurement** (`bench/reports/outcome-validation-fresh.md`): on 70 fresh stores the
+  calibrated P10-P90 holds the true effect 82% of the time (target 80%), but only because of a
+  widening fitted on dev: the raw intervals held it 74% of the time there and 66% on dev. 10% of
+  outcomes abstain on a weak pre-period fit; the 0.5 threshold withholds worse estimates on the
+  fresh stores and no worse ones on dev, so it stays under review. Validated on simulated
+  stores only, with a 7-day window; real stores will be noisier.
 - **Benchmark realism.** The store generator uses the same ad-response curve shape as the twin, which
   makes twin results optimistic; price effects cannot be calibrated because simulated demand ignores
   price.

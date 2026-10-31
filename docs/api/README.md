@@ -85,4 +85,12 @@ ADR 0020.
 | GET | `/api/v1/stores/{store_id}/journal` | Incidents, decisions, approvals, actions, outcomes |
 | POST | `/api/v1/stores/{store_id}/policy/preview` | What the policy engine would decide |
 | GET | `/api/v1/stores/{store_id}/trust` | The trust ledger |
+| GET | `/api/v1/stores/{store_id}/export` | Everything the store has: a zip of JSON Lines, one file per table, no secrets |
+| DELETE | `/api/v1/stores/{store_id}` | Delete the store and all its data, for good (signed-in owner, body `confirm_store_id`) |
+| GET | `/api/v1/stores/{store_id}/connections` | Its Meta and Shopify connections (account and key id, never the token) |
+| PUT, DELETE | `/api/v1/stores/{store_id}/connections/{provider}` | Save a platform token (encrypted at rest) or remove it |
 | PUT | `/api/v1/admin/kill-switch` | Stop every action of every store (admin token) |
+
+Privacy (ADR 0021): the export and the deletion cover every table with a `store_id`, found when
+they run; a deletion is recorded outside the store's data (who, when, rows per table). Model
+traces (investigation steps) are deleted after 30 days.

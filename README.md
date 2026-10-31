@@ -35,6 +35,7 @@ make test
 make lint
 make eval                                 # detection benchmark (test_v3 suite), ~5 minutes
 make api                                  # HTTP API on http://127.0.0.1:8000 (/docs)
+make demo-seed                            # the demo store: history, alert, investigation, briefings
 make demo                                 # the stockout loop: alert -> approval -> action -> outcome
 make scheduler                            # briefings, detection and alerts, email (arq + Redis)
 make smoke-live                           # one live call per Meta model (needs MODEL_API_KEY)
@@ -72,7 +73,9 @@ Each Makefile target runs these commands:
 | `make api` | `uv run uvicorn app.api.main:app --app-dir backend` |
 | `make worker` | `uv run python -m app.executor --loop 30` (the outbox worker) |
 | `make scheduler` | `uv run arq app.scheduler.worker.WorkerSettings` (cron jobs) |
-| `make demo` | `uv run python -m bench.demo` (writes `bench/reports/demo-stockout.md`) |
+| `make openapi` | `uv run python -m app.api.openapi` (writes the frozen contract `docs/api/openapi.json`) |
+| `make demo-seed` | `uv run python -m bench.demo_seed` (a fresh `profit_demo` database with the demo store) |
+| `make demo` | `uv run python -m bench.demo` (seeds the demo store, runs the loop; writes `bench/reports/demo-stockout.md`) |
 
 The compose stack publishes PostgreSQL on port 55432 and Redis on 56379 to avoid clashing with
 local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them), and Mailpit, which
@@ -95,12 +98,15 @@ backend/app/
   decisions/      options by cause, verdicts, decisions and approvals, signed links, journal
   policies/       policy engine (kill switches, autonomy, caps), trust ledger
   executor/       outbox worker, Meta Marketing API and simulator adapters, rollback
-  causal/         outcome measurement with synthetic control
+  causal/         outcome measurement with synthetic control, intervals calibrated per action
   briefings/      daily brief, weekly report, monthly review from facts; alert and decision
                   messages; the model's short narrative, or facts only
   delivery/       alerts (severity, quiet hours, budget, deduplication), deliveries, worker
   scheduler/      arq cron jobs per store time zone: briefings, detection, deliveries
-  api/            FastAPI: Ask, investigate an incident, read an investigation (/api/v1)
+  api/            FastAPI (/api/v1): every store route the web platform reads and acts through,
+                  problem details, request ids, rate limits, security headers, frozen contract
+  auth/           owners, email sign-in links, sessions, per-store API tokens
+  privacy/        export, deletion, trace retention, encrypted platform tokens
   channels/       per-channel rendering of merchant text; email (SMTP) and its templates
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
@@ -108,15 +114,22 @@ backend/migrations/  Alembic (schema, row-level security, grants)
 backend/tests/       golden, property-based, RLS, audit and red-team tests; model cassettes
 bench/generator/     deterministic synthetic store generator
 bench/faults/        fault catalogue and non-fault conditions with ground-truth labels
-bench/scenarios/     committed scenario manifests (dev, test_v3, golden) and their builder
+bench/scenarios/     committed scenario manifests (dev, test_v3, golden, outcomes_v1) and their
+                     builder
 bench/golden/        golden question set, its checks and runner, pending scenarios
 bench/runner/        benchmark runner, scoring, agent arm, reports, audit proposals
 bench/twin/          twin calibration on dev scenarios, options report on golden scenarios
 bench/simulator.py   synthetic stores that live day by day, with the owner's actions applied
-bench/demo.py        the demo loop on the golden stockout store
+bench/demo_seed.py   the demo store: the golden stockout store with a history (make demo-seed)
+bench/demo.py        the demo loop on the seeded store
+bench/outcome_validation.py   outcome intervals against the truth (the store without the action)
+bench/outcome_calibration.py  the outcome intervals' conformal widening, fitted on dev
+bench/unit_economics.py       unit economics from measured costs
+bench/citation_attach.py      golden questions before and after attaching citations in code
 bench/briefing_costs.py  what briefings cost, measured live on the golden scenarios
 bench/reports/       committed benchmark reports (latest.md = test_v3 suite)
 docs/adr/            architecture decision records
+docs/api/            the API contract (openapi.json) and its conventions
 docs/product/        product specification
 scripts/             live smoke test of the Meta models
 ```
@@ -241,3 +254,27 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     confirmation page posts it.
   - Briefing costs measured on the golden scenarios: about USD 0.007 a daily brief, 0.014 a
     weekly report and 0.014 a monthly review (`bench/reports/briefing-costs.md`).
+- **Day 8 - the backend, complete**
+  - Owners sign in by email link (single use, 15 minutes) into HTTP-only session cookies with
+    CSRF; programs use per-store API tokens; every store route answers only the caller's
+    stores (404 otherwise), tested route by route. ADR 0020.
+  - The API the web platform is built on, frozen in `docs/api/openapi.json` (a test checks it):
+    overview, incidents, investigations with their step trace streamed, facts with formula and
+    lineage, the profit bridge, decisions, journal, briefings, Ask streamed, settings, kill
+    switch; problem details, request ids, cursor pagination, rate limits, security headers.
+  - Privacy: export everything a store has; delete all of it, with a test that finds no row
+    left in any tenant table and the deletion recorded outside the store's data; model traces
+    kept 30 days; Meta and Shopify tokens encrypted at rest (AES-256-GCM envelope). ADR 0021.
+  - Briefings show losses as positive amounts after the word "lost", never "lost -$..."; a
+    narrative longer than three sentences is rewritten once, then cut at a sentence end.
+  - The fact of a metric an answer names is attached in code instead of regenerating: 21
+    citations in 14 answers over three golden runs; the pass rate moved from 77.8% to 78.9%,
+    within the spread of three runs (`bench/reports/citation-attach.md`). ADR 0022.
+  - Outcome intervals checked against the truth (the same store without the action): 66% on
+    dev, too narrow; a split-conformal widening per action kind fitted on dev, frozen, then
+    validated once on 70 fresh stores: 82% (target 80%). ADR 0018.
+  - Unit economics from measured costs: USD 5.81 a month for a typical store at USD 49 (88%
+    gross margin), 82% in the worst measured case (`bench/reports/unit-economics.md`).
+  - A demo store with a history (`make demo-seed`): past decisions measured, the stockout
+    alert and its pending decision, an investigation, briefings; `make demo` runs the loop on
+    it.
