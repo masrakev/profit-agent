@@ -1,8 +1,9 @@
 # Product specification
 
-Status: v1.2 · Owner: Kevin Masra · Last updated: 2026-10-29
+Status: v1.3 · Owner: Kevin Masra · Last updated: 2026-10-31
 (v1.1: alert severity scales with store size, section 6.
-v1.2: north star, agent as auditor (section 15), token and cost management (section 16).)
+v1.2: north star, agent as auditor (section 15), token and cost management (section 16).
+v1.3: goals, feasibility and plans (section 17).)
 
 This document defines what the product delivers to a store owner, the exact shape of every output,
 and how quality is measured. Every engineering task must move the evaluations defined in section 12.
@@ -42,6 +43,8 @@ Done means every item below is true and shown:
 - [ ] Every target in section 12 is met, or the miss is reported with its reason.
 - [ ] The repository is public, CI is green, and a judge can run it with one documented command.
 - [ ] The web platform shows the journal, the evidence and the decisions, built on the API.
+- [ ] The owner can set a goal and get a computed feasibility, a plan with weekly milestones, and
+      weekly tracking; the backtest of forecasts and probabilities is published.
 
 ---
 
@@ -226,6 +229,7 @@ The owner can ask anything about their store. Every answer follows the **answer 
 | What-if | "What if I cut Meta spend by 30%?" | Simulated impact range + main assumption |
 | Review | "Did pausing campaign Y work?" | Measured outcome vs prediction, or abstention |
 | Data question | "Can I trust my Meta numbers?" | Attribution ratio, reconciliation, caveats |
+| Goal | "I want 60,000 in net profit by the end of March" | Restated goal to confirm, then feasibility, gap and plan (section 17) |
 | Out of scope | "Should I hire someone?" | Honest scope statement + what the product can say |
 
 ## 9. Opportunities [H] internal, [L] market
@@ -322,9 +326,10 @@ reports zero violations.
 significance and materiality; incidents; Shapley profit bridge; investigator agent (Muse Spark,
 Muse Wonder for hard cases); simulation of options; decision object; policy engine; outbox executor
 with pause / budget / resume on Meta; daily brief, weekly report, alerts and Ask through the API;
-email channel; journal; benchmark and golden questions; web platform built on the API.
+email channel; journal; benchmark and golden questions; web platform built on the API; goals,
+feasibility, plans and weekly tracking (section 17).
 
-**Hackathon stretch [H+].** WhatsApp alerts and approvals; voice questions (Muse Voice Transcribe);
+**Hackathon stretch [H+].** Market context for goals through search grounding; WhatsApp alerts and approvals; voice questions (Muse Voice Transcribe);
 monthly review; ad creative variants (Muse Image + SAM); Muse Spark Open via Baseten for
 high-volume work; local privacy mode.
 
@@ -376,3 +381,75 @@ The deterministic pipeline checks the agent; the agent also cross-examines the p
 | Budgets | Per investigation: maximum tool calls and cumulative input tokens, with a clean stop and a partial answer. Per run and per day: hard spend caps. |
 | No duplicate work | Identical tool calls within an investigation are memoised; an investigation whose facts, prompt version and model are unchanged is served from cache. |
 | Measurement | Tokens (input, cached, output, reasoning), cost and latency per stage, reported in every benchmark run, with an estimate of production cost at Standard prices. |
+
+## 17. Goals, feasibility and plans [H]
+
+The owner sets a goal; the product says whether it is reachable, proves it, proposes a plan, and
+checks progress every week. The promise: **"It tells you whether your goal is realistic, proves it,
+and checks every week."**
+
+### 17.1 Goal
+
+- A goal has a metric (`net_profit`, `contribution_margin`, or `revenue`), a target, a deadline
+  (month, quarter or up to six months) and a scope (store first).
+- The product restates the goal in plain words and asks the owner to confirm before any analysis.
+  An ambiguous goal gets a question back, never a guess.
+- A revenue goal is accepted, but the answer always shows its effect on profit; if the plan would
+  grow revenue while lowering profit, it says so first.
+
+### 17.2 Feasibility (computed by code)
+
+1. **Baseline trajectory.** Forecast of the metric to the deadline if nothing changes: trend, weekly
+   seasonality and uncertainty that widens with the horizon, as P10/P50/P90 paths.
+2. **Probability of reaching the target** = the share of simulated paths that reach it. It is an
+   `estimate` fact, never written by a model.
+3. **Verdict** from that probability: `likely` (≥ 70%), `possible` (40–70%), `stretch` (15–40%),
+   `unlikely` (< 15%), shown with the probability range and its assumptions.
+4. **Gap** = target minus the baseline P50.
+5. **Honesty rules.** When the horizon is longer than the store's history, or the backtest calibration
+   for that horizon is weak, the answer carries `low_evidence` and says why. Probabilities are never
+   presented as promises.
+
+### 17.3 Plan
+
+- Built from a **library of proven levers**, each with its mechanism, the facts that make it
+  applicable, and an effect simulated by the twin:
+  reallocate budget from negative-profit to positive-profit campaigns; scale profitable campaigns
+  within caps; prevent stockouts on products that sell; cut spend on products that cannot be sold;
+  shift ad support toward high-margin products.
+- Levers whose effect cannot be measured from the store's data (price changes without history,
+  refund reduction, new products, new markets) become **experiments**: small, capped, with a success
+  criterion and a measurement method. Their effect is never counted in the probability until measured.
+- The plan is a dated sequence of steps with weekly milestones (expected cumulative metric with its
+  P10–P90 band) and the probability of reaching the goal **with** the plan.
+- Every executable step becomes a decision that follows the normal rules: policy engine, owner
+  approval, execution, measured outcome. Nothing in a plan executes by itself.
+- **When the goal is unlikely**, the product proposes instead: the target reachable at 50% and at
+  70%, the deadline that would make the original target `possible`, and the experiments that could
+  change the picture.
+
+### 17.4 Market context [H+]
+
+- Muse models with search grounding gather public context: market trends for the store's category,
+  its region, and its main competitors' public positioning.
+- Shown as **external context with sources**, separate from facts. External figures never enter the
+  feasibility computation unless the owner confirms them. Web content is untrusted data: it is
+  delimited and can never change instructions or trigger actions.
+- Public information only; no personal data about competitors' customers.
+
+### 17.5 Tracking
+
+- Every week: actual versus milestone, status `ahead`, `on_track` or `behind`, step adherence (which
+  steps were executed), and the updated probability. Shown in the weekly report.
+- When the actual falls outside the milestone band for two consecutive weeks, or the probability
+  drops by a verdict level, the product proposes a revised plan. The owner decides; the plan never
+  changes by itself.
+
+### 17.6 Quality bar
+
+| Metric | Target | Measured by |
+| --- | --- | --- |
+| Forecast P10–P90 coverage, per horizon (30, 60, 90, 180 days) | 75–85% | Backtest on hold-out stores |
+| Probability calibration | Reliability curve within ±10 points per bucket; Brier score reported | Backtest on hold-out stores |
+| Plan uplift | Success rate with plan vs without, reported with an interval | Simulator ground truth on hold-out stores |
+| Goal golden questions | All pass | `bench/golden/questions.yaml` |
