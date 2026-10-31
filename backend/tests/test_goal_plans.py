@@ -185,6 +185,18 @@ def test_each_lever_reads_its_preconditions(model: TwinModel) -> None:
     assert {s.lever for s in every} == {lv_.name for lv_ in (*lv.LEVERS, *lv.EXPERIMENTS)}
 
 
+def test_scaling_for_revenue_judges_sales_against_ad_spend(model: TwinModel) -> None:
+    losing = {**FACTS, ("campaign_profit", WIN, ""): -50.0}
+    assert lv.scale_profitable(fake(model, losing)) == []  # a profit goal: profitable only
+    ctx = fake(model, losing)
+    ctx.metric = "revenue"
+    [scale] = lv.scale_profitable(ctx)  # sales grow faster than its ad spend
+    assert scale.actions[0].entity == WIN
+    assert "in sales than it costs in ads" in scale.summary
+    # the losing campaign's next increase brings in less in sales than it costs: never scaled
+    assert LOSE not in {a.entity for a in scale.actions}
+
+
 def test_levers_stay_quiet_without_preconditions(model: TwinModel) -> None:
     calm = {k: v for k, v in FACTS.items() if k[0] != "cpa"}
     calm[("campaign_profit", LOSE, "")] = 100.0

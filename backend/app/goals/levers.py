@@ -97,6 +97,7 @@ class Context:
     previous: Period  # the 14 days before the last 14, for CPA trends
     recent: Period
     usual: frozenset[UUID] = frozenset()  # products the store keeps supplied itself
+    metric: str = "net_profit"  # the goal's metric: scaling for revenue judges sales
     _facts: dict[tuple[str, Scope, Period], Fact] = field(default_factory=dict)
 
     def fact(self, metric: str, scope: Scope, period: Period | None = None) -> Fact:
@@ -155,6 +156,7 @@ def context(
     model: TwinModel,
     horizon: int,
     series: StoreSeries | None = None,
+    metric: str = "net_profit",
 ) -> Context:
     end = model.as_of
     caps = StoreSettingsRepository(conn).get_or_default(store_id).spending_caps
@@ -168,6 +170,7 @@ def context(
         previous=Period.days(end - timedelta(days=WINDOW), end - timedelta(days=14)),
         recent=Period.days(end - timedelta(days=14), end),
         usual=supplied,
+        metric=metric,
     )
 
 
@@ -230,31 +233,47 @@ def reallocate_budget(ctx: Context) -> list[Step]:
     return steps
 
 
-def _profit_change(ctx: Context, actions: tuple[Action, ...]) -> float:
+def _change(ctx: Context, actions: tuple[Action, ...]) -> dict[str, float]:
+    """The twin's median change of each metric (empty when it cannot simulate)."""
     draws = change_draws(ctx.model, Scenario(actions=actions, horizon_days=_twin_days(ctx)))
-    return float(np.median(draws["net_profit"])) if draws else 0.0
+    return {m: float(np.median(v)) for m, v in draws.items()}
 
 
 def _twin_days(ctx: Context) -> int:
     return max(7, min(ctx.horizon, 90))
 
 
+def _gain(ctx: Context, change: dict[str, float]) -> float:
+    """What the next budget increase is worth: net profit for a profit or margin goal; for a
+    revenue goal, the sales it brings beyond the ad spend it costs."""
+    if ctx.metric == "revenue":
+        return change.get("revenue", 0.0) - change.get("ad_spend", 0.0)
+    return change.get("net_profit", 0.0)
+
+
 def scale_profitable(ctx: Context) -> list[Step]:
+    """Profit and margin goals: profitable campaigns, while the next increase adds net profit.
+    Revenue goals: any campaign with a response curve, while the next increase brings more in
+    sales than it costs in ads (the plan then says when it lowers net profit)."""
+    for_revenue = ctx.metric == "revenue"
     steps = []
     for cid in sorted(_spending(ctx)):
         if ctx.model.campaigns[cid].curve is None:
             continue
-        if (ctx.value("campaign_profit", Scope.campaign(cid)) or 0.0) <= 0:
+        profit = ctx.value("campaign_profit", Scope.campaign(cid)) or 0.0
+        if profit <= 0 and not for_revenue:
             continue
-        best, gained = Decimal(0), 0.0
+        best, previous = Decimal(0), dict[str, float]()
         for change in (s for s in SCALE_STEPS if s <= ctx.cap):
-            gain = _profit_change(
+            moved = _change(
                 ctx, (Action(kind=ActionKind.CHANGE_BUDGET, entity=cid, change=change),)
             )
-            if gain - gained <= 0:  # the marginal profit of the next step turns negative
+            marginal = {m: v - previous.get(m, 0.0) for m, v in moved.items()}
+            if _gain(ctx, marginal) <= 0:  # the next step costs more than it brings
                 break
-            best, gained = change, gain
+            best, previous = change, moved
         if best > 0:
+            judged = "in sales than it costs in ads" if for_revenue else "than it costs"
             steps.append(
                 Step(
                     lever="scale_profitable",
@@ -262,10 +281,10 @@ def scale_profitable(ctx: Context) -> list[Step]:
                     day=0,
                     actions=(Action(kind=ActionKind.CHANGE_BUDGET, entity=cid, change=best),),
                     summary=(
-                        f"Raise the daily budget of {_e('campaign', cid)}, which makes money "
+                        f"Raise the daily budget of {_e('campaign', cid)} "
                         f"(campaign profit {ctx.ref('campaign_profit', Scope.campaign(cid))}), "
-                        "up to where the twin finds the next increase would cost more than it "
-                        "brings."
+                        "up to where the twin finds the next increase would bring less "
+                        f"{judged}."
                     ),
                     evidence=(ctx.id("campaign_profit", Scope.campaign(cid)),),
                 )
@@ -526,7 +545,8 @@ LEVERS: tuple[Lever, ...] = (
         "more budget on a profitable campaign buys more profitable sales, until the response "
         "curve flattens",
         "positive campaign profit, a fitted response curve, and a positive marginal profit for "
-        "the next increase in the twin",
+        "the next increase in the twin; for a revenue goal, any campaign with a fitted curve, "
+        "while the next increase brings more in sales than it costs in ads",
         scale_profitable,
     ),
     Lever(

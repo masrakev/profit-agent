@@ -471,7 +471,7 @@ def make_plan(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime)
     base = forecast(values, series.start, goal.metric, horizon, seed)
     extended = forecast(values, series.start, goal.metric, MAX_HORIZON, seed)
     model = fit_twin(conn, store_id, as_of=as_of, series=series)
-    ctx = context(conn, store_id, model, horizon, series)
+    ctx = context(conn, store_id, model, horizon, series, goal.metric)
     floor = StoreSettingsRepository(conn).get_or_default(store_id).materiality.absolute
     plan = build(
         model,
