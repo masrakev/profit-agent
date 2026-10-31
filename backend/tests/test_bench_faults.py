@@ -198,6 +198,14 @@ def test_suite_composition_v3() -> None:
     assert test_seeds.isdisjoint({m.config.seed for m in load_suite("golden")})
 
 
+def test_the_outcome_suite_is_fresh() -> None:
+    fresh = load_suite("outcomes_v1")
+    assert (len(fresh), sum(m.is_healthy for m in fresh)) == (70, 30)
+    seeds = {m.config.seed for m in fresh}
+    for suite in ("dev", "test_v3", "golden"):
+        assert seeds.isdisjoint({m.config.seed for m in load_suite(suite)}), suite
+
+
 def test_underfunded_campaign_spends_less_and_sells_less(base: GeneratedStore) -> None:
     c = busiest_campaign(base)
     out = UnderfundedCampaign(campaign_id=c, budget_fraction=Decimal("0.3")).apply(base, rng())

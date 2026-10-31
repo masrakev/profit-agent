@@ -4,7 +4,8 @@ Treated series: the acted campaign's daily contribution after ads (its promoted 
 contribution margin minus its spend). Donors: every other campaign that shares no product with
 it (same series), and every product it does not promote (daily contribution margin). The effect
 over the observation window (default 7 days from the day the action took effect) is estimated by
-synthetic control (`app.causal.control`), stored as an `estimate` fact with the campaign's exact
+synthetic control (`app.causal.control`), its interval widened by the action kind's frozen
+calibration (`app.causal.calibration`), stored as an `estimate` fact with the campaign's exact
 facts before and after as parents, next to the twin's prediction for the same window (an
 estimate fact too, `predicted_fact_id`). The decision becomes `measured`; an abstention leaves it
 `executed`, to be measured again later.
@@ -19,6 +20,7 @@ from uuid import UUID, uuid4
 import numpy as np
 from sqlalchemy import Connection, text
 
+from app.causal import calibration
 from app.causal.control import ControlResult, FloatArray, synthetic_control
 from app.decisions.store import DecisionStatus, get, transition
 from app.detection.series import StoreSeries, load_series
@@ -29,7 +31,7 @@ from app.facts.model import Fact, FactKind, FactStatus, Lineage, ParentRef, Peri
 from app.twin import Action, Scenario, fit_twin, simulate
 from app.twin.facts import input_facts, simulation_facts
 
-METHOD = "synthetic_control_v1"
+METHOD = "synthetic_control_v2"  # v2: calibrated intervals
 FORMULA = "outcome.effect.contribution_after_ads"
 WINDOW_DAYS = 7
 PRE_DAYS = 84  # history searched for the regime the action interrupts (the fit: 42 at most)
@@ -110,7 +112,8 @@ def measure(
     bootstrap is seeded by the action, or by `seed` alone when given (a replayable demo)."""
     action = conn.execute(
         text(
-            "SELECT decision_id, option_id, campaign_id, kind, after_state FROM actions "
+            "SELECT decision_id, option_id, campaign_id, kind, before_state, after_state "
+            "FROM actions "
             "WHERE store_id = :s AND action_id = :a AND status = 'executed'"
         ),
         {"s": store_id, "a": action_id},
@@ -134,6 +137,7 @@ def measure(
     predicted, predicted_fact_id = _prediction(
         engine, store_id, date.fromisoformat(decision.as_of), option.actions, window_days
     )
+    key = calibration.action_key(action.kind, action.before_state, action.after_state)
     payload: dict[str, Any] = {
         "reason": result.reason,
         "pre_r2": f"{result.pre_r2:.4f}" if result.pre_r2 is not None else None,
@@ -162,7 +166,7 @@ def measure(
         ]
         for _, parent in parents:
             engine.adopt(parent)
-        p10, p50, p90 = (_decimal(x) for x in result.effect)
+        p10, p50, p90 = (_decimal(x) for x in calibration.widen(result.effect, key))
         fact = Fact(
             store_id=store_id,
             formula_id=FORMULA,
@@ -183,6 +187,7 @@ def measure(
                     {
                         "action": str(action_id),
                         "method": METHOD,
+                        "calibration": calibration.frozen()["version"],
                         "window": window_days,
                         "parents": [f.fact_hash for _, f in parents],
                     }
@@ -194,6 +199,13 @@ def measure(
         )
         fact_id = engine.persist(engine.adopt(fact)).id
         payload["effect"] = {"p10": str(p10), "p50": str(p50), "p90": str(p90)}
+        raw = [str(_decimal(x)) for x in result.effect]
+        payload["uncalibrated"] = dict(zip(("p10", "p50", "p90"), raw, strict=True))
+        payload["calibration"] = {
+            "version": calibration.frozen()["version"],
+            "key": key,
+            "widening": str(calibration.widening(key)),  # hashed payloads take no floats
+        }
         payload["actual"] = str(_decimal(result.actual or 0.0))
         payload["counterfactual"] = str(_decimal(result.counterfactual or 0.0))
     status = "measured" if fact_id is not None else "abstained"

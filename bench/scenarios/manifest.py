@@ -17,7 +17,8 @@ from bench.generator.model import Intervention, Restock
 SCENARIO_DIR = Path(__file__).resolve().parent
 # dev: tuning only. test_v3: reported once the agent and thresholds are frozen.
 # golden: named scenarios for the golden question set (bench/golden/questions.yaml).
-Suite = Literal["dev", "test_v3", "golden"]
+# outcomes_v1: fresh stores for validating the calibrated outcome intervals, reported once.
+Suite = Literal["dev", "test_v3", "golden", "outcomes_v1"]
 CONDITION_STREAM = 100  # random streams of conditions start after those of faults
 
 

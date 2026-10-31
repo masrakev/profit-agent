@@ -1,0 +1,19 @@
+{
+  "version": "conformal-v1",
+  "target": 0.8,
+  "fitted_on": [
+    "outcome-validation-dev-pause-20261031T011442Z",
+    "outcome-validation-dev-cut-20261031T011001Z",
+    "outcome-validation-dev-raise-20261031T011130Z"
+  ],
+  "n": {
+    "increase_budget": 142,
+    "pause_campaign": 142,
+    "reduce_budget": 142
+  },
+  "widening": {
+    "increase_budget": 0.1962,
+    "pause_campaign": 0.1984,
+    "reduce_budget": 0.2147
+  }
+}

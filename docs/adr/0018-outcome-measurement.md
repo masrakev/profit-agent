@@ -1,6 +1,6 @@
 # ADR 0018: Outcome measurement
 
-- Status: accepted
+- Status: accepted, amended 2026-10-31 (calibrated intervals)
 - Date: 2026-10-30
 
 ## Context
@@ -41,12 +41,30 @@ below 0.3; it was replaced, and the 0.5 threshold chosen, after the demo stockou
 it, so the threshold was set after seeing that case and is flagged for review. The decision
 stays `executed` and can be measured again later.
 
+**Calibrated intervals (Task 5, `backend/app/causal/calibration.py`).** Against the truth (the
+same store generated without the action), the residual bootstrap's P10-P90 was too narrow: it
+held the true effect 66% of the time over 426 reported estimates on every dev store, each
+action executed 14 days before the data end (64% for pauses, 68% for budget cuts, 67% for
+raises; `bench/reports/outcome-calibration.md`). Each action kind's interval is now widened in
+proportion to its own width, the median unchanged: [P10 - q w, P90 + q w], w = P90 - P10.
+`q` is the split-conformal quantile, at rank ceil((n + 1) x 0.8), of the score
+max(P10 - truth, truth - P90) / w over those dev estimates; it is never negative. Fitted once
+(`bench.outcome_calibration`) and frozen in `outcome_calibration.json` (`conformal-v1`): q is
+0.198 for pauses, 0.215 for cuts and 0.196 for raises, so intervals are about 1.4 times wider.
+A kind with no fit (a resume) gets the widest. The widening is a share of each interval's own
+width, not an amount of money, so it follows each estimate's uncertainty whatever the store's
+size. The outcome keeps the raw
+interval (`uncalibrated`) and the calibration applied (`calibration`: version, kind, q). The
+weak-fit threshold is kept at 0.5: it withholds 8% of the dev estimates, which are no less
+accurate than those it reports (dev coverage 72% above it, 66% below), and is flagged for
+review.
+
 **Records**: the effect is an `estimate` fact (`outcome.effect.contribution_after_ads`, campaign
-scope, the window as period, method `synthetic_control_v1`) with the campaign's exact facts
-(promoted contribution margin, ad spend) before and after as parents. The outcome row keeps the
-twin's prediction for the same window, re-simulated as the twin saw the store when the decision
-was proposed, so the trust ledger can compare them. A measured outcome moves the decision to
-`measured`.
+scope, the window as period, method `synthetic_control_v2`, the calibrated interval) with the
+campaign's exact facts (promoted contribution margin, ad spend) before and after as parents.
+The outcome row keeps the twin's prediction for the same window, re-simulated as the twin saw
+the store when the decision was proposed, so the trust ledger can compare them. A measured
+outcome moves the decision to `measured`.
 
 **Review answers** (`backend/app/agent/review.py`): the model explains the measured effect
 against the prediction from facts only; with no measured outcome the answer abstains
@@ -58,7 +76,8 @@ against the prediction from facts only; with no measured outcome the answer abst
 - The window measures the campaign's own contribution; spillovers to other products are only
   captured if they show in the donors (they are excluded from the donor pool when promoted by the
   same campaign).
-- On a 7-day window with daily noise, intervals are wide; the trust ledger needs many outcomes
-  before it proposes anything. In the demo the pause measured 212 / 245 / 330 against a
-  prediction of 281 / 296 / 311: the predicted median is inside the measured interval, but the
-  measured median is below the predicted P10, so the ledger counts it as a miss.
+- On a 7-day window with daily noise, intervals are wide, and calibration widens them by
+  about 40%; the trust ledger needs many outcomes before it proposes anything. The ledger
+  compares the measured median with the predicted range, so calibration does not change its
+  counts. In the demo (`bench/reports/demo-stockout.md`) the pause measured 266 / 317 / 405
+  against a prediction of 302 / 316 / 331: both medians are inside the other's range.

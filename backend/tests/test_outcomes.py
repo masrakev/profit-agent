@@ -114,6 +114,11 @@ def test_an_executed_pause_is_measured_after_its_window(
         effect = {k: Decimal(v) for k, v in outcome["effect"].items()}
         assert effect["p10"] <= effect["p50"] <= effect["p90"]
         assert outcome["effect_fact_id"] is not None
+        assert outcome["calibration"]["key"] == "pause_campaign"
+        raw = {k: Decimal(v) for k, v in outcome["uncalibrated"].items()}
+        assert effect["p10"] <= raw["p10"]  # widened, not moved
+        assert raw["p90"] <= effect["p90"]
+        assert effect["p50"] == raw["p50"]
     else:
         assert status is DecisionStatus.EXECUTED
         assert outcome["reason"] == "the pre-period fit is too weak"

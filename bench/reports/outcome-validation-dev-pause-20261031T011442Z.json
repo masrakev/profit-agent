@@ -1,0 +1,2968 @@
+{
+  "run_id": "outcome-validation-dev-pause-20261031T011442Z",
+  "suite": "dev",
+  "calibration": "uncalibrated",
+  "summary": {
+    "cases": 154,
+    "measured": 142,
+    "abstention_rate": 0.078,
+    "abstained_because": {
+      "the pre-period fit is too weak": 12
+    },
+    "measured_intervals": {
+      "n": 142,
+      "coverage": 0.641,
+      "bias": -17.43,
+      "mae": 544.91,
+      "median_abs_error": 416.06
+    },
+    "raw_intervals": {
+      "n": 142,
+      "coverage": 0.641,
+      "bias": -17.43,
+      "mae": 544.91,
+      "median_abs_error": 416.06
+    },
+    "calibrated": false,
+    "by_action": {
+      "pause": {
+        "n": 142,
+        "coverage": 0.641,
+        "bias": -17.43,
+        "mae": 544.91,
+        "median_abs_error": 416.06,
+        "raw_coverage": 0.641
+      },
+      "budget -30%": {
+        "n": 0,
+        "raw_coverage": null
+      },
+      "budget +20%": {
+        "n": 0,
+        "raw_coverage": null
+      }
+    },
+    "unthresholded_by_relative_error": [
+      {
+        "band": [
+          0.0,
+          0.25
+        ],
+        "n": 33,
+        "coverage": 0.606,
+        "bias": -296.47,
+        "mae": 577.47,
+        "median_abs_error": 504.09
+      },
+      {
+        "band": [
+          0.25,
+          0.5
+        ],
+        "n": 109,
+        "coverage": 0.651,
+        "bias": 67.05,
+        "mae": 535.06,
+        "median_abs_error": 392.4
+      },
+      {
+        "band": [
+          0.5,
+          1.0
+        ],
+        "n": 12,
+        "coverage": 0.75,
+        "bias": -152.06,
+        "mae": 377.8,
+        "median_abs_error": 278.41
+      },
+      {
+        "band": [
+          1.0,
+          Infinity
+        ],
+        "n": 0
+      }
+    ]
+  },
+  "cases": [
+    {
+      "scenario": "dev-cannibalization-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3096,
+      "measured": [
+        -2221.68,
+        -1779.84,
+        -1474.89
+      ],
+      "unthresholded": [
+        -2221.68,
+        -1779.84,
+        -1474.89
+      ],
+      "truth": -2350.15,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3543,
+      "measured": [
+        -3135.96,
+        -2212.58,
+        -1676.22
+      ],
+      "unthresholded": [
+        -3135.96,
+        -2212.58,
+        -1676.22
+      ],
+      "truth": -1717.69,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2885,
+      "measured": [
+        883.47,
+        1614.88,
+        3052.7
+      ],
+      "unthresholded": [
+        883.47,
+        1614.88,
+        3052.7
+      ],
+      "truth": 1447.18,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3309,
+      "measured": [
+        -2125.48,
+        -1878.85,
+        -1609.69
+      ],
+      "unthresholded": [
+        -2125.48,
+        -1878.85,
+        -1609.69
+      ],
+      "truth": -1755.96,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3157,
+      "measured": [
+        -1849.87,
+        -1310.78,
+        -881.85
+      ],
+      "unthresholded": [
+        -1849.87,
+        -1310.78,
+        -881.85
+      ],
+      "truth": -935.99,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2222,
+      "measured": [
+        -1031.2,
+        -522.24,
+        359.44
+      ],
+      "unthresholded": [
+        -1031.2,
+        -522.24,
+        359.44
+      ],
+      "truth": -707.73,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4614,
+      "measured": [
+        -657.43,
+        -29.65,
+        678.61
+      ],
+      "unthresholded": [
+        -657.43,
+        -29.65,
+        678.61
+      ],
+      "truth": -951.33,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-08",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4392,
+      "measured": [
+        -1016.45,
+        -627.96,
+        -65.35
+      ],
+      "unthresholded": [
+        -1016.45,
+        -627.96,
+        -65.35
+      ],
+      "truth": -546.88,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2429,
+      "measured": [
+        -5225.68,
+        -4893.38,
+        -4298.31
+      ],
+      "unthresholded": [
+        -5225.68,
+        -4893.38,
+        -4298.31
+      ],
+      "truth": -4982.08,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-10",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4152,
+      "measured": [
+        -945.95,
+        -699.23,
+        -211.78
+      ],
+      "unthresholded": [
+        -945.95,
+        -699.23,
+        -211.78
+      ],
+      "truth": -784.79,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3088,
+      "measured": [
+        -2724.02,
+        -2388.34,
+        -2076.02
+      ],
+      "unthresholded": [
+        -2724.02,
+        -2388.34,
+        -2076.02
+      ],
+      "truth": -2911.49,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.267,
+      "measured": [
+        -1620.88,
+        -372.3,
+        172.41
+      ],
+      "unthresholded": [
+        -1620.88,
+        -372.3,
+        172.41
+      ],
+      "truth": -529.5,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cannibalization-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2982,
+      "measured": [
+        -1965.38,
+        -1230.63,
+        -350.66
+      ],
+      "unthresholded": [
+        -1965.38,
+        -1230.63,
+        -350.66
+      ],
+      "truth": -2227.91,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4164,
+      "measured": [
+        -1814.11,
+        -1311.58,
+        -826.74
+      ],
+      "unthresholded": [
+        -1814.11,
+        -1311.58,
+        -826.74
+      ],
+      "truth": -1768.41,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3307,
+      "measured": [
+        -619.19,
+        117.93,
+        523.96
+      ],
+      "unthresholded": [
+        -619.19,
+        117.93,
+        523.96
+      ],
+      "truth": -183.6,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2545,
+      "measured": [
+        -1911.65,
+        -1022.6,
+        -550.05
+      ],
+      "unthresholded": [
+        -1911.65,
+        -1022.6,
+        -550.05
+      ],
+      "truth": -1286.28,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3647,
+      "measured": [
+        -2365.0,
+        -1414.28,
+        -126.25
+      ],
+      "unthresholded": [
+        -2365.0,
+        -1414.28,
+        -126.25
+      ],
+      "truth": -2784.21,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2598,
+      "measured": [
+        -2130.63,
+        -1714.03,
+        -1046.02
+      ],
+      "unthresholded": [
+        -2130.63,
+        -1714.03,
+        -1046.02
+      ],
+      "truth": -1470.48,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3695,
+      "measured": [
+        -794.94,
+        -527.49,
+        -266.68
+      ],
+      "unthresholded": [
+        -794.94,
+        -527.49,
+        -266.68
+      ],
+      "truth": -914.7,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2832,
+      "measured": [
+        -3258.52,
+        -2619.77,
+        -2122.12
+      ],
+      "unthresholded": [
+        -3258.52,
+        -2619.77,
+        -2122.12
+      ],
+      "truth": -3344.65,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-08",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3756,
+      "measured": [
+        -1642.02,
+        -1036.06,
+        -41.96
+      ],
+      "unthresholded": [
+        -1642.02,
+        -1036.06,
+        -41.96
+      ],
+      "truth": -655.31,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2361,
+      "measured": [
+        -3407.48,
+        -2616.02,
+        -1709.63
+      ],
+      "unthresholded": [
+        -3407.48,
+        -2616.02,
+        -1709.63
+      ],
+      "truth": -2849.89,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-10",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.37,
+      "measured": [
+        -2488.97,
+        -1434.14,
+        -473.46
+      ],
+      "unthresholded": [
+        -2488.97,
+        -1434.14,
+        -473.46
+      ],
+      "truth": -1041.74,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4301,
+      "measured": [
+        -895.44,
+        -223.74,
+        850.72
+      ],
+      "unthresholded": [
+        -895.44,
+        -223.74,
+        850.72
+      ],
+      "truth": -1172.9,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2996,
+      "measured": [
+        -1387.17,
+        258.87,
+        1861.59
+      ],
+      "unthresholded": [
+        -1387.17,
+        258.87,
+        1861.59
+      ],
+      "truth": -148.01,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-cpa_drift-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4463,
+      "measured": [
+        -693.5,
+        -397.19,
+        -56.11
+      ],
+      "unthresholded": [
+        -693.5,
+        -397.19,
+        -56.11
+      ],
+      "truth": -557.84,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.229,
+      "measured": [
+        -3872.26,
+        -2841.71,
+        -2314.16
+      ],
+      "unthresholded": [
+        -3872.26,
+        -2841.71,
+        -2314.16
+      ],
+      "truth": -2283.59,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1651,
+      "measured": [
+        -3719.09,
+        -3150.05,
+        -2637.81
+      ],
+      "unthresholded": [
+        -3719.09,
+        -3150.05,
+        -2637.81
+      ],
+      "truth": -294.45,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3119,
+      "measured": [
+        -2972.97,
+        -1025.97,
+        -492.9
+      ],
+      "unthresholded": [
+        -2972.97,
+        -1025.97,
+        -492.9
+      ],
+      "truth": -2977.68,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.361,
+      "measured": [
+        -2309.94,
+        -1460.13,
+        -810.53
+      ],
+      "unthresholded": [
+        -2309.94,
+        -1460.13,
+        -810.53
+      ],
+      "truth": -1314.29,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2084,
+      "measured": [
+        -1577.65,
+        -1080.52,
+        -478.4
+      ],
+      "unthresholded": [
+        -1577.65,
+        -1080.52,
+        -478.4
+      ],
+      "truth": -738.71,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2523,
+      "measured": [
+        -3776.83,
+        -3359.63,
+        -3042.57
+      ],
+      "unthresholded": [
+        -3776.83,
+        -3359.63,
+        -3042.57
+      ],
+      "truth": -2560.36,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3067,
+      "measured": [
+        -4804.54,
+        -4456.72,
+        -3899.29
+      ],
+      "unthresholded": [
+        -4804.54,
+        -4456.72,
+        -3899.29
+      ],
+      "truth": -4141.51,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-08",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.274,
+      "measured": [
+        -4210.35,
+        -3535.25,
+        -3013.14
+      ],
+      "unthresholded": [
+        -4210.35,
+        -3535.25,
+        -3013.14
+      ],
+      "truth": -2749.97,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2849,
+      "measured": [
+        -1830.61,
+        -358.69,
+        547.91
+      ],
+      "unthresholded": [
+        -1830.61,
+        -358.69,
+        547.91
+      ],
+      "truth": -783.93,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-10",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.5401,
+      "measured": null,
+      "unthresholded": [
+        -2193.52525141747,
+        -1639.954497038899,
+        -1265.0389465609226
+      ],
+      "truth": -532.84,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2781,
+      "measured": [
+        -904.24,
+        440.38,
+        1036.27
+      ],
+      "unthresholded": [
+        -904.24,
+        440.38,
+        1036.27
+      ],
+      "truth": -743.16,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3052,
+      "measured": [
+        -2287.95,
+        -1754.08,
+        -1410.18
+      ],
+      "unthresholded": [
+        -2287.95,
+        -1754.08,
+        -1410.18
+      ],
+      "truth": -968.18,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-fee_increase-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2743,
+      "measured": [
+        -2662.28,
+        -1688.19,
+        -844.55
+      ],
+      "unthresholded": [
+        -2662.28,
+        -1688.19,
+        -844.55
+      ],
+      "truth": -2131.71,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.247,
+      "measured": [
+        -4270.64,
+        -3425.33,
+        -2987.9
+      ],
+      "unthresholded": [
+        -4270.64,
+        -3425.33,
+        -2987.9
+      ],
+      "truth": -3411.76,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3413,
+      "measured": [
+        -1291.81,
+        -819.09,
+        -245.03
+      ],
+      "unthresholded": [
+        -1291.81,
+        -819.09,
+        -245.03
+      ],
+      "truth": -724.93,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2021,
+      "measured": [
+        -6282.61,
+        -4855.81,
+        -3393.75
+      ],
+      "unthresholded": [
+        -6282.61,
+        -4855.81,
+        -3393.75
+      ],
+      "truth": -4301.48,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3073,
+      "measured": [
+        -803.34,
+        -662.58,
+        -337.26
+      ],
+      "unthresholded": [
+        -803.34,
+        -662.58,
+        -337.26
+      ],
+      "truth": -707.21,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2799,
+      "measured": [
+        -3079.5,
+        -1731.17,
+        -1313.32
+      ],
+      "unthresholded": [
+        -3079.5,
+        -1731.17,
+        -1313.32
+      ],
+      "truth": -2203.82,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2712,
+      "measured": [
+        -4682.2,
+        -3790.62,
+        -2265.31
+      ],
+      "unthresholded": [
+        -4682.2,
+        -3790.62,
+        -2265.31
+      ],
+      "truth": -3829.8,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2367,
+      "measured": [
+        -1756.52,
+        -1570.31,
+        -1410.79
+      ],
+      "unthresholded": [
+        -1756.52,
+        -1570.31,
+        -1410.79
+      ],
+      "truth": -2275.63,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-08",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3772,
+      "measured": [
+        -2128.12,
+        -1738.03,
+        -1094.75
+      ],
+      "unthresholded": [
+        -2128.12,
+        -1738.03,
+        -1094.75
+      ],
+      "truth": -1621.92,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2722,
+      "measured": [
+        -2683.27,
+        -2370.15,
+        -1853.1
+      ],
+      "unthresholded": [
+        -2683.27,
+        -2370.15,
+        -1853.1
+      ],
+      "truth": -3401.84,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-10",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.502,
+      "measured": null,
+      "unthresholded": [
+        -1132.903690829842,
+        -797.7139060486062,
+        -144.4762315131194
+      ],
+      "truth": -642.06,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2882,
+      "measured": [
+        -4928.54,
+        -3933.13,
+        -3090.99
+      ],
+      "unthresholded": [
+        -4928.54,
+        -3933.13,
+        -3090.99
+      ],
+      "truth": -4755.32,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2479,
+      "measured": [
+        -3511.57,
+        -2179.39,
+        -1138.58
+      ],
+      "unthresholded": [
+        -3511.57,
+        -2179.39,
+        -1138.58
+      ],
+      "truth": -1305.3,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2995,
+      "measured": [
+        -2085.77,
+        -1409.06,
+        -977.48
+      ],
+      "unthresholded": [
+        -2085.77,
+        -1409.06,
+        -977.48
+      ],
+      "truth": -918.54,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-14",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.27,
+      "measured": [
+        -2075.33,
+        -1288.23,
+        284.72
+      ],
+      "unthresholded": [
+        -2075.33,
+        -1288.23,
+        284.72
+      ],
+      "truth": -1447.38,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-15",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.228,
+      "measured": [
+        -4181.35,
+        -3739.62,
+        -3284.83
+      ],
+      "unthresholded": [
+        -4181.35,
+        -3739.62,
+        -3284.83
+      ],
+      "truth": -3035.32,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-16",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.6339,
+      "measured": null,
+      "unthresholded": [
+        -991.9749095868108,
+        -777.5469483866889,
+        -311.2874248841919
+      ],
+      "truth": -979.8,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-17",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4004,
+      "measured": [
+        -2179.75,
+        -1231.01,
+        -139.73
+      ],
+      "unthresholded": [
+        -2179.75,
+        -1231.01,
+        -139.73
+      ],
+      "truth": -956.58,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-18",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4486,
+      "measured": [
+        -2320.38,
+        -1207.22,
+        -534.06
+      ],
+      "unthresholded": [
+        -2320.38,
+        -1207.22,
+        -534.06
+      ],
+      "truth": -1051.14,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-19",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.197,
+      "measured": [
+        -2356.66,
+        -1681.44,
+        -815.45
+      ],
+      "unthresholded": [
+        -2356.66,
+        -1681.44,
+        -815.45
+      ],
+      "truth": -979.96,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-20",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3472,
+      "measured": [
+        -2914.67,
+        -1938.39,
+        -1542.35
+      ],
+      "unthresholded": [
+        -2914.67,
+        -1938.39,
+        -1542.35
+      ],
+      "truth": -2586.97,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-21",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2564,
+      "measured": [
+        -2736.46,
+        -2191.64,
+        -1830.9
+      ],
+      "unthresholded": [
+        -2736.46,
+        -2191.64,
+        -1830.9
+      ],
+      "truth": -2140.36,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-22",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2503,
+      "measured": [
+        -1503.21,
+        -1230.36,
+        -795.59
+      ],
+      "unthresholded": [
+        -1503.21,
+        -1230.36,
+        -795.59
+      ],
+      "truth": -1526.02,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-23",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.268,
+      "measured": [
+        -1381.71,
+        -315.3,
+        600.72
+      ],
+      "unthresholded": [
+        -1381.71,
+        -315.3,
+        600.72
+      ],
+      "truth": -1201.93,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-24",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3483,
+      "measured": [
+        -5120.88,
+        -4291.84,
+        -3331.37
+      ],
+      "unthresholded": [
+        -5120.88,
+        -4291.84,
+        -3331.37
+      ],
+      "truth": -4613.36,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-25",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2449,
+      "measured": [
+        -4154.14,
+        -3082.15,
+        -2429.99
+      ],
+      "unthresholded": [
+        -4154.14,
+        -3082.15,
+        -2429.99
+      ],
+      "truth": -2978.41,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-26",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3089,
+      "measured": [
+        -1070.68,
+        -391.06,
+        415.75
+      ],
+      "unthresholded": [
+        -1070.68,
+        -391.06,
+        415.75
+      ],
+      "truth": -768.46,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-27",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.5322,
+      "measured": null,
+      "unthresholded": [
+        -539.9213365556286,
+        -298.14456188179634,
+        -213.22327520233694
+      ],
+      "truth": -340.0,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-28",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.5406,
+      "measured": null,
+      "unthresholded": [
+        -1510.2359701850175,
+        -712.0215282278004,
+        -112.08608492836913
+      ],
+      "truth": -1345.35,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-29",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.27,
+      "measured": [
+        -4159.76,
+        -3131.45,
+        -2136.54
+      ],
+      "unthresholded": [
+        -4159.76,
+        -3131.45,
+        -2136.54
+      ],
+      "truth": -3914.46,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-30",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2892,
+      "measured": [
+        -3121.05,
+        -2617.77,
+        -1925.71
+      ],
+      "unthresholded": [
+        -3121.05,
+        -2617.77,
+        -1925.71
+      ],
+      "truth": -3789.21,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-31",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3153,
+      "measured": [
+        -1312.99,
+        -903.17,
+        -385.86
+      ],
+      "unthresholded": [
+        -1312.99,
+        -903.17,
+        -385.86
+      ],
+      "truth": -784.28,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-32",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.6773,
+      "measured": null,
+      "unthresholded": [
+        -1209.9781287032924,
+        -690.1934954403392,
+        126.53297210155165
+      ],
+      "truth": -1164.4,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-33",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3423,
+      "measured": [
+        -5811.51,
+        -5240.6,
+        -4385.22
+      ],
+      "unthresholded": [
+        -5811.51,
+        -5240.6,
+        -4385.22
+      ],
+      "truth": -5981.59,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-34",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2728,
+      "measured": [
+        -3182.21,
+        -2285.31,
+        -1779.07
+      ],
+      "unthresholded": [
+        -3182.21,
+        -2285.31,
+        -1779.07
+      ],
+      "truth": -3374.49,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-35",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4721,
+      "measured": [
+        -670.64,
+        -250.84,
+        173.14
+      ],
+      "unthresholded": [
+        -670.64,
+        -250.84,
+        173.14
+      ],
+      "truth": -266.03,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-36",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4003,
+      "measured": [
+        -2406.69,
+        -1489.26,
+        -699.6
+      ],
+      "unthresholded": [
+        -2406.69,
+        -1489.26,
+        -699.6
+      ],
+      "truth": -1834.76,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-37",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2486,
+      "measured": [
+        -3131.23,
+        -2595.56,
+        -2107.56
+      ],
+      "unthresholded": [
+        -3131.23,
+        -2595.56,
+        -2107.56
+      ],
+      "truth": -2595.29,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-38",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3263,
+      "measured": [
+        -1579.55,
+        -1184.48,
+        -420.54
+      ],
+      "unthresholded": [
+        -1579.55,
+        -1184.48,
+        -420.54
+      ],
+      "truth": -583.75,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-39",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3169,
+      "measured": [
+        -1655.64,
+        -1393.56,
+        -1101.02
+      ],
+      "unthresholded": [
+        -1655.64,
+        -1393.56,
+        -1101.02
+      ],
+      "truth": -1612.22,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-40",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2338,
+      "measured": [
+        -1463.04,
+        -553.79,
+        -33.6
+      ],
+      "unthresholded": [
+        -1463.04,
+        -553.79,
+        -33.6
+      ],
+      "truth": -150.26,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-41",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3832,
+      "measured": [
+        -3090.42,
+        -1756.87,
+        -577.46
+      ],
+      "unthresholded": [
+        -3090.42,
+        -1756.87,
+        -577.46
+      ],
+      "truth": -2483.78,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-42",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2921,
+      "measured": [
+        -2013.34,
+        -1381.61,
+        -829.24
+      ],
+      "unthresholded": [
+        -2013.34,
+        -1381.61,
+        -829.24
+      ],
+      "truth": -453.89,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-43",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3434,
+      "measured": [
+        -2769.62,
+        -2045.28,
+        -1657.64
+      ],
+      "unthresholded": [
+        -2769.62,
+        -2045.28,
+        -1657.64
+      ],
+      "truth": -3518.94,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-44",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4569,
+      "measured": [
+        -3086.58,
+        -2383.52,
+        -1234.26
+      ],
+      "unthresholded": [
+        -3086.58,
+        -2383.52,
+        -1234.26
+      ],
+      "truth": -1854.71,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-45",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2561,
+      "measured": [
+        -2227.45,
+        -1512.31,
+        -1002.06
+      ],
+      "unthresholded": [
+        -2227.45,
+        -1512.31,
+        -1002.06
+      ],
+      "truth": -972.3,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-46",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2734,
+      "measured": [
+        -3773.69,
+        -3310.87,
+        -2959.59
+      ],
+      "unthresholded": [
+        -3773.69,
+        -3310.87,
+        -2959.59
+      ],
+      "truth": -3240.19,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-47",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4541,
+      "measured": [
+        -1018.77,
+        -646.3,
+        -360.83
+      ],
+      "unthresholded": [
+        -1018.77,
+        -646.3,
+        -360.83
+      ],
+      "truth": -757.52,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-48",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2062,
+      "measured": [
+        -4277.76,
+        -3577.46,
+        -2534.02
+      ],
+      "unthresholded": [
+        -4277.76,
+        -3577.46,
+        -2534.02
+      ],
+      "truth": -3723.82,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-49",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1911,
+      "measured": [
+        -1686.46,
+        -801.24,
+        -317.83
+      ],
+      "unthresholded": [
+        -1686.46,
+        -801.24,
+        -317.83
+      ],
+      "truth": -1256.2,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-healthy-50",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.316,
+      "measured": [
+        -2145.57,
+        -1881.55,
+        -1366.08
+      ],
+      "unthresholded": [
+        -2145.57,
+        -1881.55,
+        -1366.08
+      ],
+      "truth": -2204.44,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2728,
+      "measured": [
+        -1325.58,
+        -693.07,
+        218.03
+      ],
+      "unthresholded": [
+        -1325.58,
+        -693.07,
+        218.03
+      ],
+      "truth": -1013.1,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2843,
+      "measured": [
+        -616.23,
+        -309.73,
+        136.41
+      ],
+      "unthresholded": [
+        -616.23,
+        -309.73,
+        136.41
+      ],
+      "truth": -704.46,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4895,
+      "measured": [
+        -1430.18,
+        -1120.57,
+        -714.34
+      ],
+      "unthresholded": [
+        -1430.18,
+        -1120.57,
+        -714.34
+      ],
+      "truth": -1329.06,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2912,
+      "measured": [
+        -3247.65,
+        -2589.53,
+        -2205.29
+      ],
+      "unthresholded": [
+        -3247.65,
+        -2589.53,
+        -2205.29
+      ],
+      "truth": -2324.32,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2563,
+      "measured": [
+        -2061.74,
+        -1554.4,
+        -753.53
+      ],
+      "unthresholded": [
+        -2061.74,
+        -1554.4,
+        -753.53
+      ],
+      "truth": -1084.71,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3151,
+      "measured": [
+        -170.4,
+        936.05,
+        1477.66
+      ],
+      "unthresholded": [
+        -170.4,
+        936.05,
+        1477.66
+      ],
+      "truth": -623.86,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2399,
+      "measured": [
+        -1278.14,
+        -912.92,
+        -474.86
+      ],
+      "unthresholded": [
+        -1278.14,
+        -912.92,
+        -474.86
+      ],
+      "truth": -1564.16,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-08",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4224,
+      "measured": [
+        -1179.07,
+        -850.91,
+        -539.69
+      ],
+      "unthresholded": [
+        -1179.07,
+        -850.91,
+        -539.69
+      ],
+      "truth": -724.95,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1784,
+      "measured": [
+        -2807.88,
+        -2197.82,
+        -1190.31
+      ],
+      "unthresholded": [
+        -2807.88,
+        -2197.82,
+        -1190.31
+      ],
+      "truth": -2808.43,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-10",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2311,
+      "measured": [
+        -2728.57,
+        -2360.3,
+        -1972.33
+      ],
+      "unthresholded": [
+        -2728.57,
+        -2360.3,
+        -1972.33
+      ],
+      "truth": -956.31,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2708,
+      "measured": [
+        -1527.63,
+        -1251.98,
+        -986.37
+      ],
+      "unthresholded": [
+        -1527.63,
+        -1251.98,
+        -986.37
+      ],
+      "truth": -1195.88,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4108,
+      "measured": [
+        -1274.62,
+        -828.09,
+        -460.29
+      ],
+      "unthresholded": [
+        -1274.62,
+        -828.09,
+        -460.29
+      ],
+      "truth": -1619.02,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-mix_shift-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.222,
+      "measured": [
+        -2606.26,
+        -2190.34,
+        -1564.91
+      ],
+      "unthresholded": [
+        -2606.26,
+        -2190.34,
+        -1564.91
+      ],
+      "truth": -1919.33,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.275,
+      "measured": [
+        -1921.81,
+        -1674.54,
+        -1059.2
+      ],
+      "unthresholded": [
+        -1921.81,
+        -1674.54,
+        -1059.2
+      ],
+      "truth": -1499.68,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.256,
+      "measured": [
+        -3157.62,
+        -2398.31,
+        -2070.97
+      ],
+      "unthresholded": [
+        -3157.62,
+        -2398.31,
+        -2070.97
+      ],
+      "truth": -2416.91,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.241,
+      "measured": [
+        -1067.77,
+        -123.4,
+        405.53
+      ],
+      "unthresholded": [
+        -1067.77,
+        -123.4,
+        405.53
+      ],
+      "truth": 61.09,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1919,
+      "measured": [
+        -5901.28,
+        -4664.83,
+        -3295.38
+      ],
+      "unthresholded": [
+        -5901.28,
+        -4664.83,
+        -3295.38
+      ],
+      "truth": -4229.2,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2682,
+      "measured": [
+        -1748.73,
+        -1070.31,
+        -476.17
+      ],
+      "unthresholded": [
+        -1748.73,
+        -1070.31,
+        -476.17
+      ],
+      "truth": -2202.43,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2378,
+      "measured": [
+        -4038.07,
+        -2687.64,
+        -2142.11
+      ],
+      "unthresholded": [
+        -4038.07,
+        -2687.64,
+        -2142.11
+      ],
+      "truth": -2033.41,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.336,
+      "measured": [
+        -1815.54,
+        -1597.41,
+        -988.69
+      ],
+      "unthresholded": [
+        -1815.54,
+        -1597.41,
+        -988.69
+      ],
+      "truth": -1422.94,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-08",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.5603,
+      "measured": null,
+      "unthresholded": [
+        -1186.1130337100826,
+        -865.930388211432,
+        -566.8817649325324
+      ],
+      "truth": -511.36,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2195,
+      "measured": [
+        -483.74,
+        -214.27,
+        152.18
+      ],
+      "unthresholded": [
+        -483.74,
+        -214.27,
+        152.18
+      ],
+      "truth": -69.09,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-10",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2551,
+      "measured": [
+        -2057.43,
+        -1439.03,
+        -259.83
+      ],
+      "unthresholded": [
+        -2057.43,
+        -1439.03,
+        -259.83
+      ],
+      "truth": 386.54,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-11",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.502,
+      "measured": null,
+      "unthresholded": [
+        -3216.7232816405344,
+        -2369.0316304184685,
+        -1771.210451837809
+      ],
+      "truth": -1727.63,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3968,
+      "measured": [
+        -2270.36,
+        -1964.5,
+        -1030.82
+      ],
+      "unthresholded": [
+        -2270.36,
+        -1964.5,
+        -1030.82
+      ],
+      "truth": -1234.56,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-refund_spike-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4069,
+      "measured": [
+        -518.21,
+        65.88,
+        890.36
+      ],
+      "unthresholded": [
+        -518.21,
+        65.88,
+        890.36
+      ],
+      "truth": 683.95,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2452,
+      "measured": [
+        -3583.1,
+        -2529.17,
+        -1733.69
+      ],
+      "unthresholded": [
+        -3583.1,
+        -2529.17,
+        -1733.69
+      ],
+      "truth": -3033.26,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.451,
+      "measured": [
+        -332.54,
+        -37.3,
+        119.74
+      ],
+      "unthresholded": [
+        -332.54,
+        -37.3,
+        119.74
+      ],
+      "truth": -422.23,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2505,
+      "measured": [
+        -2067.1,
+        -1019.93,
+        202.87
+      ],
+      "unthresholded": [
+        -2067.1,
+        -1019.93,
+        202.87
+      ],
+      "truth": 425.85,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.382,
+      "measured": [
+        -943.89,
+        -743.02,
+        -304.61
+      ],
+      "unthresholded": [
+        -943.89,
+        -743.02,
+        -304.61
+      ],
+      "truth": -709.87,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1682,
+      "measured": [
+        -6719.44,
+        -5817.04,
+        -4542.48
+      ],
+      "unthresholded": [
+        -6719.44,
+        -5817.04,
+        -4542.48
+      ],
+      "truth": -4241.07,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2998,
+      "measured": [
+        -3266.12,
+        -2548.58,
+        -2008.76
+      ],
+      "unthresholded": [
+        -3266.12,
+        -2548.58,
+        -2008.76
+      ],
+      "truth": -2306.05,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3318,
+      "measured": [
+        -2454.25,
+        -1349.02,
+        -454.6
+      ],
+      "unthresholded": [
+        -2454.25,
+        -1349.02,
+        -454.6
+      ],
+      "truth": -882.26,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-08",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.6009,
+      "measured": null,
+      "unthresholded": [
+        -1859.849943016461,
+        -891.2906232083035,
+        -183.1682699034959
+      ],
+      "truth": -733.34,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2395,
+      "measured": [
+        -4365.44,
+        -3649.8,
+        -3215.54
+      ],
+      "unthresholded": [
+        -4365.44,
+        -3649.8,
+        -3215.54
+      ],
+      "truth": -3140.68,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-10",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2477,
+      "measured": [
+        -753.48,
+        233.29,
+        1140.43
+      ],
+      "unthresholded": [
+        -753.48,
+        233.29,
+        1140.43
+      ],
+      "truth": -822.46,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3678,
+      "measured": [
+        -1839.55,
+        -1392.88,
+        -696.95
+      ],
+      "unthresholded": [
+        -1839.55,
+        -1392.88,
+        -696.95
+      ],
+      "truth": -1627.51,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-12",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.6072,
+      "measured": null,
+      "unthresholded": [
+        302.018269501008,
+        511.03867968725956,
+        1145.7215786884499
+      ],
+      "truth": 508.2,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-stockout_on_promoted-13",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.9451,
+      "measured": null,
+      "unthresholded": [
+        -1292.629092372949,
+        -706.5927117247694,
+        134.86512886552566
+      ],
+      "truth": -504.83,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2584,
+      "measured": [
+        -1394.44,
+        -288.95,
+        961.91
+      ],
+      "unthresholded": [
+        -1394.44,
+        -288.95,
+        961.91
+      ],
+      "truth": -2000.09,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2882,
+      "measured": [
+        -4579.35,
+        -3211.92,
+        -2361.8
+      ],
+      "unthresholded": [
+        -4579.35,
+        -3211.92,
+        -2361.8
+      ],
+      "truth": -2633.02,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4104,
+      "measured": [
+        -2522.27,
+        -1932.22,
+        -1400.6
+      ],
+      "unthresholded": [
+        -2522.27,
+        -1932.22,
+        -1400.6
+      ],
+      "truth": -1099.27,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.211,
+      "measured": [
+        -2324.98,
+        -1888.62,
+        -1509.17
+      ],
+      "unthresholded": [
+        -2324.98,
+        -1888.62,
+        -1509.17
+      ],
+      "truth": -1562.74,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.305,
+      "measured": [
+        -4383.76,
+        -3588.77,
+        -2975.08
+      ],
+      "unthresholded": [
+        -4383.76,
+        -3588.77,
+        -2975.08
+      ],
+      "truth": -3496.33,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2877,
+      "measured": [
+        -2400.41,
+        -1602.85,
+        -380.86
+      ],
+      "unthresholded": [
+        -2400.41,
+        -1602.85,
+        -380.86
+      ],
+      "truth": -1608.84,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2713,
+      "measured": [
+        -3049.02,
+        -2112.86,
+        -1393.79
+      ],
+      "unthresholded": [
+        -3049.02,
+        -2112.86,
+        -1393.79
+      ],
+      "truth": -2258.48,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-08",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2929,
+      "measured": [
+        -2714.86,
+        -2115.61,
+        -1616.67
+      ],
+      "unthresholded": [
+        -2714.86,
+        -2115.61,
+        -1616.67
+      ],
+      "truth": -2025.49,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-09",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2696,
+      "measured": [
+        -3377.96,
+        -2728.06,
+        -2183.8
+      ],
+      "unthresholded": [
+        -3377.96,
+        -2728.06,
+        -2183.8
+      ],
+      "truth": -1823.66,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-10",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1386,
+      "measured": [
+        -4848.5,
+        -4502.91,
+        -4377.63
+      ],
+      "unthresholded": [
+        -4848.5,
+        -4502.91,
+        -4377.63
+      ],
+      "truth": -3500.87,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3331,
+      "measured": [
+        -1987.4,
+        -1737.04,
+        -1384.63
+      ],
+      "unthresholded": [
+        -1987.4,
+        -1737.04,
+        -1384.63
+      ],
+      "truth": -1579.1,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4098,
+      "measured": [
+        -1977.11,
+        -1185.19,
+        -489.35
+      ],
+      "unthresholded": [
+        -1977.11,
+        -1185.19,
+        -489.35
+      ],
+      "truth": -1280.66,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-supplier_cost_increase-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2691,
+      "measured": [
+        -2886.17,
+        -2293.48,
+        -1335.36
+      ],
+      "unthresholded": [
+        -2886.17,
+        -2293.48,
+        -1335.36
+      ],
+      "truth": -1524.19,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-01",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2593,
+      "measured": [
+        -1785.3,
+        -1459.16,
+        -1015.24
+      ],
+      "unthresholded": [
+        -1785.3,
+        -1459.16,
+        -1015.24
+      ],
+      "truth": -922.39,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-02",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3419,
+      "measured": [
+        -3120.35,
+        -2663.86,
+        -2159.8
+      ],
+      "unthresholded": [
+        -3120.35,
+        -2663.86,
+        -2159.8
+      ],
+      "truth": -2646.0,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-03",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2526,
+      "measured": [
+        -2022.14,
+        -1510.6,
+        -706.31
+      ],
+      "unthresholded": [
+        -2022.14,
+        -1510.6,
+        -706.31
+      ],
+      "truth": 172.34,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-04",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4278,
+      "measured": [
+        -3126.8,
+        -1433.75,
+        -1060.12
+      ],
+      "unthresholded": [
+        -3126.8,
+        -1433.75,
+        -1060.12
+      ],
+      "truth": -1555.33,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-05",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3179,
+      "measured": [
+        -433.1,
+        122.13,
+        539.4
+      ],
+      "unthresholded": [
+        -433.1,
+        122.13,
+        539.4
+      ],
+      "truth": -757.63,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-06",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2866,
+      "measured": [
+        -3962.15,
+        -2963.7,
+        -2246.95
+      ],
+      "unthresholded": [
+        -3962.15,
+        -2963.7,
+        -2246.95
+      ],
+      "truth": -800.7,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-07",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.25,
+      "measured": [
+        -10451.61,
+        -9296.62,
+        -7980.06
+      ],
+      "unthresholded": [
+        -10451.61,
+        -9296.62,
+        -7980.06
+      ],
+      "truth": -7905.58,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-08",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3419,
+      "measured": [
+        -2637.27,
+        -2126.74,
+        -1646.12
+      ],
+      "unthresholded": [
+        -2637.27,
+        -2126.74,
+        -1646.12
+      ],
+      "truth": -1940.36,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-09",
+      "action": "pause",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.506,
+      "measured": null,
+      "unthresholded": [
+        -2289.4194919636884,
+        -1767.368575784976,
+        -1073.6580971128556
+      ],
+      "truth": -1206.67,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-10",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1623,
+      "measured": [
+        -1110.11,
+        -958.69,
+        -738.79
+      ],
+      "unthresholded": [
+        -1110.11,
+        -958.69,
+        -738.79
+      ],
+      "truth": -917.86,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-11",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3858,
+      "measured": [
+        -2345.9,
+        -1716.86,
+        -1273.12
+      ],
+      "unthresholded": [
+        -2345.9,
+        -1716.86,
+        -1273.12
+      ],
+      "truth": -1134.09,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-12",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2374,
+      "measured": [
+        -3357.85,
+        -3039.92,
+        -2725.21
+      ],
+      "unthresholded": [
+        -3357.85,
+        -3039.92,
+        -2725.21
+      ],
+      "truth": -2279.17,
+      "widening": 0.0
+    },
+    {
+      "scenario": "dev-tracking_break-13",
+      "action": "pause",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4401,
+      "measured": [
+        -2302.61,
+        -1483.23,
+        -974.23
+      ],
+      "unthresholded": [
+        -2302.61,
+        -1483.23,
+        -974.23
+      ],
+      "truth": -1748.67,
+      "widening": 0.0
+    }
+  ]
+}

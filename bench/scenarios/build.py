@@ -11,6 +11,8 @@ ids): 104 faulty + 50 healthy = 154.
 `test_v3` (reported once, agent and thresholds frozen): fresh seeds, 5 per fault type + 30
 healthy = 70.
 `golden`: one named, clear scenario per name used by bench/golden/questions.yaml.
+`outcomes_v1` (reported once, outcome calibration frozen): fresh seeds, the composition of
+`test_v3`, for validating the calibrated outcome intervals (bench/outcome_validation.py).
 Targets (campaign, product) are chosen from each store's own pre-fault data.
 """
 
@@ -145,6 +147,7 @@ SUITES: dict[str, tuple[Part, ...]] = {
         Part(90_000, ALL_VARIANTS, 30, fault_numbering=8, healthy_numbering=20),  # former test_v2
     ),
     "test_v3": (Part(130_000, ALL_VARIANTS, 30),),
+    "outcomes_v1": (Part(170_000, ALL_VARIANTS, 30),),
 }
 
 
@@ -388,10 +391,12 @@ def _build_condition(name: str, kind: str, first_seed: int) -> ScenarioManifest:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build benchmark scenario manifests")
-    parser.add_argument("--suite", choices=["dev", "test_v3", "golden"], action="append")
+    parser.add_argument(
+        "--suite", choices=["dev", "test_v3", "golden", "outcomes_v1"], action="append"
+    )
     parser.add_argument("--check", action="store_true", help="compare with committed manifests")
     args = parser.parse_args(argv)
-    suites: list[Suite] = args.suite or ["dev", "test_v3", "golden"]
+    suites: list[Suite] = args.suite or ["dev", "test_v3", "golden", "outcomes_v1"]
     status = 0
     for suite in suites:
         built = build_suite(suite)
