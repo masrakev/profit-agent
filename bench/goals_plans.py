@@ -40,8 +40,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from sqlalchemy import create_engine, text
 
-from app.config import repo_path
+from app.config import get_settings, repo_path
 from app.db import make_engine, tenant_transaction
 from app.detection.series import StoreSeries, load_series
 from app.goals.forecast import FloatArray, daily_values, forecast
@@ -51,7 +52,7 @@ from app.observability import configure_logging
 from app.twin import ActionKind
 from bench.generator import GeneratedStore, Intervention
 from bench.generator.load import load
-from bench.runner.__main__ import prepare_database
+from bench.runner.__main__ import _with_db, prepare_database
 from bench.runner.report import REPORT_DIR
 from bench.scenarios.manifest import ScenarioManifest, Suite, load_suite
 
@@ -102,8 +103,25 @@ def _load_saved(path: Path) -> list[Row]:
     return [Row(**json.loads(line)) for line in lines if line.strip()]
 
 
-def _db(metric: str, cut: int) -> str:
-    return f"{DATABASE}_{metric}_{cut}"
+def _database(name: str) -> str:
+    """A fresh bench database whose tables autovacuum leaves alone. Every store's load ends by
+    analyzing all the domain tables in one transaction; two workers doing so on one database
+    queue behind each other, and an autovacuum caught in that queue did not yield: the run
+    waited for good (twice, on the first runs)."""
+    url = prepare_database(name)
+    owner = create_engine(_with_db(get_settings().database_url, name))
+    with owner.begin() as conn:
+        tables = conn.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+        ).scalars()
+        for table in list(tables):
+            conn.execute(text(f'ALTER TABLE public."{table}" SET (autovacuum_enabled = false)'))
+    owner.dispose()
+    return url
+
+
+def _db(prefix: str, metric: str, cut: int) -> str:
+    return f"{prefix}_{metric}_{cut}"
 
 
 def follow(plan: Plan, plain: GeneratedStore, cut: int) -> tuple[list[Intervention], int, int]:
@@ -132,7 +150,9 @@ def _values(series: StoreSeries, metric: str) -> FloatArray:
     return np.array([float(v) for v in daily_values(series, metric)], dtype=np.float64)
 
 
-def store_rows(manifest: ScenarioManifest, url_plain: str, urls_with: dict[str, str]) -> list[Row]:
+def store_rows(
+    manifest: ScenarioManifest, url_plain: str, urls_with: dict[tuple[str, int], str]
+) -> list[Row]:
     """Every goal of one store (run in a worker process)."""
     configure_logging("WARNING")
     plain_engine = make_engine(url_plain)
@@ -154,7 +174,7 @@ def store_rows(manifest: ScenarioManifest, url_plain: str, urls_with: dict[str, 
                 plan, _ = compute_plan(conn, store, metric, target, as_of, HORIZON, seed)
             interventions, executed, skipped = follow(plan, plain, cut)
             followed = manifest.generate(interventions)
-            engine = make_engine(urls_with[_db(metric, cut)])
+            engine = make_engine(urls_with[(metric, cut)])
             load(engine, followed, manifest.config)
             with tenant_transaction(engine, store) as conn:
                 after = load_series(conn, store)
@@ -353,6 +373,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--out", type=Path, default=REPORT_DIR)
     parser.add_argument("--resume", action="store_true", help="skip the stores already done")
+    parser.add_argument("--database", default=DATABASE, help="prefix of the bench databases")
     args = parser.parse_args(argv)
     configure_logging("WARNING")
     suite: Suite = args.suite
@@ -365,8 +386,8 @@ def main(argv: list[str] | None = None) -> int:
     rows = _load_saved(saved)
     done = {r.scenario for r in rows}
     todo = [m for m in manifests if m.scenario_id not in done]
-    url_plain = prepare_database(DATABASE)
-    urls_with = {_db(m, c): prepare_database(_db(m, c)) for m in METRICS for c in CUTS}
+    url_plain = _database(args.database)
+    urls_with = {(m, c): _database(_db(args.database, m, c)) for m in METRICS for c in CUTS}
     saved.parent.mkdir(parents=True, exist_ok=True)
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
         futures = [pool.submit(store_rows, m, url_plain, urls_with) for m in todo]
