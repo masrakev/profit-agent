@@ -9,6 +9,10 @@ SPEC 17.2, ADR 0023).
   forecast gives it).
 - `low_evidence`, with its reasons, when the horizon is longer than the store's history or the
   backtest found the forecast poorly calibrated at that horizon.
+- Beyond 90 days (SPEC 17.2, rule 6) there is no point probability: the probability is an
+  interval 15 points either side (the backtests found 180-day probabilities 13 to 15 points
+  off on average), shown with the verdict band its two ends give, and the goal is split into
+  quarterly checkpoints (every 90 days to the deadline).
 
 Everything is stored as `estimate` facts: the cumulative forecast for every day to the deadline
 (`goal.forecast.<metric>`), the probability (`goal.probability.<metric>`) and the gap
@@ -31,6 +35,9 @@ from app.goals.forecast import BUCKETS, FIT_DAYS, METHOD, Forecast, daily_values
 
 VERDICTS = ((0.70, "likely"), (0.40, "possible"), (0.15, "stretch"), (0.0, "unlikely"))
 RESAMPLES = 1000  # bootstrap of the probability over the draws
+POINT_HORIZON = 90  # beyond it, a probability is shown as an interval only
+LONG_HORIZON_MARGIN = 0.15  # half-width of that interval
+CHECKPOINT_DAYS = 90
 FORMULA_VERSION = 1
 CENT = Decimal("0.01")
 BASIS_POINT = Decimal("0.0001")
@@ -45,21 +52,44 @@ def bucket(horizon: int) -> int:
     return next((b for b in BUCKETS if horizon <= b), BUCKETS[-1])
 
 
+def checkpoints(horizon: int) -> tuple[int, ...]:
+    """Days of the quarterly checkpoints of a goal beyond 90 days, the deadline last."""
+    if horizon <= POINT_HORIZON:
+        return ()
+    return (*range(CHECKPOINT_DAYS, horizon, CHECKPOINT_DAYS), horizon)
+
+
 @dataclass(frozen=True)
 class Feasibility:
     metric: str
     target: float
     deadline: date
-    probability: float
-    probability_range: tuple[float, float, float]  # P10, P50, P90 of the bootstrap
-    verdict: str
+    horizon: int
+    probability: float  # the share of paths: shown up to 90 days only
+    probability_range: tuple[float, float, float]  # low, point, high
+    verdict: str  # of the point probability
+    verdict_band: tuple[str, str]  # the verdicts of the range's two ends
     gap: tuple[float, float, float]  # target minus the forecast's P90, P50, P10
     forecast_range: tuple[float, float, float]  # cumulative P10, P50, P90 at the deadline
     low_evidence: tuple[str, ...]
+    checkpoints: tuple[int, ...] = ()  # days ahead, beyond 90 days
+
+    @property
+    def shows_point(self) -> bool:
+        return self.horizon <= POINT_HORIZON
+
+    @property
+    def shown_probability(self) -> float | None:
+        return self.probability if self.shows_point else None
 
 
 def low_evidence(f: Forecast) -> tuple[str, ...]:
     reasons = []
+    if f.horizon > POINT_HORIZON:
+        reasons.append(
+            f"beyond {POINT_HORIZON} days probabilities were overconfident in the backtest: the "
+            "probability is a range, and the goal is checked every quarter"
+        )
     if f.horizon > f.history_days:
         reasons.append(
             f"the horizon ({f.horizon} days) is longer than the store's history "
@@ -77,21 +107,28 @@ def low_evidence(f: Forecast) -> tuple[str, ...]:
 def assess(f: Forecast, target: float, seed: int) -> Feasibility:
     final = f.paths[:, -1]
     reached = (final >= target).astype(np.float64)
-    rng = np.random.default_rng(seed)
-    shares = reached[rng.integers(0, len(reached), size=(RESAMPLES, len(reached)))].mean(axis=1)
-    p10, p50, p90 = (float(x) for x in np.percentile(shares, [10, 50, 90]))
     probability = float(reached.mean())
+    if f.horizon > POINT_HORIZON:
+        lo = max(0.0, probability - LONG_HORIZON_MARGIN)
+        hi = min(1.0, probability + LONG_HORIZON_MARGIN)
+    else:
+        rng = np.random.default_rng(seed)
+        draws = rng.integers(0, len(reached), size=(RESAMPLES, len(reached)))
+        lo, hi = (float(x) for x in np.percentile(reached[draws].mean(axis=1), [10, 90]))
     low, mid, high = f.quantiles(f.horizon)
     return Feasibility(
         metric=f.metric,
         target=target,
         deadline=f.as_of + timedelta(days=f.horizon),
+        horizon=f.horizon,
         probability=probability,
-        probability_range=(p10, p50, p90),
+        probability_range=(min(lo, probability), probability, max(hi, probability)),
         verdict=verdict(probability),
+        verdict_band=(verdict(lo), verdict(hi)),
         gap=(target - high, target - mid, target - low),
         forecast_range=(low, mid, high),
         low_evidence=low_evidence(f),
+        checkpoints=checkpoints(f.horizon),
     )
 
 
@@ -173,7 +210,7 @@ def assess_store(
         )
         for day in range(1, f.horizon + 1)
     }
-    p10, _, p90 = feas.probability_range
+    p10, _, p90 = feas.probability_range  # beyond 90 days the fact renders as this range
     probability = estimate(
         f"goal.probability.{metric}",
         deadline,

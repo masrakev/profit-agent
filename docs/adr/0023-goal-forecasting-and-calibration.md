@@ -1,6 +1,6 @@
 # ADR 0023: Goal forecasting and calibration
 
-- Status: accepted
+- Status: accepted, amended 2026-10-31 (goals beyond 90 days)
 - Date: 2026-10-31
 
 ## Context
@@ -62,6 +62,15 @@ cell is listed as poorly calibrated. All of it is stored as `estimate` facts wit
 window's exact fact as parent: the cumulative forecast for every day to the deadline, the
 probability and the gap.
 
+**Beyond 90 days** (amended 2026-10-31, after the backtest; SPEC 17.2, rule 6). No point
+probability is shown for a goal past 90 days. Its probability is an interval of 15 points either
+side of the share of paths (the larger of the two backtests' mean reliability errors at 180
+days), with the verdict band its two ends give, `low_evidence` and the reason. The probability
+fact carries that interval, so a cited probability renders as a range. Such a goal is split into
+quarterly checkpoints, every 90 days to the deadline, each with its forecast range; its plan is
+detailed and simulated for the first 90 days only (ADR 0024), and its forecast is redone every
+month by the scheduler.
+
 **Backtest** (`bench/goals_backtest.py`). Histories cut at days 150, 190, 230, 270, 310 and 350;
 each metric forecast at each horizon the data reaches. Goals: nine targets per forecast, from
 40% below to 40% above the store's run rate at the cut. The task asked for targets around the
@@ -81,7 +90,8 @@ is the last 28 days' mean times the horizon, with a normal spread.
   (test) points off on average, predicted 60-70% reached about a third of the time, although
   their intervals are wide enough. They come from the two earliest cuts only, both in the same
   season, and the history is too short for a yearly cycle. Goals over more than 90 days carry
-  `low_evidence`; the pooled reliability, dominated by shorter horizons, does not show this.
+  `low_evidence` and show a probability range, never a point; the pooled reliability, dominated
+  by shorter horizons, does not show this.
 - Calibration widens the raw intervals 1.5 to 3 times: the honest uncertainty of a store's
   profit months ahead is wide, and the verdict says so.
 - The benchmark stores grow and shift by the generator's own rules; a real store's trend can

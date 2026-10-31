@@ -1,9 +1,10 @@
 # Product specification
 
-Status: v1.3 · Owner: Kevin Masra · Last updated: 2026-10-31
+Status: v1.4 · Owner: Kevin Masra · Last updated: 2026-10-31
 (v1.1: alert severity scales with store size, section 6.
 v1.2: north star, agent as auditor (section 15), token and cost management (section 16).
-v1.3: goals, feasibility and plans (section 17).)
+v1.3: goals, feasibility and plans (section 17).
+v1.4: goals beyond 90 days (section 17.2).)
 
 This document defines what the product delivers to a store owner, the exact shape of every output,
 and how quality is measured. Every engineering task must move the evaluations defined in section 12.
@@ -409,6 +410,11 @@ and checks every week."**
 5. **Honesty rules.** When the horizon is longer than the store's history, or the backtest calibration
    for that horizon is weak, the answer carries `low_evidence` and says why. Probabilities are never
    presented as promises.
+6. **Beyond 90 days.** The backtests found probabilities past 90 days overconfident, so a goal with a
+   longer horizon shows no point probability: it shows the verdict band and the probability
+   interval, with `low_evidence` and the reason. Such a goal is split into quarterly checkpoints
+   (every 90 days to the deadline, each with its forecast range); the plan is detailed and
+   simulated for the first 90 days only, and the forecast is redone every month.
 
 ### 17.3 Plan
 

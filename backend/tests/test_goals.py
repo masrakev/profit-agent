@@ -16,7 +16,14 @@ from app.detection.series import load_series
 from app.facts.engine import FactEngine
 from app.facts.model import FactKind, Period, Scope, Unit
 from app.goals import forecast as fc
-from app.goals.feasibility import assess, assess_store, bucket, low_evidence, verdict
+from app.goals.feasibility import (
+    assess,
+    assess_store,
+    bucket,
+    checkpoints,
+    low_evidence,
+    verdict,
+)
 from app.goals.forecast import calibrate, daily_values, fit, forecast, scale, simulate
 from bench.generator import generate
 from bench.generator.load import load
@@ -132,10 +139,33 @@ def test_probability_gap_and_low_evidence(tmp_path: Path, monkeypatch: pytest.Mo
     assert even.gap == pytest.approx((mid - high, 0.0, mid - low))
     assert even.forecast_range == (low, mid, high)
     assert even.deadline == START + timedelta(days=110)
+    assert (even.shows_point, even.shown_probability, even.checkpoints) == (
+        True,
+        even.probability,
+        (),
+    )
     reasons = low_evidence(f)
     assert reasons[0].startswith("the horizon (60 days) is longer than the store's history")
     assert "revenue over 60 days were poorly calibrated" in reasons[1]
     assert low_evidence(forecast(series(200), START, "revenue", 30, seed=4)) == ()
+
+
+def test_beyond_90_days_a_probability_is_a_range(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    frozen_at(tmp_path, monkeypatch)
+    f = forecast(series(200), START, "revenue", 182, seed=5)
+    even = assess(f, f.quantiles(182)[1], 1)
+    assert (even.shows_point, even.shown_probability) == (False, None)
+    low, point, high = even.probability_range
+    assert (low, high) == pytest.approx((point - 0.15, point + 0.15))
+    assert even.verdict_band == ("stretch", "possible")
+    assert even.checkpoints == (90, 180, 182)
+    assert (checkpoints(90), checkpoints(91)) == ((), (90, 91))
+    assert low_evidence(f)[0].startswith("beyond 90 days probabilities were overconfident")
+    sure = assess(f, f.quantiles(182)[0] * 0.1, 1)
+    assert sure.probability_range == (0.85, 1.0, 1.0)
+    assert sure.verdict_band == ("likely", "likely")
 
 
 @pytest.fixture(scope="module")
