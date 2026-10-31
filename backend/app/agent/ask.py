@@ -28,6 +28,7 @@ from sqlalchemy import Connection, Engine
 from app.agent.citations import FactLookup, FormulaLookup, citation_check, citation_repair
 from app.agent.contracts import ActionFamily, Answer, Flag, fallback_answer
 from app.agent.evaluate import Evaluation, evaluate_question
+from app.agent.goal import explain, goal_question
 from app.agent.guard import OutputViolation
 from app.agent.investigator import investigate, store_context
 from app.agent.llm.errors import LLMError
@@ -44,6 +45,7 @@ from app.agent.tools import ToolContext, ToolRegistry, build_registry
 from app.db import tenant_transaction
 from app.facts.model import Fact, Scope
 from app.facts.repository import get_facts
+from app.goals.service import get as get_goal
 from app.observability import get_logger
 from app.verifier import entity_references, fact_references
 
@@ -57,6 +59,7 @@ class QuestionType(StrEnum):
     WHAT_IF = "what_if"
     REVIEW = "review"
     DATA_QUESTION = "data_question"
+    GOAL = "goal"
     OUT_OF_SCOPE = "out_of_scope"
 
 
@@ -84,6 +87,7 @@ AskStatus = Literal[
     "out_of_scope",
     "clarification",
     "abstained",
+    "confirmation",
 ]
 
 
@@ -110,6 +114,7 @@ class AskResult(BaseModel):
     stop_reason: str | None
     created_at: datetime
     evaluation: Evaluation | None = None  # evaluate and what-if: scenario, verdict by code
+    goal_id: UUID | None = None  # goal: the draft to confirm, or the goal explained
 
 
 def out_of_scope_answer(margin_fact_id: int) -> Answer:
@@ -369,6 +374,27 @@ def ask(
                 run_id or str(ask_id),
                 common,
             )
+        if question_type is QuestionType.GOAL:
+            outcome = goal_question(
+                conn,
+                ctx,
+                provider,
+                question,
+                origin=origin,
+                routing=routing,
+                stages=stages,
+                run_id=run_id or str(ask_id),
+                now=datetime.now(UTC),
+            )
+            usage = summarize(outcome.intent_results)
+            return AskResult(
+                **{**common, "prompt_version": f"{classify.version}:{load_prompt('goal').version}"},
+                **{**no_answer_run, "usage": usage},
+                status=outcome.status,
+                answer=outcome.answer,
+                stop_reason=outcome.stop_reason,
+                goal_id=outcome.goal_id,
+            )
         if question_type in SIMULATED:
             return _simulated_answer(
                 conn,
@@ -551,4 +577,66 @@ def _reviewed_answer(
         verifier_violations=run.violations if run else 0,
         refused_tools=[],
         stop_reason=run.stop_reason if run else None,
+    )
+
+
+def explain_goal(
+    engine: Engine,
+    store_id: UUID,
+    goal_id: UUID,
+    provider: LLMProvider,
+    *,
+    what: Literal["feasibility", "plan"],
+    routing: Routing = Routing.PRODUCTION,
+    stages: StagesConfig | None = None,
+    run_id: str | None = None,
+) -> AskResult:
+    """The owner confirmed the goal: its feasibility, or its plan, explained (app.agent.goal)."""
+    stages = stages or load_stages()
+    ask_id = uuid4()
+    with tenant_transaction(engine, store_id) as conn:
+        origin = data_origin(conn, store_id)
+        ctx = ToolContext.open(conn, store_id)
+        question = get_goal(conn, store_id, goal_id).question or ""
+        done = explain(
+            conn,
+            ctx,
+            provider,
+            goal_id,
+            what=what,
+            origin=origin,
+            routing=routing,
+            stages=stages,
+            run_id=run_id or str(ask_id),
+            store_message=store_context(conn, ctx),
+            base_checks=contract_checks(QuestionType.GOAL, fact_formulas(conn, store_id)),
+            repair=citation_repair(lambda: set(ctx.seen_fact_ids), fact_lookup(conn, store_id)),
+            now=datetime.now(UTC),
+        )
+    run = done.run
+    usage = run.usage() if run else UsageSummary()
+    get_logger(__name__).info(
+        "agent.goal_explained", what=what, status=done.status, cost_usd=str(usage.cost_usd)
+    )
+    return AskResult(
+        ask_id=ask_id,
+        store_id=store_id,
+        question=question,
+        question_type=QuestionType.GOAL,
+        status=done.status,
+        answer=done.answer,
+        model=done.model,
+        classification_model="",
+        prompt_version=load_prompt("goal").version,
+        usage=usage,
+        classification_usage=UsageSummary(),
+        tool_calls=0,
+        memo_hits=0,
+        regenerations=run.regenerations if run else 0,
+        citations_attached=len(run.attached) if run else 0,
+        verifier_violations=run.violations if run else 0,
+        refused_tools=[],
+        stop_reason=run.stop_reason if run else None,
+        created_at=datetime.now(UTC),
+        goal_id=goal_id,
     )

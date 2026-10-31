@@ -303,6 +303,18 @@
               }
             ]
           },
+          "goal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal Id"
+          },
           "memo_hits": {
             "title": "Memo Hits",
             "type": "integer"
@@ -355,7 +367,8 @@
               "not_available_yet",
               "out_of_scope",
               "clarification",
-              "abstained"
+              "abstained",
+              "confirmation"
             ],
             "title": "Status",
             "type": "string"
@@ -3070,6 +3083,7 @@
           "what_if",
           "review",
           "data_question",
+          "goal",
           "out_of_scope"
         ],
         "title": "QuestionType",
