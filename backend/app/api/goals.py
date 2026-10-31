@@ -6,6 +6,8 @@ a draft until the owner confirms the restated goal. Beyond 90 days a goal shows 
 probability (SPEC 17.2, rule 6): `probability` is null and `probability_range` and
 `verdict_band` say what can be said. Accepting a plan proposes its decision steps whose day has
 come as decisions: they follow the normal flow (approval, policy engine, execution).
+`POST /ask` restates a goal question and returns its draft `goal_id`; `explain` confirms it and
+answers with the feasibility or the plan, in the Ask answer contract.
 """
 
 from datetime import UTC, date, datetime, timedelta
@@ -17,8 +19,9 @@ from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Connection
 
+from app.agent.ask import AskResult, explain_goal
 from app.api.auth import PrincipalDep, StoreDep
-from app.api.deps import EngineDep
+from app.api.deps import EngineDep, ProviderDep
 from app.api.views import FactOut, fact_out
 from app.db import tenant_transaction
 from app.facts.repository import get_facts
@@ -350,3 +353,22 @@ def post_revise(store_id: StoreDep, goal_id: GoalId, body: ReviseIn, engine: Eng
         except GoalError as exc:
             raise _fail(exc) from exc
         return goal_out(conn, goal)
+
+
+class ExplainIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    what: Literal["feasibility", "plan"] = "feasibility"
+
+
+@router.post("/{goal_id}/explain", response_model=AskResult)
+def post_explain(
+    store_id: StoreDep, goal_id: GoalId, body: ExplainIn, engine: EngineDep, provider: ProviderDep
+) -> AskResult:
+    """Confirm the goal and answer with its feasibility, or its plan (proposed, as
+    `POST /plans` does), in the Ask answer contract. Code decides every number, the verdict
+    and every step; the model explains, or code writes the answer from the same facts."""
+    try:
+        return explain_goal(engine, store_id, goal_id, provider, what=body.what)
+    except GoalError as exc:
+        raise _fail(exc) from exc

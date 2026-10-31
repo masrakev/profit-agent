@@ -42,6 +42,9 @@ ADR 0020.
 | `invalid_link`, `expired_link`, `used_link` | 401 or 403, 410, 409 | Sign-in links (401) or approval links (403): not valid, expired, already used |
 | `already_decided`, `expired` | 409 | A decision is decided once, before it expires |
 | `unknown_option`, `not_executable` | 404, 422 | The option is not one of the decision's, or cannot run |
+| `invalid_goal` | 422 | A goal's metric, target or deadline cannot be taken (the deadline within six months) |
+| `not_confirmed` | 409 | The goal is a draft: confirm the restated goal first |
+| `conflict`, `no_data` | 409 | The plan is not the one to accept (already accepted or superseded); the store has no data to forecast |
 | `rate_limited` | 429 | Too many requests: retry after `Retry-After` seconds |
 | `not_ready` | 503 | The database does not answer (readiness) |
 | `internal_error` | 500 | Unexpected: quote the `request_id` |
@@ -72,6 +75,15 @@ ADR 0020.
 | GET | `/api/v1/stores/{store_id}/briefings/{briefing_id}` | A briefing as sent |
 | POST | `/api/v1/stores/{store_id}/ask` | Ask, and wait for the answer contract |
 | POST | `/api/v1/stores/{store_id}/ask/stream` | Ask, streamed |
+| POST, GET | `/api/v1/stores/{store_id}/goals` | Set a goal (a draft, restated until the owner confirms it), or list goals |
+| GET | `/api/v1/stores/{store_id}/goals/{goal_id}` | A goal, its restatement and its facts |
+| POST | `/api/v1/stores/{store_id}/goals/{goal_id}/confirm` | Confirm it: its feasibility |
+| GET | `/api/v1/stores/{store_id}/goals/{goal_id}/feasibility` | Probability, verdict, gap; past 90 days a probability range and quarterly checkpoints, no point |
+| POST | `/api/v1/stores/{store_id}/goals/{goal_id}/explain` | Confirm it and answer with its feasibility or its plan (`what`), in the Ask answer contract |
+| POST, GET | `/api/v1/stores/{store_id}/goals/{goal_id}/plans` | Propose a plan, or list its plans |
+| POST | `/api/v1/stores/{store_id}/goals/{goal_id}/plans/{plan_id}/accept` | Accept it: its steps due today become decisions to approve |
+| GET | `/api/v1/stores/{store_id}/goals/{goal_id}/progress` | Weekly tracking and monthly re-forecasts |
+| POST | `/api/v1/stores/{store_id}/goals/{goal_id}/revise` | A new target or deadline: confirmed again, plans superseded |
 | GET, PUT | `/api/v1/stores/{store_id}/settings` | The store's settings (every change audited) |
 | GET, PUT | `/api/v1/stores/{store_id}/kill-switch` | Read or set the store's kill switch |
 | GET | `/api/v1/stores/{store_id}/decisions` | Decisions, newest first |
@@ -90,6 +102,11 @@ ADR 0020.
 | GET | `/api/v1/stores/{store_id}/connections` | Its Meta and Shopify connections (account and key id, never the token) |
 | PUT, DELETE | `/api/v1/stores/{store_id}/connections/{provider}` | Save a platform token (encrypted at rest) or remove it |
 | PUT | `/api/v1/admin/kill-switch` | Stop every action of every store (admin token) |
+
+Goals (ADRs 0023, 0024): a goal question to `POST /ask` comes back with `status`
+`confirmation` and the draft's `goal_id`; the owner confirms with `POST /goals/{goal_id}/explain`
+(or `/confirm` for the numbers alone). Plans never execute anything: their steps become
+decisions in the normal flow.
 
 Privacy (ADR 0021): the export and the deletion cover every table with a `store_id`, found when
 they run; a deletion is recorded outside the store's data (who, when, rows per table). Model

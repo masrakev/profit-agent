@@ -8,17 +8,21 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 
 from app.agent.ask import QuestionType, ask, explain_goal
 from app.agent.contracts import Flag
 from app.agent.goal import _amount
 from app.agent.llm import fake as f
+from app.api.deps import get_engine, get_provider
+from app.api.main import app
 from app.db import tenant_transaction
 from app.goals import service
 from app.verifier import verify
 from bench.scenarios.manifest import load_suite
 from bench.simulator import register
+from tests.api_helpers import act_as
 from tests.llm_helpers import Harness
 
 pytestmark = pytest.mark.db
@@ -201,3 +205,26 @@ def test_a_plan_is_explained(
     assert sent["alternatives"] is not None  # an unlikely target
     assert "experiments_never_counted" in sent
     assert not verify(result.answer.answer)
+
+
+def test_the_explanation_through_the_api(app_engine: Engine, store: UUID) -> None:
+    goal = _goal(app_engine, store, "net_profit", 40, "1")
+    h = Harness([explanation])
+    app.dependency_overrides[get_engine] = lambda: app_engine
+    app.dependency_overrides[get_provider] = lambda: h.provider
+    act_as(app)
+    try:
+        client = TestClient(app)
+        base = f"/api/v1/stores/{store}/goals"
+        done = client.post(f"{base}/{goal}/explain", json={"what": "feasibility"}).json()
+        assert (done["status"], done["question_type"], done["goal_id"]) == (
+            "answered",
+            "goal",
+            str(goal),
+        )
+        assert client.get(f"{base}/{goal}").json()["status"] == "confirmed"
+        missing = client.post(f"{base}/{UUID(int=1)}/explain", json={})
+        assert missing.status_code == 404
+        assert client.post(f"{base}/{goal}/explain", json={"what": "x"}).status_code == 422
+    finally:
+        app.dependency_overrides.clear()
