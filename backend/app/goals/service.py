@@ -41,6 +41,7 @@ from app.goals.feasibility import (
     Assessment,
     assess_store,
     checkpoints,
+    seed_of,
     verdict,
 )
 from app.goals.forecast import MAX_HORIZON, METHOD, METRICS, daily_values, forecast
@@ -450,6 +451,40 @@ def _plan_facts(
     }
 
 
+def compute_plan(
+    conn: Connection,
+    store_id: UUID,
+    metric: str,
+    target: float,
+    as_of: date,
+    horizon: int,
+    seed: int,
+) -> tuple[Plan, str]:
+    """The plan to reach `target` of `metric` in the `horizon` days from `as_of`, from the data
+    before `as_of`, and its method; nothing is recorded (the plan validation calls it too)."""
+    series = load_series(conn, store_id)
+    values = np.array([float(v) for v in daily_values(series, metric)], dtype=np.float64)
+    values = values[: series.index(as_of)]
+    base = forecast(values, series.start, metric, horizon, seed)
+    extended = forecast(values, series.start, metric, MAX_HORIZON, seed)
+    model = fit_twin(conn, store_id, as_of=as_of, series=series)
+    ctx = context(conn, store_id, model, horizon, series, metric)
+    floor = StoreSettingsRepository(conn).get_or_default(store_id).materiality.absolute
+    plan = build(
+        model,
+        base.paths,
+        candidates(ctx),
+        metric=metric,
+        target=target,
+        as_of=as_of,
+        floor_monthly=floor,
+        extended=extended.paths,
+        background=usual_reorders(ctx),
+    )
+    method = f"{PLAN_METHOD};{METHOD};calibration {base.calibration};twin {model.fingerprint}"
+    return plan, method
+
+
 def make_plan(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime) -> PlanRecord:
     """A proposed plan from today's data, for what is left of the goal."""
     goal = get(conn, store_id, goal_id)
@@ -464,27 +499,8 @@ def make_plan(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime)
     if as_of > goal.as_of:
         done = _actual(engine, goal, as_of).value or Decimal(0)
     remaining = float(goal.target - done)
-    series = load_series(conn, store_id)
-    values = np.array([float(v) for v in daily_values(series, goal.metric)], dtype=np.float64)
-    values = values[: series.index(as_of)]
-    seed = int(goal.goal_id.int % (2**63))
-    base = forecast(values, series.start, goal.metric, horizon, seed)
-    extended = forecast(values, series.start, goal.metric, MAX_HORIZON, seed)
-    model = fit_twin(conn, store_id, as_of=as_of, series=series)
-    ctx = context(conn, store_id, model, horizon, series, goal.metric)
-    floor = StoreSettingsRepository(conn).get_or_default(store_id).materiality.absolute
-    plan = build(
-        model,
-        base.paths,
-        candidates(ctx),
-        metric=goal.metric,
-        target=remaining,
-        as_of=as_of,
-        floor_monthly=floor,
-        extended=extended.paths,
-        background=usual_reorders(ctx),
-    )
-    method = f"{PLAN_METHOD};{METHOD};calibration {base.calibration};twin {model.fingerprint}"
+    seed = seed_of(store_id, goal.metric, as_of, horizon)  # the feasibility's forecast
+    plan, method = compute_plan(conn, store_id, goal.metric, remaining, as_of, horizon, seed)
     window = Period.days(as_of - timedelta(days=28), as_of)
     history = engine.persist(engine.adopt(engine.fact(goal.metric, Scope.store(), window)))
     payload = _plan_facts(engine, goal, plan, method, (("history", history),))

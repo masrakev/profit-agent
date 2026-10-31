@@ -136,7 +136,8 @@ def assess(f: Forecast, target: float, seed: int) -> Feasibility:
     )
 
 
-def _seed(*parts: object) -> int:
+def seed_of(*parts: object) -> int:
+    """A reproducible seed: the same goal on the same data draws the same forecast."""
     return int(sha256_hex(canonical_json([str(p) for p in parts]))[:16], 16)
 
 
@@ -167,9 +168,9 @@ def assess_store(
     values = np.array([float(v) for v in every[:end]], dtype=np.float64)
     as_of = series.start + timedelta(days=end)
     horizon = (deadline - as_of).days
-    seed = _seed(store_id, metric, as_of, horizon)
+    seed = seed_of(store_id, metric, as_of, horizon)
     f = forecast(values, series.start, metric, horizon, seed)
-    feas = assess(f, float(target), _seed(store_id, metric, as_of, horizon, target))
+    feas = assess(f, float(target), seed_of(store_id, metric, as_of, horizon, target))
     engine = FactEngine(conn, store_id)
     window = Period.days(as_of - timedelta(days=min(FIT_DAYS, end)), as_of)
     history = engine.persist(engine.adopt(engine.fact(metric, Scope.store(), window)))
