@@ -198,6 +198,27 @@ def test_suite_composition_v3() -> None:
     assert test_seeds.isdisjoint({m.config.seed for m in load_suite("golden")})
 
 
+def test_the_goal_suites() -> None:
+    seen: set[int] = set()
+    for suite in ("goals_dev", "goals_test"):
+        stores = load_suite(suite)
+        assert (len(stores), sum(m.is_healthy for m in stores)) == (42, 18)
+        assert all(m.config.days == 400 and m.config.long_history for m in stores)
+        growth = Counter(str(m.config.long_history.growth_per_year) for m in stores)  # type: ignore[union-attr]
+        assert growth == {"0.35": 14, "0": 14, "-0.35": 14}
+        assert all(160 <= f.start_day <= 340 for m in stores for f in m.faults)
+        seeds = {m.config.seed for m in stores}
+        assert seeds.isdisjoint(seen)
+        seen |= seeds
+    for suite in ("dev", "test_v3", "golden", "outcomes_v1"):
+        assert seen.isdisjoint({m.config.seed for m in load_suite(suite)}), suite
+    wanted = {"goals_dev-flat-healthy-02", "goals_dev-declining-refund_spike"}
+    committed = {m.scenario_id: m for m in load_suite("goals_dev")}
+    assert {m.scenario_id: m for m in build_suite("goals_dev", only=wanted)} == {
+        k: committed[k] for k in wanted
+    }
+
+
 def test_the_outcome_suite_is_fresh() -> None:
     fresh = load_suite("outcomes_v1")
     assert (len(fresh), sum(m.is_healthy for m in fresh)) == (70, 30)

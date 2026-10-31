@@ -13,6 +13,10 @@ healthy = 70.
 `golden`: one named, clear scenario per name used by bench/golden/questions.yaml.
 `outcomes_v1` (reported once, outcome calibration frozen): fresh seeds, the composition of
 `test_v3`, for validating the calibrated outcome intervals (bench/outcome_validation.py).
+`goals_dev` (tuning) and `goals_test` (reported once, forecast and calibration frozen): 400-day
+stores with long-history dynamics, growing, flat and declining, each with 6 healthy stores and
+one clear fault per type starting somewhere in the second half of the history = 42 each, for
+the goal forecast backtests (bench/goals_backtest.py).
 Targets (campaign, product) are chosen from each store's own pre-fault data.
 """
 
@@ -20,7 +24,7 @@ import argparse
 import sys
 from collections import Counter
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -241,6 +245,8 @@ def build_suite(suite: Suite, only: set[str] | None = None) -> list[ScenarioMani
     """
     if suite == "golden":
         return build_golden(only)
+    if suite in GOALS_SEEDS:
+        return build_goals(suite, only)
     manifests: list[ScenarioManifest] = []
     for part in SUITES[suite]:
         plan: list[tuple[str, str, Variant | None]] = []
@@ -281,6 +287,78 @@ def _build_one(
             description=(
                 f"{kind} {'(subtle) ' if variant.subtle else ''}magnitude {variant.magnitude} "
                 f"from day {variant.start_day} ({day})"
+            ),
+            config=config,
+            faults=(fault,),
+            labels=(fault.label(),),
+        )
+    raise RuntimeError(f"{scenario_id}: no store with an eligible target")
+
+
+# --- goal suites ----------------------------------------------------------------------------------
+
+GOALS_SEEDS: dict[str, int] = {"goals_dev": 200_000, "goals_test": 230_000}
+GOALS_START = date(2025, 8, 26)  # 400 days: the data ends on 2026-09-29, like the other suites
+GOALS_DAYS = 400
+TRENDS = {"growing": D("0.35"), "flat": D(0), "declining": D("-0.35")}
+GOALS_HEALTHY = 6  # per trend
+GOALS_FAULT_DAYS = (160, 340)  # a fault starts on a day drawn in this range
+
+
+def goals_config(seed: int, growth: Decimal) -> GeneratorConfig:
+    return GeneratorConfig.model_validate(
+        {
+            "seed": seed,
+            **BENCH_CONFIG,
+            "days": GOALS_DAYS,
+            "start_date": GOALS_START,
+            "long_history": {"growth_per_year": growth},
+        }
+    )
+
+
+def build_goals(suite: Suite, only: set[str] | None = None) -> list[ScenarioManifest]:
+    plan: list[tuple[str, str, str]] = []
+    for trend in TRENDS:
+        plan.extend(
+            (f"{suite}-{trend}-healthy-{n:02d}", trend, "healthy")
+            for n in range(1, GOALS_HEALTHY + 1)
+        )
+        plan.extend((f"{suite}-{trend}-{kind}", trend, kind) for kind in VARIANTS)
+    manifests = []
+    for index, (scenario_id, trend, kind) in enumerate(plan):
+        if only is None or scenario_id in only:
+            seed = GOALS_SEEDS[suite] + 100 * index
+            manifests.append(_build_goal(suite, scenario_id, trend, kind, seed))
+    return manifests
+
+
+def _build_goal(
+    suite: Suite, scenario_id: str, trend: str, kind: str, first_seed: int
+) -> ScenarioManifest:
+    growth = TRENDS[trend]
+    if kind == "healthy":
+        return ScenarioManifest(
+            scenario_id=scenario_id,
+            suite=suite,
+            description=f"{trend} store ({growth:+} log growth a year), no fault",
+            config=goals_config(first_seed, growth),
+        )
+    clear = VARIANTS[kind][3]
+    for seed in range(first_seed, first_seed + 100):
+        config = goals_config(seed, growth)
+        rng = np.random.default_rng([seed, 2])
+        start = int(rng.integers(GOALS_FAULT_DAYS[0], GOALS_FAULT_DAYS[1] + 1))
+        variant = Variant(clear.magnitude, start, product_scope=clear.product_scope)
+        fault = _fault(kind, variant, generate(config), rng)
+        if fault is None:
+            continue
+        day = (config.start_date + timedelta(days=start)).isoformat()
+        return ScenarioManifest(
+            scenario_id=scenario_id,
+            suite=suite,
+            description=(
+                f"{trend} store, {kind} magnitude {variant.magnitude} from day {start} ({day})"
             ),
             config=config,
             faults=(fault,),
@@ -392,11 +470,20 @@ def _build_condition(name: str, kind: str, first_seed: int) -> ScenarioManifest:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build benchmark scenario manifests")
     parser.add_argument(
-        "--suite", choices=["dev", "test_v3", "golden", "outcomes_v1"], action="append"
+        "--suite",
+        choices=["dev", "test_v3", "golden", "outcomes_v1", "goals_dev", "goals_test"],
+        action="append",
     )
     parser.add_argument("--check", action="store_true", help="compare with committed manifests")
     args = parser.parse_args(argv)
-    suites: list[Suite] = args.suite or ["dev", "test_v3", "golden", "outcomes_v1"]
+    suites: list[Suite] = args.suite or [
+        "dev",
+        "test_v3",
+        "golden",
+        "outcomes_v1",
+        "goals_dev",
+        "goals_test",
+    ]
     status = 0
     for suite in suites:
         built = build_suite(suite)
