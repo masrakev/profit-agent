@@ -60,6 +60,8 @@ def demo(database_urls: tuple[str, str]) -> dict[str, Any]:
             "investigation": f"/investigations/{seeded.investigation_id}",
             "briefings": "/briefings",
             "journal": "/journal?limit=200",
+            "goal": f"/goals/{seeded.goal.goal_id}",
+            "goal_progress": f"/goals/{seeded.goal.goal_id}/progress",
         },
     )
     result = run(engine, settings, seeded)
@@ -72,6 +74,9 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     assert seeded.incident.alert.value == "critical"
     statuses = {d["decision_id"]: d["status"] for d in before["decisions"]["items"]}
     assert statuses.pop(str(seeded.decision_id)) == "proposed"  # the owner's to approve
+    goal = seeded.goal  # the plan's due steps, proposed: the owner's to approve too
+    assert goal.decisions
+    assert {statuses.pop(str(d)) for d in goal.decisions} == {"proposed"}
     assert set(statuses) == {str(p.decision_id) for p in seeded.past}
     assert all(p.outcome["status"] in ("measured", "abstained") for p in seeded.past)
     assert set(statuses.values()) <= {"measured", "executed"}
@@ -87,6 +92,11 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     journal = {e["kind"] for e in before["journal"]["items"]}
     assert {"incident", "decision", "approval", "action", "outcome"} <= journal
     assert seeded.counts["briefings"] == 3
+    assert before["goal"]["status"] == "planned"
+    assert [w["day"] for w in goal.progress] == [7, 14]  # a week, then another
+    assert [p["day"] for p in before["goal_progress"]] == [7, 14]
+    assert all(w["adherence"]["pending"] == len(goal.decisions) for w in goal.progress)
+    assert (seeded.counts["goals"], seeded.counts["goal_progress"]) == (1, 2)
     assert seeded.counts["investigation_steps"] == len(before["steps"])
     text = seed_markdown(seeded, datetime.now(UTC))
     assert "| budget -30% |" in text
@@ -132,7 +142,7 @@ def test_the_api_reads_the_loop(demo: dict[str, Any]) -> None:
         store = loop["store"]
         decisions = client.get(f"/api/v1/stores/{store}/decisions").json()["items"]
         assert decisions[0]["decision_id"] == str(loop["decision"].decision_id)
-        assert len(decisions) == 1 + len(loop["past"])
+        assert len(decisions) == 1 + len(loop["past"]) + len(loop["seeded"].goal.decisions)
         trust = {t["action_type"]: t for t in client.get(f"/api/v1/stores/{store}/trust").json()}
         assert trust["pause_campaign"]["rollbacks"] >= 1
         assert trust["pause_campaign"]["proposal"] is None

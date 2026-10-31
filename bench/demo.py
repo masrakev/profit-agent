@@ -138,6 +138,7 @@ def run(engine: Engine, settings: Settings, seeded: Seeded) -> dict[str, Any]:
         "alert": seeded.incident,
         "investigation_id": seeded.investigation_id,
         "past": seeded.past,
+        "goal": seeded.goal,
         "decision": decision,
         "preview": preview,
         "approval": approval,
@@ -164,7 +165,9 @@ def markdown(r: dict[str, Any], started: datetime) -> str:
         "",
         "Before the loop the store has "
         + ", ".join(f"a {p.label} decision {p.outcome['status']}" for p in r["past"])
-        + f", and the alert's investigation `{r['investigation_id']}`.",
+        + f", the alert's investigation `{r['investigation_id']}`, and a goal "
+        f"`{r['goal'].goal_id}` whose accepted plan's steps are decisions pending the owner's "
+        f"approval ({len(r['goal'].decisions)}), tracked weekly.",
         "",
         f"1. Alert: `{r['alert'].incident_id}`, level **{r['alert'].alert.value}** "
         f"({r['alert'].category.value}). Its decision `{d.decision_id}`, pending, has "

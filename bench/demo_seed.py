@@ -4,14 +4,18 @@
     uv run python -m bench.demo_seed --record    # re-record the model exchanges (synthetic data)
 
 1. The golden stockout store enters the simulator 28 days before its data end.
-2. Two past decisions on campaigns that do not promote the product, proposed by the owner,
+2. The owner sets a goal: net profit over the next 90 days, at the forecast's median (a goal
+   reached about one time in two without a plan). Confirmed, planned, and the plan accepted:
+   its first steps are proposed as decisions, left pending (the owner's to approve).
+3. Two past decisions on campaigns that do not promote the product, proposed by the owner,
    approved and executed: a budget cut, then a raise a week later. Each is measured by
    synthetic control after its 7-day window (measured, or abstained when the fit is weak).
-3. Fourteen days before the data end, detection raises the critical stockout alert (ads still
+   After each week, the goal's weekly tracking.
+4. Fourteen days before the data end, detection raises the critical stockout alert (ads still
    spending on a product out of stock); the alert proposes its decision, left pending.
-4. The alert is investigated; its step trace is kept.
-5. The daily brief, the weekly report and the monthly review.
-6. An owner and an API token (printed once, never written to the report).
+5. The alert is investigated; its step trace is kept.
+6. The daily brief, the weekly report (with the goal's progress) and the monthly review.
+7. An owner and an API token (printed once, never written to the report).
 
 Model calls replay the exchanges recorded under `backend/tests/cassettes/demo/` (no key, no
 network), so the seed is the same on every machine; `--record` calls the model once and
@@ -21,11 +25,12 @@ rewrites them. `make demo` runs the Task 4 loop on this store (bench/demo.py).
 import argparse
 import sys
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
+import numpy as np
 from sqlalchemy import Engine, text
 
 from app.agent.contracts import ActionFamily
@@ -45,9 +50,13 @@ from app.decisions.store import Channel, Verdict, decide, propose
 from app.delivery.alerts import dispatch_alerts
 from app.detection.models import AlertLevel, Incident
 from app.detection.pipeline import run_pipeline
+from app.detection.series import load_series
 from app.executor.simulator import SimulatorAdapter
 from app.executor.worker import Executor
 from app.facts.engine import FactEngine
+from app.goals import service as goals
+from app.goals.feasibility import seed_of
+from app.goals.forecast import daily_values, forecast
 from app.observability import configure_logging
 from app.twin import Action, ActionKind, fit_twin
 from bench.runner.__main__ import prepare_database
@@ -61,12 +70,18 @@ CASSETTES = repo_path("backend/tests/cassettes/demo")
 OWNER = "owner@example.com"
 DAYS_BEFORE_END = 28
 PAST = (("budget -30%", Decimal("-0.3")), ("budget +20%", Decimal("0.2")))
+GOAL_DAYS = 90
+GOAL_PERCENTILE = 50
 KINDS = (BriefingKind.DAILY, BriefingKind.WEEKLY, BriefingKind.MONTHLY)
 COUNTED = (
     "incidents",
     "alerts",
     "decisions",
     "actions",
+    "goals",
+    "goal_plans",
+    "goal_steps",
+    "goal_progress",
     "outcomes",
     "investigations",
     "investigation_steps",
@@ -85,9 +100,19 @@ class Past:
 
 
 @dataclass(frozen=True)
+class DemoGoal:
+    goal_id: UUID
+    plan_id: UUID
+    steps: list[str]  # the plan's levers
+    decisions: list[UUID]  # its due steps, proposed: the owner's to approve
+    progress: list[dict[str, Any]]  # each week's tracking
+
+
+@dataclass(frozen=True)
 class Seeded:
     store_id: UUID
     manifest: ScenarioManifest
+    goal: DemoGoal
     incident: Incident  # the critical stockout alert
     decision_id: UUID  # its decision, pending: the owner's to approve
     investigation_id: UUID
@@ -172,6 +197,41 @@ def past_decision(
     return Past(label, d.decision_id, action_id, outcome)
 
 
+def set_goal(engine: Engine, store: UUID) -> tuple[UUID, UUID, list[str], list[UUID]]:
+    """The owner's goal: net profit over the next 90 days at the forecast's median, as the API
+    takes it (created, then confirmed); its plan proposed and accepted."""
+    now = datetime.now(UTC)
+    with tenant_transaction(engine, store) as conn:
+        today = goals.data_end(conn, store)
+        series = load_series(conn, store)
+        values = np.array([float(v) for v in daily_values(series, "net_profit")])
+        seed = seed_of(store, "net_profit", today, GOAL_DAYS)
+        paths = forecast(values, series.start, "net_profit", GOAL_DAYS, seed).paths
+        target = round(float(np.percentile(paths[:, -1], GOAL_PERCENTILE)), -3)
+        goal = goals.create(
+            conn,
+            store,
+            "net_profit",
+            Decimal(target),
+            today + timedelta(days=GOAL_DAYS),
+            now=now,
+            question=f"I want {target:,.0f} in net profit over the next three months.",
+        )
+        goals.confirm(conn, store, goal.goal_id, now=now)
+        plan = goals.make_plan(conn, store, goal.goal_id, now=now)
+        accepted = goals.accept(conn, store, plan.plan_id, now=now, actor=f"owner:{OWNER}")
+    proposed = [s.decision_id for s in accepted.steps if s.decision_id is not None]
+    return goal.goal_id, plan.plan_id, [s.lever for s in plan.steps], proposed
+
+
+def track_goal(engine: Engine, store: UUID, goal_id: UUID) -> dict[str, Any]:
+    """The weekly tracking job's work for the goal."""
+    with tenant_transaction(engine, store) as conn:
+        p = goals.track(conn, store, goal_id, now=datetime.now(UTC))
+    assert p is not None
+    return {"day": p.day, "status": p.status, "verdict": p.verdict, "adherence": p.adherence}
+
+
 def _local_today(engine: Engine, store: UUID) -> date:
     """The day after the last day of data: the store's today in the simulator."""
     with tenant_transaction(engine, store) as conn:
@@ -200,11 +260,12 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
     promoted = next(e.id for e in label.entities if e.kind.value == "campaign")
     assert promoted is not None
     store = register(engine, manifest, manifest.config.days - DAYS_BEFORE_END)
+    goal_id, plan_id, levers, proposed = set_goal(engine, store)
     others = _campaigns(engine, store, promoted)
-    past = [
-        past_decision(engine, store, campaign, name, change, seed)
-        for seed, (campaign, (name, change)) in enumerate(zip(others, PAST, strict=False))
-    ]
+    past, weeks = [], []
+    for seed, (campaign, (name, change)) in enumerate(zip(others, PAST, strict=False)):
+        past.append(past_decision(engine, store, campaign, name, change, seed))
+        weeks.append(track_goal(engine, store, goal_id))
     detected = run_pipeline(engine, store)
     alert = next(
         a
@@ -232,6 +293,7 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
     return Seeded(
         store_id=store,
         manifest=manifest,
+        goal=DemoGoal(goal_id, plan_id, levers, proposed, weeks),
         incident=incident,
         decision_id=alert.decision_id,
         investigation_id=investigation_id,
@@ -258,6 +320,20 @@ def markdown(s: Seeded, started: datetime) -> str:
         f"({s.incident.category.value}); its decision `{s.decision_id}` is pending.",
         f"- Investigation `{s.investigation_id}`, with its step trace.",
         "- Briefings: " + ", ".join(f"{k} `{v}`" for k, v in s.briefings.items()) + ".",
+        f"- Goal `{s.goal.goal_id}`: net profit over the next {GOAL_DAYS} days; plan "
+        f"`{s.goal.plan_id}` accepted ("
+        + (", ".join(f"`{lv}`" for lv in s.goal.steps) or "no step")
+        + "); its due steps are decisions pending the owner's approval.",
+        "",
+        "Goal tracking:",
+        "",
+        "| Day | Status | Verdict | Steps due | Done | Pending |",
+        "| --- | --- | --- | --- | --- | --- |",
+        *(
+            f"| {w['day']} | {w['status']} | {w['verdict']} | {w['adherence']['due']} | "
+            f"{w['adherence']['done']} | {w['adherence']['pending']} |"
+            for w in s.goal.progress
+        ),
         "",
         "Past decisions:",
         "",
