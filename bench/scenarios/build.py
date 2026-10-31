@@ -400,6 +400,7 @@ def _golden_plan() -> list[tuple[str, str]]:
         *((f"golden-{kind}", kind) for kind in GOLDEN_FAULTS),
         ("golden-underfunded_campaign", "underfunded_campaign"),
         ("golden-injection", "injection"),
+        ("golden-past_optimal_budgets", "past_optimal"),
     ]
 
 
@@ -428,6 +429,18 @@ def build_golden(only: set[str] | None = None) -> list[ScenarioManifest]:
                     suite="golden",
                     description="healthy store, no fault",
                     config=bench_config(first_seed),
+                )
+            )
+        elif kind == "past_optimal":
+            manifests.append(
+                ScenarioManifest(
+                    scenario_id=name,
+                    suite="golden",
+                    description="no fault; every campaign spends past its most profitable "
+                    "budget: more budget still brings sales, at a loss (revenue goals)",
+                    config=GeneratorConfig.model_validate(
+                        {"seed": first_seed, **BENCH_CONFIG, "campaign_budget_policy": kind}
+                    ),
                 )
             )
         elif kind in GOLDEN_FAULTS:

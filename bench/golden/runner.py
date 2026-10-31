@@ -14,7 +14,8 @@ import json
 import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -22,7 +23,7 @@ from uuid import UUID
 
 from sqlalchemy import Engine, select, text
 
-from app.agent.ask import AskResult, ask
+from app.agent.ask import AskResult, ask, explain_goal
 from app.agent.llm.cassette import LLMMode
 from app.agent.llm.factory import build_provider
 from app.agent.llm.provider import LLMProvider
@@ -32,14 +33,17 @@ from app.db import make_engine, tenant_transaction
 from app.detection.pipeline import run_pipeline
 from app.domain.schema import investigations
 from app.facts.repository import get_facts
+from app.goals import service as goals
 from app.observability import configure_logging
 from bench.generator.load import load
 from bench.golden.checks import (
     CheckResult,
+    GoalDecided,
     GoldenSet,
     Question,
     check_answer,
     cited_fact_ids,
+    goal_checks,
     load_golden,
 )
 from bench.golden.decisions import RECIPES, set_up
@@ -96,16 +100,36 @@ def run_question(
     routing: Routing,
     run_id: str,
 ) -> dict[str, Any]:
+    decided: GoalDecided | None = None
     try:
         result: AskResult = ask(
             engine, store_id, _question_text(q, names), provider, routing=routing, run_id=run_id
         )
+        usage = result.usage + result.classification_usage
+        if q.goal is not None:
+            first = result
+            decided = GoalDecided(restated=first.status == "confirmation", goal_id=first.goal_id)
+            if q.goal.then is not None and first.goal_id is not None:
+                # the owner confirms the restated goal; the classification stays the first one's
+                explained = explain_goal(
+                    engine,
+                    store_id,
+                    first.goal_id,
+                    provider,
+                    what=q.goal.then,
+                    routing=routing,
+                    run_id=run_id,
+                )
+                result = explained.model_copy(update={"question_type": first.question_type})
+                usage = usage + explained.usage
+                decided = _decided(engine, store_id, decided, q.goal.then)
     except Exception as exc:
         return {"id": q.id, "type": q.type.value, "passed": False, "error": repr(exc)[:500]}
     with tenant_transaction(engine, store_id) as conn:
         facts = get_facts(conn, store_id, cited_fact_ids(result.answer))
     checks: list[CheckResult] = check_answer(q, result, facts, labels)
-    usage = result.usage + result.classification_usage
+    if decided is not None:
+        checks += goal_checks(q, decided, result.answer)
     return {
         "id": q.id,
         "type": q.type.value,
@@ -121,6 +145,36 @@ def run_question(
         "citations_attached": result.citations_attached,
         "verifier_violations": result.verifier_violations,
     }
+
+
+def _decided(engine: Engine, store_id: UUID, first: GoalDecided, then: str) -> GoalDecided:
+    """What code decided for the confirmed goal: its parse, verdict and plan."""
+    assert first.goal_id is not None
+    with tenant_transaction(engine, store_id) as conn:
+        goal = goals.get(conn, store_id, first.goal_id)
+        parsed = replace(
+            first,
+            metric=goal.metric,
+            target=goal.target,
+            last_day=goal.deadline - timedelta(days=1),
+        )
+        if then == "feasibility":
+            f = goals.feasibility(conn, goal).feasibility
+            return replace(
+                parsed, verdict=f.verdict if f.shows_point else None, shows_point=f.shows_point
+            )
+        p = goals.plans(conn, store_id, first.goal_id)[0].payload  # the plan just proposed
+        alt = p.get("alternatives") or {}
+        return replace(
+            parsed,
+            verdict=p["verdict_with"] if p["shows_point"] else None,
+            shows_point=bool(p["shows_point"]),
+            lowers_profit=bool(p["lowers_profit"]),
+            alternative_fact_ids=tuple(
+                alt[k] for k in ("target_50_fact_id", "target_70_fact_id") if k in alt
+            ),
+            profit_change_fact_id=p["profit_change_fact_id"],
+        )
 
 
 def summarize(golden: GoldenSet, rows: list[dict[str, Any]]) -> dict[str, Any]:

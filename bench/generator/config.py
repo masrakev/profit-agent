@@ -68,8 +68,9 @@ class GeneratorConfig(BaseModel):
     reorder_policy: Literal["static", "adaptive"] = "static"
     safety_stock_days: int = Field(default=7, ge=0)
     # "random": daily budget drawn uniformly. "profit_optimal": budget set below the spend that
-    # maximises expected campaign profit, so a healthy campaign is profitable.
-    campaign_budget_policy: Literal["random", "profit_optimal"] = "random"
+    # maximises expected campaign profit, so a healthy campaign is profitable. "past_optimal":
+    # budget set past that spend, so more budget still brings sales, at a loss.
+    campaign_budget_policy: Literal["random", "profit_optimal", "past_optimal"] = "random"
     # Off unless set; left out of the serialized config when off, so existing manifests, seeds
     # and stores are unchanged.
     long_history: LongHistory | None = Field(default=None, exclude_if=lambda v: v is None)

@@ -59,3 +59,6 @@ def test_golden_suite_composition() -> None:
         ConditionKind.UNDERFUNDED_CAMPAIGN
     )
     assert golden["golden-injection"].condition_labels[0].kind is ConditionKind.PROMPT_INJECTION
+    overspent = golden["golden-past_optimal_budgets"]  # revenue goals whose plan costs profit
+    assert overspent.is_healthy
+    assert overspent.config.campaign_budget_policy == "past_optimal"

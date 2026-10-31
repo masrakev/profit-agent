@@ -374,7 +374,7 @@ def _campaigns(
         b = float(rng.uniform(0.004, 0.03))
         bias = round(float(rng.uniform(0.9, 1.35)), 4)
         start_day = int(rng.integers(0, config.days // 3))
-        if config.campaign_budget_policy == "profit_optimal":
+        if config.campaign_budget_policy != "random":
             b, budget = _profitable_budget(config, rng, a, b, [states[i] for i in chosen])
         campaigns.append(
             AdCampaign(
@@ -413,11 +413,13 @@ def _profitable_budget(
     b: float,
     promoted: list[_ProductState],
 ) -> tuple[float, float]:
-    """Budget below the profit-maximising spend of a * (1 - exp(-b * s)) * margin - s.
+    """Budget below the profit-maximising spend of a * (1 - exp(-b * s)) * margin - s, or past
+    it with the "past_optimal" policy.
 
     Expected profit is concave in spend and zero at zero spend, so any budget between zero and
     the optimum s* = ln(a * b * margin) / b is profitable. `b` is raised when needed so that the
-    optimum is comfortably positive (a * b * margin >= 3).
+    optimum is comfortably positive (a * b * margin >= 3). Past the optimum, the next unit of
+    spend brings less margin than it costs, while still bringing sales.
     """
     fee_rate = float(config.payment_fee_rate) * (1 + float(config.tax_rate))
     margins = [
@@ -433,7 +435,8 @@ def _profitable_budget(
     margin = max(sum(margins) / len(margins), 1.0)
     b = max(b, 3.0 / (a * margin))
     optimum = math.log(a * b * margin) / b
-    return b, optimum * float(rng.uniform(0.5, 0.9))
+    low, high = (1.4, 2.0) if config.campaign_budget_policy == "past_optimal" else (0.5, 0.9)
+    return b, optimum * float(rng.uniform(low, high))
 
 
 def _sell(

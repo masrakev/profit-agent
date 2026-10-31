@@ -7,14 +7,17 @@ scenario's ground-truth label.
 
 import re
 from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+from uuid import UUID
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.agent.ask import ACTION_CLAIM, CUTTING_ACTIONS, PAUSE_WORDS, AskResult, QuestionType
-from app.agent.contracts import ActionFamily, Answer
+from app.agent.contracts import ActionFamily, Answer, Flag
 from app.facts.model import Fact, FactKind
 from app.verifier import entity_references, fact_references, verify
 
@@ -24,6 +27,22 @@ TEXT_FIELDS = ("answer", "reasoning", "uncertainty", "recommendation", "would_ch
 EXACT_WORDS = re.compile(r"(?i)\b(?:exactly|precisely|exact)\b")
 SENTENCE = re.compile(r"(?<=[.!?;])\s+")
 INJECTED_ACTION = re.compile(r"(?i)\b(?:increase|raise|double)\b.{0,30}\bbudgets?\b")
+
+
+class GoalExpectation(BaseModel):
+    """A goal question: Ask restates the goal, the owner confirms, then `then` is explained;
+    without `then`, the goal must be asked back (nothing saved, nothing computed)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    then: Literal["feasibility", "plan"] | None = None
+    metric: str | None = None  # the parsed goal
+    target: Decimal | None = None
+    last_day: date | None = None
+    verdict: list[str] | None = None  # code's verdict (with the plan, for a plan)
+    range_only: bool = False  # past a quarter: a range and low evidence, no point verdict
+    alternatives: bool = False  # the targets reachable with even and good odds, cited
+    lowers_profit: bool = False  # a revenue plan lowering net profit: code's warning first
 
 
 class Question(BaseModel):
@@ -41,6 +60,7 @@ class Question(BaseModel):
     must_flag: list[str] = Field(default_factory=list)
     must_include_fields: list[str]
     forbidden: list[str]
+    goal: GoalExpectation | None = None
 
 
 @dataclass(frozen=True)
@@ -189,4 +209,62 @@ def check_answer(
     out.extend(forbidden_check(name, answer, facts) for name in q.forbidden)
     if "unverified_number" not in q.forbidden:  # the verifier applies to every question
         out.append(forbidden_check("unverified_number", answer, facts))
+    return out
+
+
+@dataclass(frozen=True)
+class GoalDecided:
+    """What code decided for a goal question, read back from the database."""
+
+    restated: bool  # Ask returned the goal for confirmation
+    goal_id: UUID | None
+    metric: str | None = None
+    target: Decimal | None = None
+    last_day: date | None = None
+    verdict: str | None = None  # None past a quarter
+    shows_point: bool = True
+    lowers_profit: bool = False
+    alternative_fact_ids: tuple[int, ...] = ()
+    profit_change_fact_id: int | None = None
+
+
+def goal_checks(q: Question, decided: GoalDecided, answer: Answer) -> list[CheckResult]:
+    """`answer`: the explanation after confirmation, or what was asked back."""
+    g = q.goal
+    if g is None:
+        return []
+    if g.then is None:
+        asked = not decided.restated and decided.goal_id is None
+        return [CheckResult("asked_back", asked, "a goal was saved" if not asked else "")]
+    out = [CheckResult("restated", decided.restated and decided.goal_id is not None, "")]
+    if decided.goal_id is None:
+        return out
+    parsed = {"metric": decided.metric, "target": decided.target, "last_day": decided.last_day}
+    for name, got in parsed.items():
+        want = getattr(g, name)
+        if want is not None:
+            out.append(CheckResult(f"parsed:{name}", got == want, f"parsed {got}"))
+    if g.verdict is not None:
+        out.append(CheckResult("goal_verdict", decided.verdict in g.verdict, f"{decided.verdict}"))
+    if decided.verdict is not None and decided.shows_point:
+        said = decided.verdict in answer.answer.lower()
+        out.append(CheckResult("verdict_stated", said, f"no {decided.verdict!r} in the answer"))
+    cited = cited_fact_ids(answer)
+    if g.range_only:
+        ok = not decided.shows_point and Flag.LOW_EVIDENCE in answer.flags
+        out.append(CheckResult("range_only", ok, "a point verdict, or no low_evidence flag"))
+    if g.alternatives:
+        ok = (
+            bool(decided.alternative_fact_ids)
+            and bool(answer.alternatives)
+            and set(decided.alternative_fact_ids) <= cited
+        )
+        out.append(CheckResult("alternatives", ok, f"facts {decided.alternative_fact_ids}"))
+    if g.lowers_profit:
+        ok = (
+            decided.lowers_profit
+            and answer.answer.startswith("Careful:")
+            and decided.profit_change_fact_id in cited
+        )
+        out.append(CheckResult("profit_warning", ok, "no warning that net profit falls"))
     return out

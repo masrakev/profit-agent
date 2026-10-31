@@ -1,5 +1,6 @@
 """Golden question checks (pure functions on hand-built answers and facts)."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -12,7 +13,15 @@ from app.agent.evaluate import Evaluation
 from app.agent.session import UsageSummary
 from app.decisions.verdict import Verdict
 from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
-from bench.golden.checks import Question, check_answer, forbidden_check, load_golden
+from bench.golden.checks import (
+    GoalDecided,
+    GoalExpectation,
+    Question,
+    check_answer,
+    forbidden_check,
+    goal_checks,
+    load_golden,
+)
 from bench.golden.runner import investigation_summary, markdown
 
 CAMPAIGN = UUID("1b4e28ba-2fa1-11d2-883f-0016d3cca427")
@@ -184,7 +193,7 @@ def test_forbidden_behaviours(check: str, bad: dict[str, object], good: dict[str
 
 def test_the_golden_set_loads_with_pending_questions() -> None:
     golden = load_golden()
-    assert len(golden.questions) == 30
+    assert len(golden.questions) == 36
     pending = {q.id for q in golden.questions if golden.pending_reason(q)}
     assert pending == set()  # q25-q26 run on their decision scenarios (bench/golden/decisions.py)
     q13 = next(q for q in golden.questions if q.id == "q13")
@@ -257,3 +266,73 @@ def test_the_verdict_is_the_one_code_decided() -> None:
     assert checked(Verdict.AVOID) == []
     assert checked(Verdict.GO) == ["verdict"]
     assert checked(None) == ["verdict"]
+
+
+def goal_question(**expected: object) -> Question:
+    return Question(
+        id="q31",
+        scenario="healthy-a",
+        type=QuestionType.GOAL,
+        question="I want 150,000 in net profit by the end of November.",
+        must_include_fields=[],
+        forbidden=[],
+        goal=GoalExpectation.model_validate(expected),
+    )
+
+
+DECIDED = GoalDecided(
+    restated=True,
+    goal_id=uuid4(),
+    metric="net_profit",
+    target=Decimal("150000.0000"),
+    last_day=date(2026, 11, 30),
+    verdict="likely",
+)
+
+
+def goal_failures(q: Question, decided: GoalDecided, a: Answer) -> list[str]:
+    return [c.name for c in goal_checks(q, decided, a) if not c.passed]
+
+
+def test_a_goal_is_parsed_as_stated_and_its_verdict_said() -> None:
+    q = goal_question(
+        then="feasibility",
+        metric="net_profit",
+        target=150000,
+        last_day="2026-11-30",
+        verdict=["likely"],
+    )
+    good = answer(answer="Reaching it is likely: {{F3}}.", evidence=[3], ranked_causes=[])
+    assert goal_failures(q, DECIDED, good) == []
+    misread = replace(DECIDED, target=Decimal(15000), verdict="unlikely")
+    assert goal_failures(q, misread, good) == ["parsed:target", "goal_verdict", "verdict_stated"]
+    assert goal_failures(q, replace(DECIDED, restated=False, goal_id=None), good) == ["restated"]
+    assert goal_checks(Q06, DECIDED, good) == []  # not a goal question
+
+
+def test_an_incomplete_goal_is_asked_back() -> None:
+    q = goal_question()
+    asked = GoalDecided(restated=False, goal_id=None)
+    assert goal_failures(q, asked, answer()) == []
+    assert goal_failures(q, DECIDED, answer()) == ["asked_back"]
+
+
+def test_ranges_alternatives_and_the_profit_warning() -> None:
+    q = goal_question(then="plan", range_only=True, alternatives=True, lowers_profit=True)
+    decided = replace(
+        DECIDED,
+        verdict=None,
+        shows_point=False,
+        lowers_profit=True,
+        alternative_fact_ids=(1, 2),
+        profit_change_fact_id=4,
+    )
+    good = answer(
+        answer="Careful: this plan grows revenue but lowers net profit ({{F4}}). It is {{F3}}.",
+        evidence=[3, 4],
+        alternatives=["Even odds: {{F1}}; good odds: {{F2}}."],
+        flags=["low_evidence"],
+    )
+    assert goal_failures(q, decided, good) == []
+    bare = answer(answer="It is {{F3}}.", evidence=[3], alternatives=[], flags=[])
+    assert goal_failures(q, decided, bare) == ["range_only", "alternatives", "profit_warning"]

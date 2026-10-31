@@ -199,6 +199,19 @@ def test_a_restock_ends_a_stockout() -> None:
     assert stock(plain, restock) == 0
 
 
+def test_past_optimal_budgets_sit_past_the_profitable_ones() -> None:
+    """The same draws: each campaign's budget is the optimum times 0.5-0.9, or 1.4-2.0."""
+    below = GeneratorConfig(seed=11, days=40, campaign_budget_policy="profit_optimal")
+    past = below.model_copy(update={"campaign_budget_policy": "past_optimal"})
+    low, high = generate(below), generate(past)
+    same = [(p.sku, p.price, p.unit_cost) for p in low.products]
+    assert same == [(p.sku, p.price, p.unit_cost) for p in high.products]
+    assert [c.external_id for c in low.campaigns] == [c.external_id for c in high.campaigns]
+    for a, b in zip(low.campaigns, high.campaigns, strict=True):
+        ratio = float(b.daily_budget) / float(a.daily_budget)
+        assert 1.4 / 0.9 - 0.01 <= ratio <= 2.0 / 0.5 + 0.01
+
+
 def test_long_histories_are_off_by_default() -> None:
     assert "long_history" not in SMALL.model_dump()  # existing configs serialize as before
     assert demand_scale(SMALL) is None
