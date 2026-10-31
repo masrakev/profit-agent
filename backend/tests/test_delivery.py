@@ -1,7 +1,7 @@
 """Alerts and their delivery (SPEC sections 4 and 6): severity, quiet hours, the daily budget,
 deduplication, delivery records, and the worker's retries and failures."""
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -171,7 +171,8 @@ def deliveries(engine: Engine, store: Any) -> list[Any]:
 
 @pytest.mark.db
 def test_a_critical_alert_comes_with_its_decision(app_engine: Engine, stockout: Any) -> None:
-    night = datetime.now(UTC).replace(hour=3, minute=0)  # 22:00 or 23:00 in New York
+    # 22:00 or 23:00 in New York, yesterday: past, whatever the hour the test runs at
+    night = (datetime.now(UTC) - timedelta(days=1)).replace(hour=3, minute=0)
     [alert] = dispatch_alerts(app_engine, stockout, now=night)
     assert (alert.level, alert.status) == (AlertLevel.CRITICAL, "sent")
     assert alert.decision_id is not None
