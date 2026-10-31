@@ -1,0 +1,694 @@
+{
+  "run_id": "goals-backtest-goals_test-20261031T061007Z",
+  "settings": [
+    56,
+    60.0
+  ],
+  "result": {
+    "cases": 2268,
+    "goals": 20412,
+    "by_horizon": {
+      "30": {
+        "n": 756,
+        "coverage": 0.8134920634920635,
+        "coverage_raw": 0.6044973544973545,
+        "coverage_naive": 0.3425925925925926,
+        "by_metric": {
+          "net_profit": 0.8055555555555556,
+          "contribution_margin": 0.8134920634920635,
+          "revenue": 0.8214285714285714
+        },
+        "brier": 0.09737919855967078,
+        "brier_naive": 0.11323303892162238,
+        "reliability": [
+          {
+            "bucket": [
+              0.0,
+              0.1
+            ],
+            "n": 2110,
+            "predicted": 0.018,
+            "observed": 0.029,
+            "error": 0.011
+          },
+          {
+            "bucket": [
+              0.1,
+              0.2
+            ],
+            "n": 499,
+            "predicted": 0.147,
+            "observed": 0.17,
+            "error": 0.024
+          },
+          {
+            "bucket": [
+              0.2,
+              0.3
+            ],
+            "n": 397,
+            "predicted": 0.248,
+            "observed": 0.287,
+            "error": 0.039
+          },
+          {
+            "bucket": [
+              0.3,
+              0.4
+            ],
+            "n": 369,
+            "predicted": 0.348,
+            "observed": 0.363,
+            "error": 0.015
+          },
+          {
+            "bucket": [
+              0.4,
+              0.5
+            ],
+            "n": 328,
+            "predicted": 0.45,
+            "observed": 0.427,
+            "error": -0.023
+          },
+          {
+            "bucket": [
+              0.5,
+              0.6
+            ],
+            "n": 333,
+            "predicted": 0.549,
+            "observed": 0.589,
+            "error": 0.039
+          },
+          {
+            "bucket": [
+              0.6,
+              0.7
+            ],
+            "n": 312,
+            "predicted": 0.651,
+            "observed": 0.673,
+            "error": 0.022
+          },
+          {
+            "bucket": [
+              0.7,
+              0.8
+            ],
+            "n": 351,
+            "predicted": 0.75,
+            "observed": 0.775,
+            "error": 0.025
+          },
+          {
+            "bucket": [
+              0.8,
+              0.9
+            ],
+            "n": 398,
+            "predicted": 0.852,
+            "observed": 0.842,
+            "error": -0.01
+          },
+          {
+            "bucket": [
+              0.9,
+              1.0
+            ],
+            "n": 1707,
+            "predicted": 0.982,
+            "observed": 0.987,
+            "error": 0.005
+          }
+        ]
+      },
+      "60": {
+        "n": 630,
+        "coverage": 0.7984126984126985,
+        "coverage_raw": 0.5380952380952381,
+        "coverage_naive": 0.14285714285714285,
+        "by_metric": {
+          "net_profit": 0.7952380952380952,
+          "contribution_margin": 0.8095238095238095,
+          "revenue": 0.7904761904761904
+        },
+        "brier": 0.11989250414462081,
+        "brier_naive": 0.1527417972923447,
+        "reliability": [
+          {
+            "bucket": [
+              0.0,
+              0.1
+            ],
+            "n": 1760,
+            "predicted": 0.022,
+            "observed": 0.046,
+            "error": 0.024
+          },
+          {
+            "bucket": [
+              0.1,
+              0.2
+            ],
+            "n": 522,
+            "predicted": 0.148,
+            "observed": 0.197,
+            "error": 0.049
+          },
+          {
+            "bucket": [
+              0.2,
+              0.3
+            ],
+            "n": 424,
+            "predicted": 0.251,
+            "observed": 0.292,
+            "error": 0.041
+          },
+          {
+            "bucket": [
+              0.3,
+              0.4
+            ],
+            "n": 343,
+            "predicted": 0.347,
+            "observed": 0.391,
+            "error": 0.044
+          },
+          {
+            "bucket": [
+              0.4,
+              0.5
+            ],
+            "n": 351,
+            "predicted": 0.448,
+            "observed": 0.442,
+            "error": -0.006
+          },
+          {
+            "bucket": [
+              0.5,
+              0.6
+            ],
+            "n": 297,
+            "predicted": 0.548,
+            "observed": 0.535,
+            "error": -0.013
+          },
+          {
+            "bucket": [
+              0.6,
+              0.7
+            ],
+            "n": 297,
+            "predicted": 0.648,
+            "observed": 0.65,
+            "error": 0.001
+          },
+          {
+            "bucket": [
+              0.7,
+              0.8
+            ],
+            "n": 297,
+            "predicted": 0.748,
+            "observed": 0.761,
+            "error": 0.013
+          },
+          {
+            "bucket": [
+              0.8,
+              0.9
+            ],
+            "n": 308,
+            "predicted": 0.85,
+            "observed": 0.825,
+            "error": -0.026
+          },
+          {
+            "bucket": [
+              0.9,
+              1.0
+            ],
+            "n": 1071,
+            "predicted": 0.976,
+            "observed": 0.975,
+            "error": -0.001
+          }
+        ]
+      },
+      "90": {
+        "n": 630,
+        "coverage": 0.8015873015873016,
+        "coverage_raw": 0.48412698412698413,
+        "coverage_naive": 0.07301587301587302,
+        "by_metric": {
+          "net_profit": 0.8,
+          "contribution_margin": 0.7904761904761904,
+          "revenue": 0.8142857142857143
+        },
+        "brier": 0.142994882010582,
+        "brier_naive": 0.18811057894488617,
+        "reliability": [
+          {
+            "bucket": [
+              0.0,
+              0.1
+            ],
+            "n": 1546,
+            "predicted": 0.028,
+            "observed": 0.071,
+            "error": 0.044
+          },
+          {
+            "bucket": [
+              0.1,
+              0.2
+            ],
+            "n": 587,
+            "predicted": 0.148,
+            "observed": 0.204,
+            "error": 0.056
+          },
+          {
+            "bucket": [
+              0.2,
+              0.3
+            ],
+            "n": 503,
+            "predicted": 0.25,
+            "observed": 0.318,
+            "error": 0.068
+          },
+          {
+            "bucket": [
+              0.3,
+              0.4
+            ],
+            "n": 442,
+            "predicted": 0.348,
+            "observed": 0.407,
+            "error": 0.059
+          },
+          {
+            "bucket": [
+              0.4,
+              0.5
+            ],
+            "n": 390,
+            "predicted": 0.445,
+            "observed": 0.456,
+            "error": 0.011
+          },
+          {
+            "bucket": [
+              0.5,
+              0.6
+            ],
+            "n": 380,
+            "predicted": 0.549,
+            "observed": 0.603,
+            "error": 0.054
+          },
+          {
+            "bucket": [
+              0.6,
+              0.7
+            ],
+            "n": 335,
+            "predicted": 0.65,
+            "observed": 0.651,
+            "error": 0.001
+          },
+          {
+            "bucket": [
+              0.7,
+              0.8
+            ],
+            "n": 318,
+            "predicted": 0.751,
+            "observed": 0.783,
+            "error": 0.032
+          },
+          {
+            "bucket": [
+              0.8,
+              0.9
+            ],
+            "n": 360,
+            "predicted": 0.853,
+            "observed": 0.819,
+            "error": -0.033
+          },
+          {
+            "bucket": [
+              0.9,
+              1.0
+            ],
+            "n": 809,
+            "predicted": 0.971,
+            "observed": 0.969,
+            "error": -0.002
+          }
+        ]
+      },
+      "180": {
+        "n": 252,
+        "coverage": 0.8928571428571429,
+        "coverage_raw": 0.49206349206349204,
+        "coverage_naive": 0.015873015873015872,
+        "by_metric": {
+          "net_profit": 0.9047619047619048,
+          "contribution_margin": 0.9047619047619048,
+          "revenue": 0.8690476190476191
+        },
+        "brier": 0.14344890795855378,
+        "brier_naive": 0.2388849644434077,
+        "reliability": [
+          {
+            "bucket": [
+              0.0,
+              0.1
+            ],
+            "n": 461,
+            "predicted": 0.036,
+            "observed": 0.026,
+            "error": -0.01
+          },
+          {
+            "bucket": [
+              0.1,
+              0.2
+            ],
+            "n": 289,
+            "predicted": 0.149,
+            "observed": 0.048,
+            "error": -0.101
+          },
+          {
+            "bucket": [
+              0.2,
+              0.3
+            ],
+            "n": 277,
+            "predicted": 0.25,
+            "observed": 0.043,
+            "error": -0.206
+          },
+          {
+            "bucket": [
+              0.3,
+              0.4
+            ],
+            "n": 216,
+            "predicted": 0.351,
+            "observed": 0.106,
+            "error": -0.244
+          },
+          {
+            "bucket": [
+              0.4,
+              0.5
+            ],
+            "n": 202,
+            "predicted": 0.45,
+            "observed": 0.267,
+            "error": -0.183
+          },
+          {
+            "bucket": [
+              0.5,
+              0.6
+            ],
+            "n": 189,
+            "predicted": 0.549,
+            "observed": 0.286,
+            "error": -0.263
+          },
+          {
+            "bucket": [
+              0.6,
+              0.7
+            ],
+            "n": 145,
+            "predicted": 0.651,
+            "observed": 0.338,
+            "error": -0.313
+          },
+          {
+            "bucket": [
+              0.7,
+              0.8
+            ],
+            "n": 143,
+            "predicted": 0.748,
+            "observed": 0.503,
+            "error": -0.245
+          },
+          {
+            "bucket": [
+              0.8,
+              0.9
+            ],
+            "n": 148,
+            "predicted": 0.851,
+            "observed": 0.669,
+            "error": -0.182
+          },
+          {
+            "bucket": [
+              0.9,
+              1.0
+            ],
+            "n": 198,
+            "predicted": 0.955,
+            "observed": 0.909,
+            "error": -0.046
+          }
+        ]
+      }
+    },
+    "brier": 0.1214227743361748,
+    "brier_naive": 0.15896833575570576,
+    "reliability": [
+      {
+        "bucket": [
+          0.0,
+          0.1
+        ],
+        "n": 5877,
+        "predicted": 0.023,
+        "observed": 0.045,
+        "error": 0.022
+      },
+      {
+        "bucket": [
+          0.1,
+          0.2
+        ],
+        "n": 1897,
+        "predicted": 0.148,
+        "observed": 0.17,
+        "error": 0.022
+      },
+      {
+        "bucket": [
+          0.2,
+          0.3
+        ],
+        "n": 1601,
+        "predicted": 0.25,
+        "observed": 0.256,
+        "error": 0.006
+      },
+      {
+        "bucket": [
+          0.3,
+          0.4
+        ],
+        "n": 1370,
+        "predicted": 0.348,
+        "observed": 0.344,
+        "error": -0.004
+      },
+      {
+        "bucket": [
+          0.4,
+          0.5
+        ],
+        "n": 1271,
+        "predicted": 0.448,
+        "observed": 0.415,
+        "error": -0.033
+      },
+      {
+        "bucket": [
+          0.5,
+          0.6
+        ],
+        "n": 1199,
+        "predicted": 0.549,
+        "observed": 0.532,
+        "error": -0.017
+      },
+      {
+        "bucket": [
+          0.6,
+          0.7
+        ],
+        "n": 1089,
+        "predicted": 0.65,
+        "observed": 0.615,
+        "error": -0.035
+      },
+      {
+        "bucket": [
+          0.7,
+          0.8
+        ],
+        "n": 1109,
+        "predicted": 0.75,
+        "observed": 0.739,
+        "error": -0.011
+      },
+      {
+        "bucket": [
+          0.8,
+          0.9
+        ],
+        "n": 1214,
+        "predicted": 0.852,
+        "observed": 0.81,
+        "error": -0.042
+      },
+      {
+        "bucket": [
+          0.9,
+          1.0
+        ],
+        "n": 3785,
+        "predicted": 0.976,
+        "observed": 0.975,
+        "error": -0.001
+      }
+    ],
+    "reliability_naive": [
+      {
+        "bucket": [
+          0.0,
+          0.1
+        ],
+        "n": 8933,
+        "predicted": 0.005,
+        "observed": 0.092,
+        "error": 0.087
+      },
+      {
+        "bucket": [
+          0.1,
+          0.2
+        ],
+        "n": 134,
+        "predicted": 0.13,
+        "observed": 0.224,
+        "error": 0.094
+      },
+      {
+        "bucket": [
+          0.2,
+          0.3
+        ],
+        "n": 5,
+        "predicted": 0.214,
+        "observed": 0.4,
+        "error": 0.186
+      },
+      {
+        "bucket": [
+          0.5,
+          0.6
+        ],
+        "n": 2268,
+        "predicted": 0.5,
+        "observed": 0.337,
+        "error": -0.163
+      },
+      {
+        "bucket": [
+          0.7,
+          0.8
+        ],
+        "n": 5,
+        "predicted": 0.786,
+        "observed": 0.8,
+        "error": 0.014
+      },
+      {
+        "bucket": [
+          0.8,
+          0.9
+        ],
+        "n": 134,
+        "predicted": 0.87,
+        "observed": 0.619,
+        "error": -0.25
+      },
+      {
+        "bucket": [
+          0.9,
+          1.0
+        ],
+        "n": 8933,
+        "predicted": 0.995,
+        "observed": 0.794,
+        "error": -0.201
+      }
+    ],
+    "stores": [
+      "goals_test-declining-cannibalization",
+      "goals_test-declining-cpa_drift",
+      "goals_test-declining-fee_increase",
+      "goals_test-declining-healthy-01",
+      "goals_test-declining-healthy-02",
+      "goals_test-declining-healthy-03",
+      "goals_test-declining-healthy-04",
+      "goals_test-declining-healthy-05",
+      "goals_test-declining-healthy-06",
+      "goals_test-declining-mix_shift",
+      "goals_test-declining-refund_spike",
+      "goals_test-declining-stockout_on_promoted",
+      "goals_test-declining-supplier_cost_increase",
+      "goals_test-declining-tracking_break",
+      "goals_test-flat-cannibalization",
+      "goals_test-flat-cpa_drift",
+      "goals_test-flat-fee_increase",
+      "goals_test-flat-healthy-01",
+      "goals_test-flat-healthy-02",
+      "goals_test-flat-healthy-03",
+      "goals_test-flat-healthy-04",
+      "goals_test-flat-healthy-05",
+      "goals_test-flat-healthy-06",
+      "goals_test-flat-mix_shift",
+      "goals_test-flat-refund_spike",
+      "goals_test-flat-stockout_on_promoted",
+      "goals_test-flat-supplier_cost_increase",
+      "goals_test-flat-tracking_break",
+      "goals_test-growing-cannibalization",
+      "goals_test-growing-cpa_drift",
+      "goals_test-growing-fee_increase",
+      "goals_test-growing-healthy-01",
+      "goals_test-growing-healthy-02",
+      "goals_test-growing-healthy-03",
+      "goals_test-growing-healthy-04",
+      "goals_test-growing-healthy-05",
+      "goals_test-growing-healthy-06",
+      "goals_test-growing-mix_shift",
+      "goals_test-growing-refund_spike",
+      "goals_test-growing-stockout_on_promoted",
+      "goals_test-growing-supplier_cost_increase",
+      "goals_test-growing-tracking_break"
+    ]
+  },
+  "tuning": null
+}
