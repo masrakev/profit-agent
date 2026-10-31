@@ -45,6 +45,10 @@ TENANT_TABLES = (
     "deliveries",
     "investigation_steps",
     "store_connections",
+    "goals",
+    "goal_plans",
+    "goal_steps",
+    "goal_progress",
 )
 
 

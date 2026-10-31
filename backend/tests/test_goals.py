@@ -25,6 +25,7 @@ from app.goals.feasibility import (
     verdict,
 )
 from app.goals.forecast import calibrate, daily_values, fit, forecast, scale, simulate
+from app.verifier import verify
 from bench.generator import generate
 from bench.generator.load import load
 from bench.scenarios.build import bench_config
@@ -145,8 +146,9 @@ def test_probability_gap_and_low_evidence(tmp_path: Path, monkeypatch: pytest.Mo
         (),
     )
     reasons = low_evidence(f)
-    assert reasons[0].startswith("the horizon (60 days) is longer than the store's history")
-    assert "revenue over 60 days were poorly calibrated" in reasons[1]
+    assert reasons[0] == "the goal's horizon is longer than the store's history"
+    assert "revenue this far ahead were poorly calibrated" in reasons[1]
+    assert not any(verify(r) for r in reasons)  # they reach the owner's text: no numbers
     assert low_evidence(forecast(series(200), START, "revenue", 30, seed=4)) == ()
 
 
@@ -162,7 +164,8 @@ def test_beyond_90_days_a_probability_is_a_range(
     assert even.verdict_band == ("stretch", "possible")
     assert even.checkpoints == (90, 180, 182)
     assert (checkpoints(90), checkpoints(91)) == ((), (90, 91))
-    assert low_evidence(f)[0].startswith("beyond 90 days probabilities were overconfident")
+    assert low_evidence(f)[0].startswith("past a quarter, probabilities were overconfident")
+    assert not any(verify(r) for r in low_evidence(f))
     sure = assess(f, f.quantiles(182)[0] * 0.1, 1)
     assert sure.probability_range == (0.85, 1.0, 1.0)
     assert sure.verdict_band == ("likely", "likely")

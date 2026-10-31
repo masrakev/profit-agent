@@ -118,7 +118,15 @@ def test_the_arq_tasks(app_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> N
     assert asyncio.run(worker.retention(ctx)) == 3
     assert calls == ["briefings", "detection"]
     names = {c.name: c for c in worker.WorkerSettings.cron_jobs}
-    assert set(names) == {"cron:briefings", "cron:detection", "cron:deliveries", "cron:retention"}
+    assert set(names) == {
+        "cron:briefings",
+        "cron:detection",
+        "cron:deliveries",
+        "cron:retention",
+        "cron:goals_weekly",
+        "cron:goals_monthly",
+    }
+    assert (names["cron:goals_weekly"].weekday, names["cron:goals_monthly"].day) == ({0}, {1})
     assert all(c.unique for c in names.values())
     assert names["cron:briefings"].minute == set(range(0, 60, 5))
     started: dict[str, Any] = {}

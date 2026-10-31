@@ -91,7 +91,9 @@ class Capturing:
 @pytest.fixture(scope="module")
 def world(database_urls: tuple[str, str]) -> Iterator[dict[str, Any]]:
     """A fresh database: the same fact ids on every run, so recorded requests replay."""
-    engine = make_engine(prepare_database("profit_redteam"))
+    # Named after the test database, so that two test runs on one server never share it.
+    name = os.environ.get("TEST_DATABASE_NAME", "profit_test") + "_redteam"
+    engine = make_engine(prepare_database(name))
     golden = {m.scenario_id: m for m in load_suite("golden")}
     injection = golden["golden-injection"]
     stockout = golden["golden-stockout_on_promoted"]

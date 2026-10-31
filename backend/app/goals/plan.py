@@ -29,7 +29,7 @@ from decimal import Decimal
 
 import numpy as np
 
-from app.goals.feasibility import POINT_HORIZON, verdict
+from app.goals.feasibility import POINT_HORIZON, RESAMPLES, probability_range, verdict
 from app.goals.forecast import FloatArray
 from app.goals.levers import DECISION, EXPERIMENT, Step
 from app.twin import Action, Scenario, TwinModel, change_draws
@@ -93,6 +93,15 @@ def combine(baseline: FloatArray, change: FloatArray) -> FloatArray:
 
 def reach(values: FloatArray, target: float) -> float:
     return float((values >= target).mean())
+
+
+def quantile_range(values: FloatArray, q: float, seed: int) -> tuple[float, float, float]:
+    """The `q` percentile of `values`, with a bootstrap interval (P10-P90) over the draws."""
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(values), size=(RESAMPLES, len(values)))
+    low, high = np.percentile(np.percentile(values[idx], q, axis=1), [10, 90])
+    mid = float(np.percentile(values, q))
+    return (min(float(low), mid), mid, max(float(high), mid))
 
 
 @dataclass(frozen=True)
@@ -170,8 +179,8 @@ class Milestone:
 
 @dataclass(frozen=True)
 class Alternatives:
-    target_50: float  # reached with 50% probability, with the plan
-    target_70: float  # with 70%
+    target_50: tuple[float, float, float]  # reached with 50% probability, with the plan
+    target_70: tuple[float, float, float]  # with 70% (each: a bootstrap of the quantile)
     deadline_days: int | None  # the first horizon making the target possible; None in 6 months
 
 
@@ -185,8 +194,8 @@ class Plan:
     steps: tuple[tuple[Step, tuple[float, float, float]], ...]  # each with its own effect
     experiments: tuple[Step, ...]
     milestones: tuple[Milestone, ...]
-    probability_without: float
-    probability_with: float
+    probability_without: tuple[float, float, float]  # low, point, high
+    probability_with: tuple[float, float, float]
     outcome: tuple[float, float, float]  # at the deadline, with the plan
     profit_change: tuple[float, float, float]  # the plan's effect on net profit
     alternatives: Alternatives | None
@@ -194,7 +203,7 @@ class Plan:
 
     @property
     def verdict_with(self) -> str:
-        return verdict(self.probability_with)
+        return verdict(self.probability_with[1])
 
     @property
     def lowers_profit(self) -> bool:
@@ -247,9 +256,10 @@ def build(
             Milestone(day, as_of + timedelta(days=day), (float(q10), float(q50), float(q90)))
         )
     outcome = combine(final, best.effect.draws)
-    probability = reach(outcome, target)
+    seed = int(abs(target) * 100) % (2**32)
+    with_plan = probability_range(outcome, target, horizon, seed)
     alternatives = None
-    if verdict(probability) == "unlikely":
+    if verdict(with_plan[1]) == "unlikely":
         deadline = None
         if extended is not None:
             for h in range(horizon + 1, extended.shape[1] + 1):
@@ -257,8 +267,8 @@ def build(
                     deadline = h
                     break
         alternatives = Alternatives(
-            target_50=float(np.percentile(outcome, 50)),
-            target_70=float(np.percentile(outcome, 30)),
+            target_50=quantile_range(outcome, 50, seed),
+            target_70=quantile_range(outcome, 30, seed),
             deadline_days=deadline,
         )
     o10, o50, o90 = np.percentile(outcome, [10, 50, 90])
@@ -272,8 +282,8 @@ def build(
         steps=steps,
         experiments=tuple(s for s in candidates if s.kind == EXPERIMENT),
         milestones=tuple(milestones),
-        probability_without=reach(final, target),
-        probability_with=probability,
+        probability_without=probability_range(final, target, horizon, seed),
+        probability_with=with_plan,
         outcome=(float(o10), float(o50), float(o90)),
         profit_change=(float(p10), float(p50), float(p90)),
         alternatives=alternatives,

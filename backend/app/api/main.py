@@ -20,6 +20,7 @@ from app.api.auth import StoreDep
 from app.api.auth import router as auth_router
 from app.api.decisions import router as decisions_router
 from app.api.deps import EngineDep, ProviderDep, get_engine, get_provider
+from app.api.goals import router as goals_router
 from app.api.health import router as health_router
 from app.api.middleware import ApiMiddleware, RateLimiter
 from app.api.privacy import router as privacy_router
@@ -103,6 +104,7 @@ def create_app(limiter: RateLimiter | None = None) -> FastAPI:
     app.include_router(stores_router)
     app.include_router(privacy_router)
     app.include_router(decisions_router)
+    app.include_router(goals_router)
     return app
 
 

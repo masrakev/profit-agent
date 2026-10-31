@@ -21,16 +21,18 @@ Everything is stored as `estimate` facts: the cumulative forecast for every day 
 
 from dataclasses import dataclass
 from datetime import date, timedelta
-from decimal import ROUND_HALF_EVEN, Decimal
+from decimal import Decimal
 from uuid import UUID
 
 import numpy as np
+import numpy.typing as npt
 from sqlalchemy import Connection
 
 from app.detection.series import load_series
 from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.engine import FactEngine
-from app.facts.model import Fact, FactKind, FactStatus, Lineage, ParentRef, Period, Scope, Unit
+from app.facts.model import Fact, Period, Scope, Unit
+from app.goals import facts as gf
 from app.goals.forecast import BUCKETS, FIT_DAYS, METHOD, Forecast, daily_values, forecast, frozen
 
 VERDICTS = ((0.70, "likely"), (0.40, "possible"), (0.15, "stretch"), (0.0, "unlikely"))
@@ -38,9 +40,6 @@ RESAMPLES = 1000  # bootstrap of the probability over the draws
 POINT_HORIZON = 90  # beyond it, a probability is shown as an interval only
 LONG_HORIZON_MARGIN = 0.15  # half-width of that interval
 CHECKPOINT_DAYS = 90
-FORMULA_VERSION = 1
-CENT = Decimal("0.01")
-BASIS_POINT = Decimal("0.0001")
 
 
 def verdict(probability: float) -> str:
@@ -84,37 +83,42 @@ class Feasibility:
 
 
 def low_evidence(f: Forecast) -> tuple[str, ...]:
+    """Why the evidence is weak, in words without numbers (they reach the owner's text)."""
     reasons = []
     if f.horizon > POINT_HORIZON:
         reasons.append(
-            f"beyond {POINT_HORIZON} days probabilities were overconfident in the backtest: the "
-            "probability is a range, and the goal is checked every quarter"
+            "past a quarter, probabilities were overconfident in the backtest: the probability "
+            "is a range, and the goal is checked every quarter"
         )
     if f.horizon > f.history_days:
-        reasons.append(
-            f"the horizon ({f.horizon} days) is longer than the store's history "
-            f"({f.history_days} days)"
-        )
+        reasons.append("the goal's horizon is longer than the store's history")
     poor = frozen().get("poor", {}).get(f.metric, [])
     if bucket(f.horizon) in poor:
         reasons.append(
-            f"forecasts of {f.metric.replace('_', ' ')} over {bucket(f.horizon)} days were "
-            "poorly calibrated in the backtest"
+            f"forecasts of {f.metric.replace('_', ' ')} this far ahead were poorly calibrated "
+            "in the backtest"
         )
     return tuple(reasons)
 
 
-def assess(f: Forecast, target: float, seed: int) -> Feasibility:
-    final = f.paths[:, -1]
-    reached = (final >= target).astype(np.float64)
-    probability = float(reached.mean())
-    if f.horizon > POINT_HORIZON:
-        lo = max(0.0, probability - LONG_HORIZON_MARGIN)
-        hi = min(1.0, probability + LONG_HORIZON_MARGIN)
+def probability_range(
+    values: npt.NDArray[np.float64], target: float, horizon: int, seed: int
+) -> tuple[float, float, float]:
+    """The share of `values` reaching `target`, with its interval: a bootstrap over the draws
+    up to 90 days, 15 points either side beyond (SPEC 17.2, rule 6)."""
+    reached = (values >= target).astype(np.float64)
+    p = float(reached.mean())
+    if horizon > POINT_HORIZON:
+        lo, hi = max(0.0, p - LONG_HORIZON_MARGIN), min(1.0, p + LONG_HORIZON_MARGIN)
     else:
         rng = np.random.default_rng(seed)
         draws = rng.integers(0, len(reached), size=(RESAMPLES, len(reached)))
         lo, hi = (float(x) for x in np.percentile(reached[draws].mean(axis=1), [10, 90]))
+    return (min(lo, p), p, max(hi, p))
+
+
+def assess(f: Forecast, target: float, seed: int) -> Feasibility:
+    lo, probability, hi = probability_range(f.paths[:, -1], target, f.horizon, seed)
     low, mid, high = f.quantiles(f.horizon)
     return Feasibility(
         metric=f.metric,
@@ -122,7 +126,7 @@ def assess(f: Forecast, target: float, seed: int) -> Feasibility:
         deadline=f.as_of + timedelta(days=f.horizon),
         horizon=f.horizon,
         probability=probability,
-        probability_range=(min(lo, probability), probability, max(hi, probability)),
+        probability_range=(lo, probability, hi),
         verdict=verdict(probability),
         verdict_band=(verdict(lo), verdict(hi)),
         gap=(target - high, target - mid, target - low),
@@ -136,20 +140,13 @@ def _seed(*parts: object) -> int:
     return int(sha256_hex(canonical_json([str(p) for p in parts]))[:16], 16)
 
 
-def _money(x: float) -> Decimal:
-    return Decimal(repr(x)).quantize(CENT, rounding=ROUND_HALF_EVEN)
-
-
-def _ratio(x: float) -> Decimal:
-    return Decimal(repr(x)).quantize(BASIS_POINT, rounding=ROUND_HALF_EVEN)
-
-
 @dataclass(frozen=True)
 class Assessment:
     feasibility: Feasibility
     forecast: dict[int, Fact]  # day -> the cumulative forecast fact to that day
     probability: Fact
     gap: Fact
+    history: Fact  # the fit window's exact fact, the forecast's parent
 
 
 def assess_store(
@@ -160,65 +157,48 @@ def assess_store(
     deadline: date,
     *,
     currency: str,
+    as_of: date | None = None,
 ) -> Assessment:
-    """The goal's feasibility from the store's data (to its last day), with its facts."""
+    """The goal's feasibility from the store's data before `as_of` (default: all of it),
+    with its facts."""
     series = load_series(conn, store_id)
-    values = np.array([float(v) for v in daily_values(series, metric)], dtype=np.float64)
-    as_of = series.start + timedelta(days=series.days)
+    every = daily_values(series, metric)
+    end = series.days if as_of is None else series.index(as_of)
+    values = np.array([float(v) for v in every[:end]], dtype=np.float64)
+    as_of = series.start + timedelta(days=end)
     horizon = (deadline - as_of).days
     seed = _seed(store_id, metric, as_of, horizon)
     f = forecast(values, series.start, metric, horizon, seed)
     feas = assess(f, float(target), _seed(store_id, metric, as_of, horizon, target))
     engine = FactEngine(conn, store_id)
-    window = Period.days(as_of - timedelta(days=min(FIT_DAYS, series.days)), as_of)
-    parent = engine.adopt(engine.fact(metric, Scope.store(), window))
-    lineage = Lineage(parents=(ParentRef(role="history", fact_hash=parent.fact_hash),))
+    window = Period.days(as_of - timedelta(days=min(FIT_DAYS, end)), as_of)
+    history = engine.persist(engine.adopt(engine.fact(metric, Scope.store(), window)))
     method = f"{METHOD};calibration {f.calibration}"
+    parents = (("history", history),)
 
-    def estimate(formula: str, end: date, unit: Unit, qs: tuple[Decimal, ...], key: object) -> Fact:
-        fact = Fact(
-            store_id=store_id,
-            formula_id=formula,
-            formula_version=FORMULA_VERSION,
-            kind=FactKind.ESTIMATE,
-            scope=Scope.store(),
-            period=Period.days(as_of, end),
-            status=FactStatus.DEFINED,
-            value=qs[1],
-            p10=qs[0],
-            p50=qs[1],
-            p90=qs[2],
-            method=method,
+    def estimate(
+        formula: str, day: int, unit: Unit, qs: tuple[float, float, float], key: object
+    ) -> Fact:
+        return gf.estimate(
+            engine,
+            store_id,
+            formula=formula,
+            period=(as_of, as_of + timedelta(days=day)),
             unit=unit,
-            currency=currency if unit is Unit.MONEY else None,
-            inputs_hash=sha256_hex(
-                canonical_json(
-                    {"formula": formula, "method": method, "seed": seed, "key": str(key)}
-                )
-            ),
-            lineage=lineage,
+            quantiles=qs,
+            method=method,
+            key=(seed, key),
+            parents=parents,
+            currency=currency,
         )
-        return engine.persist(engine.adopt(fact))
 
     daily = {
-        day: estimate(
-            f"goal.forecast.{metric}",
-            as_of + timedelta(days=day),
-            Unit.MONEY,
-            tuple(_money(q) for q in f.quantiles(day)),
-            day,
-        )
+        day: estimate(f"goal.forecast.{metric}", day, Unit.MONEY, f.quantiles(day), day)
         for day in range(1, f.horizon + 1)
     }
-    p10, _, p90 = feas.probability_range  # beyond 90 days the fact renders as this range
+    # Beyond 90 days the probability fact carries the range only, so a citation renders it so.
     probability = estimate(
-        f"goal.probability.{metric}",
-        deadline,
-        Unit.RATIO,
-        (_ratio(p10), _ratio(feas.probability), _ratio(p90)),
-        target,
+        f"goal.probability.{metric}", horizon, Unit.RATIO, feas.probability_range, target
     )
-    gap = estimate(
-        f"goal.gap.{metric}", deadline, Unit.MONEY, tuple(_money(g) for g in feas.gap), target
-    )
-    return Assessment(feas, daily, probability, gap)
+    gap = estimate(f"goal.gap.{metric}", horizon, Unit.MONEY, feas.gap, target)
+    return Assessment(feas, daily, probability, gap, history)

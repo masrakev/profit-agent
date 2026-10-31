@@ -5,7 +5,9 @@
 - briefings: every five minutes; each store's due briefings, in its time zone (`jobs.due`);
 - detection: hourly; each store's detection run, then its alerts;
 - deliveries: every minute; due email deliveries;
-- retention: daily at 03:17 UTC; model traces past the retention period, expired sign-ins.
+- retention: daily at 03:17 UTC; model traces past the retention period, expired sign-ins;
+- goals_weekly: Mondays at 04:23 UTC; each planned goal's progress, due plan steps proposed;
+- goals_monthly: on the 1st at 04:41 UTC; the re-forecast of goals beyond 90 days.
 
 Each cron job is unique across workers (arq holds a lock per job), and every piece of work is
 idempotent in the database (one briefing per store, kind and local day; one alert per incident
@@ -76,6 +78,18 @@ async def retention(ctx: dict[str, Any]) -> int:
     return purged.traces
 
 
+async def goals_weekly(ctx: dict[str, Any]) -> int:
+    done = await asyncio.to_thread(jobs.goals_weekly_tick, ctx["engine"], _now())
+    log.info("scheduler.goals_weekly", done=[(str(d.store_id), d.ok, d.detail) for d in done])
+    return len(done)
+
+
+async def goals_monthly(ctx: dict[str, Any]) -> int:
+    done = await asyncio.to_thread(jobs.goals_monthly_tick, ctx["engine"], _now())
+    log.info("scheduler.goals_monthly", done=[(str(d.store_id), d.ok, d.detail) for d in done])
+    return len(done)
+
+
 async def deliveries(ctx: dict[str, Any]) -> int:
     worker: DeliveryWorker = ctx["delivery"]
     processed = await asyncio.to_thread(worker.run_once)
@@ -85,12 +99,14 @@ async def deliveries(ctx: dict[str, Any]) -> int:
 
 
 class WorkerSettings:
-    functions = (briefings, detection, deliveries, retention)
+    functions = (briefings, detection, deliveries, retention, goals_weekly, goals_monthly)
     cron_jobs = (
         cron(briefings, minute=set(range(0, 60, 5)), run_at_startup=True, timeout=1800),
         cron(detection, minute={7}, timeout=3000),
         cron(deliveries, timeout=300),
         cron(retention, hour={3}, minute={17}, timeout=3000),
+        cron(goals_weekly, weekday={0}, hour={4}, minute={23}, timeout=3000),
+        cron(goals_monthly, day={1}, hour={4}, minute={41}, timeout=3000),
     )
     on_startup = startup
     on_shutdown = shutdown

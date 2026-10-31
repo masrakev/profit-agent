@@ -26,6 +26,7 @@ from app.briefings.store import find
 from app.db import tenant_transaction
 from app.delivery.alerts import AlertOutcome, dispatch_alerts
 from app.detection.pipeline import run_pipeline
+from app.goals import service
 from app.observability import get_logger
 from app.settings.models import StoreSettings
 from app.settings.repository import StoreSettingsRepository
@@ -121,3 +122,35 @@ def detection_tick(
         return ", ".join(f"{a.level.value}:{a.status}" for a in alerts)
 
     return _each(engine, "detection", run, only)
+
+
+def goals_weekly_tick(
+    engine: Engine, now: datetime, *, only: Sequence[UUID] | None = None
+) -> list[Done]:
+    """Weekly tracking of every goal with an accepted plan (`app.goals.service.track`)."""
+
+    def run(store_id: UUID) -> str:
+        with tenant_transaction(engine, store_id) as conn:
+            tracked = [
+                service.track(conn, store_id, g.goal_id, now=now)
+                for g in service.active_goals(conn, store_id)
+            ]
+        return ", ".join(f"{p.goal_id}:{p.status or p.verdict}" for p in tracked if p)
+
+    return _each(engine, "goals_weekly", run, only)
+
+
+def goals_monthly_tick(
+    engine: Engine, now: datetime, *, only: Sequence[UUID] | None = None
+) -> list[Done]:
+    """The monthly re-forecast of goals beyond 90 days (`app.goals.service.reforecast`)."""
+
+    def run(store_id: UUID) -> str:
+        with tenant_transaction(engine, store_id) as conn:
+            done = [
+                service.reforecast(conn, store_id, g.goal_id, now=now)
+                for g in service.active_goals(conn, store_id)
+            ]
+        return ", ".join(f"{p.goal_id}:{p.verdict}" for p in done if p)
+
+    return _each(engine, "goals_monthly", run, only)

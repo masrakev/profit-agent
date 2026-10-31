@@ -58,6 +58,7 @@ from app.detection.repository import load_incidents
 from app.detection.series import StoreSeries, load_series
 from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.model import Fact, Period, Scope
+from app.goals import service as goal_service
 from app.policies.trust import trust_ledger
 from app.settings.models import AutonomyLevel, StoreSettings
 from app.settings.repository import StoreSettingsRepository
@@ -752,6 +753,47 @@ def watchlist(ctx: Context) -> Section:
     return Section(key="watchlist", title="Watchlist", items=tuple(items))
 
 
+GOAL_STATUS = {"ahead": "ahead of", "on_track": "on track with", "behind": "behind"}
+
+
+def goals(ctx: Context) -> Section:
+    """Goal progress (SPEC 17.5): each planned goal's latest weekly tracking."""
+    items = []
+    for goal in goal_service.active_goals(ctx.conn, ctx.store_id):
+        weekly = [
+            p
+            for p in goal_service.progress(ctx.conn, ctx.store_id, goal.goal_id)
+            if p.kind == "weekly"
+        ]
+        target, actual = goal.target_fact_id, weekly[-1].actual_fact_id if weekly else None
+        if target is None or actual is None:
+            continue
+        last = weekly[-1]
+        ids = [target, actual, last.milestone_fact_id, last.probability_fact_id]
+        facts = ctx.cited.load(i for i in ids if i is not None)
+        words = goal_service.METRIC_WORDS[goal.metric]
+        text = (
+            f"Your goal of {ctx.cited.ref(facts[target])} in {words} by "
+            f"{(goal.deadline - timedelta(days=1)).isoformat()}: "
+            f"{ctx.cited.ref(facts[actual])} so far"
+        )
+        if last.status is not None and last.milestone_fact_id is not None:
+            text += (
+                f", {GOAL_STATUS[last.status]} the plan's milestone "
+                f"({ctx.cited.ref(facts[last.milestone_fact_id])})"
+            )
+        if last.probability_fact_id is not None:
+            text += (
+                f"; the chance of reaching it is now "
+                f"{ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
+            )
+        text += "."
+        if last.revision_proposed:
+            text += f" A revision of the plan is proposed: {last.reason}."
+        items.append(Item(text=text))
+    return Section(key="goals", title="Goals", items=tuple(items))
+
+
 def weekly_report(ctx: Context) -> BriefingContent:
     week = periods.week_period(ctx.day)
     before = periods.previous(week)
@@ -768,6 +810,7 @@ def weekly_report(ctx: Context) -> BriefingContent:
             *products(ctx, attribution, week),
             inventory(ctx, week),
             decisions_and_outcomes(ctx, BriefingKind.WEEKLY),
+            goals(ctx),
             opportunities(ctx),
             watchlist(ctx),
         ],

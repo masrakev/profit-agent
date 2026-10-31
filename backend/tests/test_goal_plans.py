@@ -293,7 +293,9 @@ def test_the_greedy_search_and_the_plan(model: TwinModel) -> None:
     assert plan.days == plan_days(60) == 60
     assert [m.day for m in plan.milestones] == [7, 14, 21, 28, 35, 42, 49, 56, 60]
     assert plan.milestones[0].date == AS_OF + timedelta(days=7)
-    assert plan.probability_with >= plan.probability_without
+    assert plan.probability_with[1] >= plan.probability_without[1]
+    low, mid, high = plan.probability_with
+    assert low <= mid <= high
     assert plan.alternatives is None
     assert {s.lever for s in plan.experiments} == {
         "price_test",
@@ -327,7 +329,8 @@ def test_an_unlikely_goal_gets_alternatives(model: TwinModel) -> None:
     assert plan.verdict_with == "unlikely"
     alt = plan.alternatives
     assert alt is not None
-    assert alt.target_70 < alt.target_50 < target
+    assert alt.target_70[1] < alt.target_50[1] < target
+    assert alt.target_50[0] <= alt.target_50[1] <= alt.target_50[2]
     assert alt.deadline_days is not None
     assert 120 < alt.deadline_days <= 186
     far = build(
