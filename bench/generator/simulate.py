@@ -14,6 +14,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 import numpy as np
 
+from app.domain.hashing import sha256_hex
 from app.domain.models import (
     AdCampaign,
     AdCampaignProduct,
@@ -37,6 +38,7 @@ from bench.generator.model import (
 )
 
 CENT = Decimal("0.01")
+DYNAMICS_STREAM = int(sha256_hex("long_history")[:16], 16)  # random stream of the dynamics
 STORE_NAMESPACE = uuid5(NAMESPACE_URL, "https://profit-agent.dev/bench/store")
 ADJECTIVES = ("Classic", "Organic", "Premium", "Everyday", "Travel", "Compact", "Deluxe", "Eco")
 NOUNS = (
@@ -128,6 +130,30 @@ def _budget_multiplier(
     return max(active, key=lambda i: i.day).budget_multiplier if active else 1.0
 
 
+def demand_scale(config: GeneratorConfig) -> list[float] | None:
+    """The market's size each day relative to day 0, with long-history dynamics; None without.
+
+    Log level: the growth rate (a random walk around `growth_per_year`, its sd reaching
+    `growth_drift` after a year) accumulated day by day, plus regime shifts (Poisson,
+    `regime_changes_per_year`); times a yearly cycle peaking on day `yearly_peak` of the year.
+    """
+    h = config.long_history
+    if h is None:
+        return None
+    rng = np.random.default_rng([config.seed, DYNAMICS_STREAM])
+    growth, level, out = float(h.growth_per_year), 0.0, []
+    for day in range(config.days):
+        if day:
+            growth += float(h.growth_drift) * float(rng.normal()) / math.sqrt(365)
+            level += growth / 365
+            if rng.random() < float(h.regime_changes_per_year) / 365:
+                level += float(rng.normal(0.0, float(h.regime_shift_sd)))
+        doy = (config.start_date + timedelta(days=day)).timetuple().tm_yday
+        cycle = math.cos(2 * math.pi * (doy - h.yearly_peak) / 365.25)
+        out.append(math.exp(level) * (1.0 + float(h.yearly_amplitude) * cycle))
+    return out
+
+
 def generate(
     config: GeneratorConfig,
     faults: Sequence[Fault] = (),
@@ -153,9 +179,12 @@ def generate(
     if config.reorder_policy == "adaptive":
         _plan_stock(states, campaigns, campaign_truth, promoted_by_campaign)
 
+    scale = demand_scale(config)
     for day in range(config.days):
         today = config.start_date + timedelta(days=day)
         dow = float(config.weekly_seasonality[today.weekday()])
+        if scale is not None:
+            dow *= scale[day]  # organic demand and the ad response follow the market
         for state in states:
             arrived = sum(units for arrival, units in state.pipeline if arrival == day)
             state.on_hand += arrived
@@ -175,7 +204,8 @@ def generate(
                 continue  # paused: no spend and no ad-driven demand
             spend = money(budget * rng.uniform(0.75, 1.05))
             spend_today[c] = spend
-            expected = truth.a * (1.0 - math.exp(-truth.b * float(spend)))
+            reach = truth.a if scale is None else truth.a * scale[day]
+            expected = reach * (1.0 - math.exp(-truth.b * float(spend)))
             purchases = max(0, round(expected + rng.normal(0.0, truth.noise_sd)))
             candidates = promoted_by_campaign[campaigns[c].id]
             events.extend((int(rng.choice(candidates)), c) for _ in range(purchases))

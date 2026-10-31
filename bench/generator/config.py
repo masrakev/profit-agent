@@ -8,6 +8,24 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domain.hashing import canonical_json, sha256_hex
 
+MAX_LONG_DAYS = 400
+
+
+class LongHistory(BaseModel):
+    """Demand dynamics for long histories (goal backtests): the market grows or shrinks at a
+    rate that drifts slowly, with yearly seasonality and occasional regime changes. They scale
+    organic demand and the ad response (budgets do not follow). Drawn from a random stream of
+    their own, so the rest of the store is the same stream of draws as without them."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    growth_per_year: Decimal = Field(default=Decimal(0), ge=-1, le=2)  # mean log growth a year
+    growth_drift: Decimal = Field(default=Decimal("0.1"), ge=0)  # the rate's sd after a year
+    yearly_amplitude: Decimal = Field(default=Decimal("0.15"), ge=0, lt=1)
+    yearly_peak: int = Field(default=330, ge=1, le=366)  # day of the year with the most demand
+    regime_changes_per_year: Decimal = Field(default=Decimal(1), ge=0)
+    regime_shift_sd: Decimal = Field(default=Decimal("0.15"), ge=0)  # log level shift
+
 
 class GeneratorConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -52,11 +70,16 @@ class GeneratorConfig(BaseModel):
     # "random": daily budget drawn uniformly. "profit_optimal": budget set below the spend that
     # maximises expected campaign profit, so a healthy campaign is profitable.
     campaign_budget_policy: Literal["random", "profit_optimal"] = "random"
+    # Off unless set; left out of the serialized config when off, so existing manifests, seeds
+    # and stores are unchanged.
+    long_history: LongHistory | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @model_validator(mode="after")
     def _ranges(self) -> "GeneratorConfig":
         if self.products_max < self.products_min or self.campaigns_max < self.campaigns_min:
             raise ValueError("max must be >= min")
+        if self.long_history is not None and self.days > MAX_LONG_DAYS:
+            raise ValueError(f"long histories have at most {MAX_LONG_DAYS} days")
         if self.initial_stock_days[1] < self.initial_stock_days[0]:
             raise ValueError("initial_stock_days must be (low, high)")
         return self

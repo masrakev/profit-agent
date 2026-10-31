@@ -16,11 +16,13 @@ from bench.generator import (
     GeneratedStore,
     GeneratorConfig,
     Intervention,
+    LongHistory,
     Restock,
     apply_faults,
     generate,
 )
 from bench.generator.__main__ import main as generator_main
+from bench.generator.simulate import demand_scale
 from bench.scenarios.manifest import load_suite
 
 SMALL = GeneratorConfig(seed=7, days=40)
@@ -195,3 +197,34 @@ def test_a_restock_ends_a_stockout() -> None:
     assert stock(restocked, restock - 1) == 0
     assert stock(restocked, restock) > 0
     assert stock(plain, restock) == 0
+
+
+def test_long_histories_are_off_by_default() -> None:
+    assert "long_history" not in SMALL.model_dump()  # existing configs serialize as before
+    assert demand_scale(SMALL) is None
+    with pytest.raises(ValueError, match="at most 400 days"):
+        GeneratorConfig(seed=1, days=401, long_history=LongHistory())
+
+
+def test_long_history_dynamics() -> None:
+    def config(growth: str, **extra: object) -> GeneratorConfig:
+        dynamics = {"growth_per_year": growth, **extra}
+        return GeneratorConfig.model_validate({"seed": 11, "days": 400, "long_history": dynamics})
+
+    growing, declining = demand_scale(config("0.4")), demand_scale(config("-0.4"))
+    assert growing is not None
+    assert declining is not None
+    assert growing == demand_scale(config("0.4"))  # seeded
+    assert growing[0] == declining[0]
+    assert growing[-1] > declining[-1] * 1.3  # the same draws, a different growth rate
+    cycle = demand_scale(
+        config("0", growth_drift="0", regime_changes_per_year="0", yearly_amplitude="0.2")
+    )
+    assert cycle is not None
+    peak = max(range(365), key=lambda d: cycle[d])  # day 0 is 1 June: the peak is in November
+    assert (SMALL.start_date + timedelta(days=peak)).month == 11
+    assert max(cycle) / min(cycle) == pytest.approx(1.2 / 0.8, rel=0.01)
+    flat = generate(config("0").model_copy(update={"days": 60}))
+    up = generate(config("2").model_copy(update={"days": 60}))
+    assert flat.config.long_history is not None
+    assert len(up.orders) > len(flat.orders)  # the market grows: more orders
