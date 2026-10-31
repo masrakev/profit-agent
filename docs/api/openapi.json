@@ -64,6 +64,12 @@
           },
           "kind": {
             "$ref": "#/components/schemas/ActionKind"
+          },
+          "start": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
           }
         },
         "required": [
@@ -95,7 +101,8 @@
           "pause_campaign",
           "change_all_ad_spend",
           "change_price",
-          "launch_campaign"
+          "launch_campaign",
+          "restock_product"
         ],
         "title": "ActionKind",
         "type": "string"
@@ -2802,7 +2809,7 @@
           },
           "horizon_days": {
             "default": 14,
-            "maximum": 60.0,
+            "maximum": 90.0,
             "minimum": 7.0,
             "title": "Horizon Days",
             "type": "integer"

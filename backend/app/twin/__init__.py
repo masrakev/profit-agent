@@ -2,7 +2,7 @@
 
 from app.twin.fit import fit_twin
 from app.twin.model import Action, ActionKind, Range, Scenario, Simulation, TwinModel
-from app.twin.simulate import simulate
+from app.twin.simulate import change_draws, simulate
 
 __all__ = [
     "Action",
@@ -11,6 +11,7 @@ __all__ = [
     "Scenario",
     "Simulation",
     "TwinModel",
+    "change_draws",
     "fit_twin",
     "simulate",
 ]

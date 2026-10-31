@@ -16,6 +16,7 @@ from app.domain.hashing import canonical_json, sha256_hex
 FloatArray = npt.NDArray[np.float64]
 METRICS = ("contribution_margin", "net_profit", "units", "ad_spend")
 MONEY_METRICS = frozenset({"contribution_margin", "net_profit", "ad_spend"})
+MAX_SCENARIO_DAYS = 90  # what-if questions stop at 60 (app.agent.evaluate); plans at 90
 
 
 class ActionKind(StrEnum):
@@ -24,6 +25,9 @@ class ActionKind(StrEnum):
     CHANGE_ALL_AD_SPEND = "change_all_ad_spend"  # every campaign's budget times (1 + change)
     CHANGE_PRICE = "change_price"  # one product's price times (1 + change)
     LAUNCH_CAMPAIGN = "launch_campaign"  # a new campaign promoting one product
+    # Twin only, for plans: one product's supply restored from `start` (an owner's
+    # reorder).
+    RESTOCK_PRODUCT = "restock_product"
 
 
 class Action(BaseModel):
@@ -33,6 +37,9 @@ class Action(BaseModel):
     entity: UUID | None = None  # campaign or product; None for store-wide actions
     change: Decimal = Decimal(0)  # relative: -0.2 is 20% less
     days: int | None = Field(default=None, ge=1)  # how long it lasts; None: the whole horizon
+    # The day it takes effect (plans date their steps); left out when 0, so existing
+    # actions, decisions and fact hashes are unchanged.
+    start: int = Field(default=0, ge=0, exclude_if=lambda v: v == 0)
     daily_budget: Decimal | None = None  # LAUNCH_CAMPAIGN: None uses the store's median spend
 
 
@@ -40,7 +47,7 @@ class Scenario(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     actions: tuple[Action, ...] = ()
-    horizon_days: int = Field(default=14, ge=7, le=60)
+    horizon_days: int = Field(default=14, ge=7, le=MAX_SCENARIO_DAYS)
 
     @property
     def key(self) -> str:
