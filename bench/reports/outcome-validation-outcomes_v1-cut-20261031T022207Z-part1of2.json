@@ -1,0 +1,743 @@
+{
+  "run_id": "outcome-validation-outcomes_v1-cut-20261031T022207Z-part1of2",
+  "suite": "outcomes_v1",
+  "calibration": "conformal-v1",
+  "summary": {
+    "cases": 35,
+    "measured": 32,
+    "abstention_rate": 0.086,
+    "abstained_because": {
+      "the pre-period fit is too weak": 3
+    },
+    "measured_intervals": {
+      "n": 32,
+      "coverage": 0.906,
+      "bias": -113.72,
+      "mae": 474.01,
+      "median_abs_error": 339.96
+    },
+    "raw_intervals": {
+      "n": 32,
+      "coverage": 0.781,
+      "bias": -113.72,
+      "mae": 474.01,
+      "median_abs_error": 339.96
+    },
+    "calibrated": true,
+    "by_action": {
+      "pause": {
+        "n": 0,
+        "raw_coverage": null
+      },
+      "budget -30%": {
+        "n": 32,
+        "coverage": 0.906,
+        "bias": -113.72,
+        "mae": 474.01,
+        "median_abs_error": 339.96,
+        "raw_coverage": 0.781
+      },
+      "budget +20%": {
+        "n": 0,
+        "raw_coverage": null
+      }
+    },
+    "unthresholded_by_relative_error": [
+      {
+        "band": [
+          0.0,
+          0.25
+        ],
+        "n": 6,
+        "coverage": 0.833,
+        "bias": -218.19,
+        "mae": 387.58,
+        "median_abs_error": 369.32
+      },
+      {
+        "band": [
+          0.25,
+          0.5
+        ],
+        "n": 26,
+        "coverage": 0.923,
+        "bias": -89.61,
+        "mae": 493.96,
+        "median_abs_error": 339.96
+      },
+      {
+        "band": [
+          0.5,
+          1.0
+        ],
+        "n": 3,
+        "coverage": 0.333,
+        "bias": 733.59,
+        "mae": 864.89,
+        "median_abs_error": 389.39
+      },
+      {
+        "band": [
+          1.0,
+          Infinity
+        ],
+        "n": 0
+      }
+    ]
+  },
+  "cases": [
+    {
+      "scenario": "outcomes_v1-cannibalization-01",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3078,
+      "measured": [
+        -465.35,
+        1045.69,
+        2131.83
+      ],
+      "unthresholded": [
+        -75.25,
+        1045.69,
+        1741.73
+      ],
+      "truth": 1249.59,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-cannibalization-03",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2641,
+      "measured": [
+        -69.56,
+        1030.53,
+        2156.58
+      ],
+      "unthresholded": [
+        264.82,
+        1030.53,
+        1822.21
+      ],
+      "truth": 1952.42,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-cannibalization-05",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2333,
+      "measured": [
+        -2017.61,
+        -720.04,
+        270.52
+      ],
+      "unthresholded": [
+        -1673.93,
+        -720.04,
+        -73.16
+      ],
+      "truth": -982.4,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-cpa_drift-02",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3132,
+      "measured": [
+        -485.46,
+        -180.0,
+        465.51
+      ],
+      "unthresholded": [
+        -342.63,
+        -180.0,
+        322.67
+      ],
+      "truth": -26.81,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-cpa_drift-04",
+      "action": "budget -30%",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.591,
+      "measured": null,
+      "unthresholded": [
+        317.0262500210707,
+        679.8911753822948,
+        1059.5233202490094
+      ],
+      "truth": 290.5,
+      "widening": 0.0
+    },
+    {
+      "scenario": "outcomes_v1-fee_increase-01",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3754,
+      "measured": [
+        -428.89,
+        248.37,
+        1283.36
+      ],
+      "unthresholded": [
+        -171.7,
+        248.37,
+        1026.18
+      ],
+      "truth": 609.43,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-fee_increase-03",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2812,
+      "measured": [
+        -2949.68,
+        -1435.58,
+        -450.75
+      ],
+      "unthresholded": [
+        -2574.33,
+        -1435.58,
+        -826.09
+      ],
+      "truth": -1039.74,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-fee_increase-05",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3928,
+      "measured": [
+        -1747.14,
+        -721.45,
+        163.27
+      ],
+      "unthresholded": [
+        -1460.19,
+        -721.45,
+        -123.68
+      ],
+      "truth": 41.34,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-02",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3645,
+      "measured": [
+        -1738.91,
+        -450.45,
+        1061.71
+      ],
+      "unthresholded": [
+        -1318.25,
+        -450.45,
+        641.05
+      ],
+      "truth": -744.77,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-04",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2417,
+      "measured": [
+        -1630.33,
+        -1155.95,
+        -856.76
+      ],
+      "unthresholded": [
+        -1514.14,
+        -1155.95,
+        -972.95
+      ],
+      "truth": -385.04,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-06",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2508,
+      "measured": [
+        -2108.39,
+        -999.92,
+        493.17
+      ],
+      "unthresholded": [
+        -1717.63,
+        -999.92,
+        102.41
+      ],
+      "truth": -107.71,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-08",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2539,
+      "measured": [
+        -627.64,
+        45.81,
+        1191.95
+      ],
+      "unthresholded": [
+        -354.33,
+        45.81,
+        918.64
+      ],
+      "truth": -253.61,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-10",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3639,
+      "measured": [
+        -792.08,
+        -123.4,
+        507.97
+      ],
+      "unthresholded": [
+        -596.81,
+        -123.4,
+        312.7
+      ],
+      "truth": -322.61,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-12",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2541,
+      "measured": [
+        -2409.72,
+        -767.19,
+        321.23
+      ],
+      "unthresholded": [
+        -1999.52,
+        -767.19,
+        -88.96
+      ],
+      "truth": -719.74,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-14",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2329,
+      "measured": [
+        534.07,
+        1165.04,
+        1601.66
+      ],
+      "unthresholded": [
+        694.43,
+        1165.04,
+        1441.31
+      ],
+      "truth": 1029.28,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-16",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2444,
+      "measured": [
+        -326.89,
+        988.12,
+        2264.95
+      ],
+      "unthresholded": [
+        62.41,
+        988.12,
+        1875.64
+      ],
+      "truth": 1464.39,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-18",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3001,
+      "measured": [
+        -504.76,
+        -45.46,
+        729.89
+      ],
+      "unthresholded": [
+        -319.31,
+        -45.46,
+        544.44
+      ],
+      "truth": 517.28,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-20",
+      "action": "budget -30%",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.519,
+      "measured": null,
+      "unthresholded": [
+        486.6202386113828,
+        1321.0772756829988,
+        1711.3644774247487
+      ],
+      "truth": -687.25,
+      "widening": 0.0
+    },
+    {
+      "scenario": "outcomes_v1-healthy-22",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2815,
+      "measured": [
+        -351.85,
+        267.64,
+        778.15
+      ],
+      "unthresholded": [
+        -182.12,
+        267.64,
+        608.42
+      ],
+      "truth": 22.02,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-24",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3469,
+      "measured": [
+        -922.93,
+        -312.22,
+        277.93
+      ],
+      "unthresholded": [
+        -742.56,
+        -312.22,
+        97.55
+      ],
+      "truth": -410.91,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-26",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4322,
+      "measured": [
+        -2395.51,
+        -1516.31,
+        -935.99
+      ],
+      "unthresholded": [
+        -2176.29,
+        -1516.31,
+        -1155.22
+      ],
+      "truth": -118.95,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-28",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2777,
+      "measured": [
+        -2057.3,
+        -1097.54,
+        -315.82
+      ],
+      "unthresholded": [
+        -1795.73,
+        -1097.54,
+        -577.4
+      ],
+      "truth": -1416.4,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-healthy-30",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2323,
+      "measured": [
+        -1674.98,
+        -393.53,
+        807.77
+      ],
+      "unthresholded": [
+        -1302.06,
+        -393.53,
+        434.86
+      ],
+      "truth": -503.58,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-mix_shift-02",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2608,
+      "measured": [
+        -445.17,
+        332.74,
+        731.9
+      ],
+      "unthresholded": [
+        -268.37,
+        332.74,
+        555.1
+      ],
+      "truth": -191.9,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-mix_shift-04",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.269,
+      "measured": [
+        -1920.93,
+        -1160.69,
+        -156.02
+      ],
+      "unthresholded": [
+        -1655.83,
+        -1160.69,
+        -421.12
+      ],
+      "truth": -1333.72,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-refund_spike-01",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2742,
+      "measured": [
+        236.84,
+        2141.41,
+        4829.38
+      ],
+      "unthresholded": [
+        926.65,
+        2141.41,
+        4139.57
+      ],
+      "truth": 747.57,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-refund_spike-03",
+      "action": "budget -30%",
+      "status": "abstained",
+      "reason": "the pre-period fit is too weak",
+      "relative_error": 0.7045,
+      "measured": null,
+      "unthresholded": [
+        -485.32667985128603,
+        -86.25646899781032,
+        267.66636659276156
+      ],
+      "truth": 110.69,
+      "widening": 0.0
+    },
+    {
+      "scenario": "outcomes_v1-refund_spike-05",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3152,
+      "measured": [
+        -2017.18,
+        -950.1,
+        221.16
+      ],
+      "unthresholded": [
+        -1680.97,
+        -950.1,
+        -115.04
+      ],
+      "truth": -1659.12,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-stockout_on_promoted-02",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3764,
+      "measured": [
+        -1819.58,
+        -1042.87,
+        -198.24
+      ],
+      "unthresholded": [
+        -1576.05,
+        -1042.87,
+        -441.77
+      ],
+      "truth": -1263.88,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-stockout_on_promoted-04",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2797,
+      "measured": [
+        -1528.11,
+        -754.4,
+        -172.16
+      ],
+      "unthresholded": [
+        -1324.44,
+        -754.4,
+        -375.82
+      ],
+      "truth": 251.32,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-supplier_cost_increase-01",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.3406,
+      "measured": [
+        -3302.51,
+        -1735.72,
+        -449.16
+      ],
+      "unthresholded": [
+        -2873.93,
+        -1735.72,
+        -877.74
+      ],
+      "truth": -853.51,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-supplier_cost_increase-03",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2984,
+      "measured": [
+        -1340.8,
+        -371.0,
+        709.38
+      ],
+      "unthresholded": [
+        -1032.86,
+        -371.0,
+        401.44
+      ],
+      "truth": -673.44,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-supplier_cost_increase-05",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.1908,
+      "measured": [
+        -1544.87,
+        -883.05,
+        492.32
+      ],
+      "unthresholded": [
+        -1238.88,
+        -883.05,
+        186.33
+      ],
+      "truth": -312.95,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-tracking_break-02",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.2896,
+      "measured": [
+        55.97,
+        1464.62,
+        2567.0
+      ],
+      "unthresholded": [
+        433.13,
+        1464.62,
+        2189.83
+      ],
+      "truth": 1411.15,
+      "widening": 0.2147
+    },
+    {
+      "scenario": "outcomes_v1-tracking_break-04",
+      "action": "budget -30%",
+      "status": "measured",
+      "reason": "measured",
+      "relative_error": 0.4174,
+      "measured": [
+        -494.52,
+        113.4,
+        610.5
+      ],
+      "unthresholded": [
+        -328.54,
+        113.4,
+        444.52
+      ],
+      "truth": -309.56,
+      "widening": 0.2147
+    }
+  ]
+}

@@ -10,6 +10,7 @@ from app.causal import control
 from bench.outcome_validation import (
     Case,
     Run,
+    as_reported,
     load_run,
     main,
     markdown,
@@ -79,7 +80,11 @@ def test_a_calibrated_run_is_reported_against_its_raw_intervals() -> None:
     lines = verdict(s, widened)
     assert "100% of the time against the 80% target (50% without the calibration)" in lines[0]
     assert "the lowest is budget -30% (100%)" in lines[0]  # a tie: the first by name
-    assert widened[2].calibrated() == widened[2].unthresholded  # withheld: no widening known
+    estimates = {c.scenario: e for c, e in as_reported(widened)}
+    assert estimates["dev-budget +20%-0.7"] == (-100.0, 0.0, 100.0)  # no raise reported
+    withheld = case("pause", 0.7, (-10.0, 0.0, 10.0), 12.0)
+    estimates = {c.scenario: e for c, e in as_reported([widened[0], withheld])}
+    assert estimates["dev-pause-0.7"] == (-20.0, 0.0, 20.0)  # the pauses' own widening
 
 
 def test_the_verdict_reports_the_threshold_s_effect() -> None:

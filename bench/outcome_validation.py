@@ -73,10 +73,6 @@ class Case:
     truth: float
     widening: float = 0.0  # the calibration applied to what is reported (0: none)
 
-    def calibrated(self) -> Interval | None:
-        """The estimate as it would be reported if the fit threshold did not apply."""
-        return expand(self.unthresholded, self.widening) if self.unthresholded else None
-
 
 def _largest_campaign(engine: Engine, store: UUID) -> UUID:
     with tenant_transaction(engine, store) as conn:
@@ -245,6 +241,18 @@ def _raw(cases: list[Case]) -> list[tuple[Interval, float]]:
     return [(c.unthresholded, c.truth) for c in cases if c.measured and c.unthresholded]
 
 
+def as_reported(cases: list[Case]) -> list[tuple[Case, Interval]]:
+    """Each estimate as it would be reported if the fit threshold did not apply: with its own
+    calibration, or, withheld, with the one its action's reported estimates got (`measure`
+    records a calibration only for what it reports)."""
+    widening = {c.action: c.widening for c in cases if c.measured is not None}
+    return [
+        (c, expand(c.unthresholded, c.widening if c.measured else widening.get(c.action, 0.0)))
+        for c in cases
+        if c.unthresholded is not None
+    ]
+
+
 def summarize(cases: list[Case]) -> dict[str, Any]:
     measured = _reported(cases)
     reasons: dict[str, int] = {}
@@ -255,10 +263,8 @@ def summarize(cases: list[Case]) -> dict[str, Any]:
     for low, high in BANDS:
         mine = [
             (estimate, c.truth)
-            for c in cases
-            if (estimate := c.calibrated()) is not None
-            and c.relative_error is not None
-            and low <= c.relative_error < high
+            for c, estimate in as_reported(cases)
+            if c.relative_error is not None and low <= c.relative_error < high
         ]
         bands.append({"band": [low, high], **_stats(mine)})
     by_action = {}
@@ -304,8 +310,8 @@ def verdict(summary: dict[str, Any], cases: list[Case]) -> list[str]:
     threshold = control.MAX_RELATIVE_ERROR
     estimates = [
         (e, c.truth, c.relative_error)
-        for c in cases
-        if (e := c.calibrated()) is not None and c.relative_error is not None
+        for c, e in as_reported(cases)
+        if c.relative_error is not None
     ]
     below = _stats([(e, t) for e, t, r in estimates if r <= threshold])
     above = _stats([(e, t) for e, t, r in estimates if r > threshold])

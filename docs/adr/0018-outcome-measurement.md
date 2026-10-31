@@ -55,9 +55,16 @@ A kind with no fit (a resume) gets the widest. The widening is a share of each i
 width, not an amount of money, so it follows each estimate's uncertainty whatever the store's
 size. The outcome keeps the raw
 interval (`uncalibrated`) and the calibration applied (`calibration`: version, kind, q). The
-weak-fit threshold is kept at 0.5: it withholds 8% of the dev estimates, which are no less
-accurate than those it reports (dev coverage 72% above it, 66% below), and is flagged for
-review.
+weak-fit threshold is kept at 0.5: it withholds 8% of the dev estimates, which there are no
+less accurate than those it reports (raw intervals: 72% coverage above it, 66% below).
+
+**Validated once on fresh stores** (`bench/reports/outcome-validation-fresh.md`), with the
+calibration frozen: 210 actions on the 70 stores of `outcomes_v1` (fresh seeds, never used for
+fitting), 189 measured and 21 abstained (10%). The reported P10-P90 holds the truth 82% of the
+time, against 74% without the calibration: pauses 82% (70%), budget cuts 84% (75%), raises 81%
+(76%). There the threshold withholds worse estimates: made anyway and calibrated, they would
+hold the truth 57% of the time, with a mean absolute error of 718 against 525 for those it
+reports. It stays at 0.5, still flagged for review: the two sets disagree on what it withholds.
 
 **Records**: the effect is an `estimate` fact (`outcome.effect.contribution_after_ads`, campaign
 scope, the window as period, method `synthetic_control_v2`, the calibrated interval) with the
