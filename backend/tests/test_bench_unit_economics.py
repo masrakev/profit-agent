@@ -9,6 +9,7 @@ from bench.unit_economics import (
     END,
     PROFILES,
     ledger_totals,
+    main,
     measure,
     profile_row,
     readiness_block,
@@ -80,3 +81,11 @@ def test_unit_economics(tmp_path: Path) -> None:
     assert "a daily brief USD 0.0070" in text
     assert text.endswith("\n\nAfter.\n")
     assert ledger_totals(tmp_path / "missing.jsonl") == {}
+
+
+def test_the_report_is_written(tmp_path: Path) -> None:
+    write_reports(tmp_path)
+    assert main(["--reports", str(tmp_path), "--no-doc"]) == 0
+    assert (
+        (tmp_path / "unit-economics.md").read_text(encoding="utf-8").startswith("# Unit economics")
+    )
