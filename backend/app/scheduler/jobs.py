@@ -25,6 +25,7 @@ from app.briefings.service import generate
 from app.briefings.store import find
 from app.db import tenant_transaction
 from app.delivery.alerts import AlertOutcome, dispatch_alerts
+from app.delivery.queue import Subject, notify_whatsapp
 from app.detection.pipeline import run_pipeline
 from app.goals import service
 from app.observability import get_logger
@@ -135,6 +136,11 @@ def goals_weekly_tick(
                 service.track(conn, store_id, g.goal_id, now=now)
                 for g in service.active_goals(conn, store_id)
             ]
+            for p in tracked:
+                if p is not None:  # its line on WhatsApp too (the weekly report has it)
+                    notify_whatsapp(
+                        conn, store_id, Subject.GOAL_PROGRESS, f"{p.goal_id}:{p.as_of}", now=now
+                    )
         return ", ".join(f"{p.goal_id}:{p.status or p.verdict}" for p in tracked if p)
 
     return _each(engine, "goals_weekly", run, only)

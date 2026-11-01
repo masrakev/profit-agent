@@ -4,7 +4,7 @@
 
 - briefings: every five minutes; each store's due briefings, in its time zone (`jobs.due`);
 - detection: hourly; each store's detection run, then its alerts;
-- deliveries: every minute; due email deliveries;
+- deliveries: every minute; due email and WhatsApp deliveries;
 - retention: daily at 03:17 UTC; model traces past the retention period, expired sign-ins;
 - goals_weekly: Mondays at 04:23 UTC; each planned goal's progress, due plan steps proposed;
 - goals_monthly: on the 1st at 04:41 UTC; the re-forecast of goals beyond 90 days.
@@ -25,6 +25,7 @@ from arq.connections import RedisSettings
 from app.agent.llm.factory import build_provider
 from app.agent.stages import Routing
 from app.channels.email import sender_from_settings
+from app.channels.whatsapp import sender_from_settings as whatsapp_from_settings
 from app.config import get_settings
 from app.db import app_engine
 from app.delivery.worker import DeliveryWorker
@@ -50,6 +51,7 @@ async def startup(ctx: dict[str, Any]) -> None:
         sender_from_settings(settings),
         settings.app_base_url,
         approval_secret=secret.get_secret_value() if secret else None,
+        whatsapp=whatsapp_from_settings(settings),
     )
 
 

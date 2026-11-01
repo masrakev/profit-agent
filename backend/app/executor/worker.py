@@ -34,6 +34,7 @@ from app.agent.llm.resilience import CircuitBreaker
 from app.agent.tools.base import data_end
 from app.db import tenant_transaction
 from app.decisions.store import DecisionStatus, transition
+from app.delivery.queue import Subject, notify_whatsapp
 from app.domain.audit import append_audit
 from app.executor.adapters import Adapter, AdapterError, CampaignRef, CampaignState, Change
 from app.policies.engine import ActionRequest, evaluate
@@ -294,6 +295,9 @@ class Executor:
                 ).scalar_one()
                 if left == 0 and status == "executing":
                     transition(conn, store, job.decision_id, DecisionStatus.EXECUTED)
+                    notify_whatsapp(  # the owner hears how it went (WhatsApp only)
+                        conn, store, Subject.DECISION_STATUS, f"{job.decision_id}:executed", now=now
+                    )
 
     def _retry_or_fail(self, job: Claimed, error: str, *, retryable: bool) -> None:
         now = self.clock()
@@ -366,6 +370,9 @@ class Executor:
                 transition(conn, store_id, row.decision_id, DecisionStatus.EXECUTING)
             if row.decision_status in ("approved", "executing"):
                 transition(conn, store_id, row.decision_id, DecisionStatus.FAILED)
+                notify_whatsapp(
+                    conn, store_id, Subject.DECISION_STATUS, f"{row.decision_id}:failed", now=now
+                )
         append_audit(
             conn,
             store_id,

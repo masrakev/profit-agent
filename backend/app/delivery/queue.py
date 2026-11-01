@@ -3,7 +3,8 @@ message (a briefing, an alert, a decision), so a message is never lost or sent t
 
 - web: delivered at once (the web platform reads messages from the API);
 - email: pending, sent by the worker; skipped, and recorded, when the store has no address;
-- WhatsApp: skipped until the channel exists.
+- WhatsApp: pending, sent by the worker to the store's verified number; skipped, and recorded,
+  when it has none. Goal progress and decision status (done, failed) go to WhatsApp only.
 """
 
 from collections.abc import Iterable
@@ -15,15 +16,18 @@ from sqlalchemy import Connection, text
 
 from app.settings.models import AlertChannel
 from app.settings.repository import StoreSettingsRepository
+from app.whatsapp.numbers import verified_number
 
 NO_EMAIL = "no email address is set for this store"
-NO_WHATSAPP = "WhatsApp is not available yet"
+NO_WHATSAPP = "no verified WhatsApp number for this store"
 
 
 class Subject(StrEnum):
     BRIEFING = "briefing"
     ALERT = "alert"
     DECISION = "decision"
+    GOAL_PROGRESS = "goal_progress"  # WhatsApp only: <goal id>:<day>
+    DECISION_STATUS = "decision_status"  # WhatsApp only: <decision id>:<status>
 
 
 def enqueue(
@@ -45,7 +49,10 @@ def enqueue(
         elif channel is AlertChannel.EMAIL and recipient is None:
             status, error = "skipped", NO_EMAIL
         elif channel is AlertChannel.WHATSAPP:
-            status, error, to = "skipped", NO_WHATSAPP, None
+            number = verified_number(conn, store_id)
+            to = number.phone if number is not None else None
+            if to is None:
+                status, error = "skipped", NO_WHATSAPP
         row = conn.execute(
             text(
                 "INSERT INTO deliveries (delivery_id, store_id, subject, subject_id, channel, "
@@ -93,5 +100,24 @@ def notify(
         channels=settings.alert_channels,
         recipient=settings.notification_email,
         available_at=available_at,
+        now=now,
+    )
+
+
+def notify_whatsapp(
+    conn: Connection, store_id: UUID, subject: Subject, subject_id: str, *, now: datetime
+) -> list[UUID]:
+    """A WhatsApp-only message (goal progress, decision status), when WhatsApp is a channel."""
+    settings = StoreSettingsRepository(conn).get_or_default(store_id)
+    if AlertChannel.WHATSAPP not in settings.alert_channels:
+        return []
+    return enqueue(
+        conn,
+        store_id,
+        subject,
+        subject_id,
+        channels=(AlertChannel.WHATSAPP,),
+        recipient=None,
+        available_at=now,
         now=now,
     )
