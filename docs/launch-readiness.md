@@ -55,10 +55,12 @@ and followed closely.
   log kept for the life of the account; model traces kept 30 days (a daily job deletes older
   step traces, and expired sign-in links and sessions; ADR 0021). Database backups follow the
   hosting provider's retention, to be kept within the 30-day target below.
+- **Voice.** A spoken question's recording is never stored: it is transcribed and dropped;
+  the transcript, its duration and its cost are kept like a typed question (ADR 0026).
 - **Rights.** Export and deletion of all of a store's data on request, with the deletion itself
   recorded outside the store's data (`GET /stores/{id}/export`, `DELETE /stores/{id}`; ADR 0021).
   Both run at once; target: completed within 30 days of the request, backups included.
-- **Sub-processors.** Meta Model API (model inference), hosting provider, transactional email
+- **Sub-processors.** Meta Model API (model inference and speech-to-text), hosting provider, transactional email
   provider. Listed publicly before the beta.
 - **GDPR.** Required before onboarding any store in the European Union: a data processing
   agreement, the sub-processor list and the rights process above.

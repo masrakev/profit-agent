@@ -54,6 +54,12 @@ Model calls run in `replay` mode by default (committed cassettes, no key, no net
 `LLM_MODE=live` or `record` and `MODEL_API_KEY` in `.env` to call the Meta Model API. Spending
 caps per run, per day and in total are enforced before every call (see `.env.example`).
 
+Voice questions (`POST /api/v1/stores/{store_id}/ask/voice`, a WAV recording) are transcribed
+by Muse Voice Transcribe under the same modes, key and caps, then answered by Ask. The test
+clips are spoken offline by a local text-to-speech engine (`uv run python scripts/voice_clips.py`)
+and their real transcriptions re-recorded with
+`VOICE_MODE=record uv run pytest backend/tests/test_voice_live.py` (ADR 0026).
+
 ### Run without make
 
 Each Makefile target runs these commands:
@@ -91,7 +97,8 @@ backend/app/
   verifier/       render {{F<id>}} references; reject unreferenced numbers
   detection/      daily series, detectors, versioned thresholds, incidents, materiality, pipeline
   causes/         exact two-level Shapley attribution of net profit changes, noise bands
-  agent/          model layer (Meta Responses provider, guards, record/replay), read-only
+  agent/          model layer (Meta Responses provider and Voice Transcribe, guards,
+                  record/replay), read-only
                   lookup and audit tools, output guard, versioned prompts, stage config and
                   routing, investigator, Ask
   twin/           store twin: response curves, Monte Carlo against doing nothing, calibration
@@ -109,6 +116,8 @@ backend/app/
   privacy/        export, deletion, trace retention, encrypted platform tokens
   goals/          forecasts to a deadline, the probability of reaching a target, its verdict;
                   the lever library, plans, tracking and re-forecasts
+  voice/          voice questions: clip limits, recognition biased to the store's names, the
+                  transcript kept (never the audio), then Ask
   channels/       per-channel rendering of merchant text; email (SMTP) and its templates
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
@@ -135,7 +144,7 @@ bench/reports/       committed benchmark reports (latest.md = test_v3 suite)
 docs/adr/            architecture decision records
 docs/api/            the API contract (openapi.json) and its conventions
 docs/product/        product specification
-scripts/             live smoke test of the Meta models
+scripts/             live smoke test of the Meta models; the voice test clips (local TTS)
 ```
 
 ## Built during the hackathon
@@ -334,3 +343,20 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - Every goal answer and plan on a store with less than a year of history carries
     `low_evidence` with the reason "yearly seasonality not learned" (ADR 0023's time-of-year
     limitation, also listed in `docs/launch-readiness.md`).
+- **Day 12 - voice questions (Task 8 part A)**
+  - Muse Voice Transcribe (file endpoint, push-to-talk) in the model layer, behind the same
+    guards as the models: clip checked before any call, budget reserved for the clip and settled
+    to the whole seconds billed (0.18 USD an hour), retries, its own circuit breaker, a trace
+    span without the transcript. Cassettes key an upload by the audio's hash and never hold the
+    audio. The price table gains audio prices (version 2, all prices checked again).
+  - `POST /ask/voice`: a WAV of at most two minutes and 6 MiB, refused before any call
+    otherwise (413, 415, 422; the upload is not read past its limit); the transcript streamed
+    first, then the normal Ask answer. Recognition is biased toward the store's campaign and
+    product names, cleaned like store text. A spoken goal is restated as a draft to confirm.
+  - Safety: a transcript is a question, never an approval; one that reads like an instruction
+    is answered as a question and flagged; silence asks nothing; the recording is never stored,
+    only its transcript, duration and cost (`voice_questions`, row-level security).
+  - English and French clips spoken offline by a local text-to-speech engine, their real
+    transcriptions recorded once and replayed in CI. Golden question q37 is q31 asked aloud and
+    passes the same checks. Live: a ten-second question costs 0.0005 USD to transcribe and about
+    0.037 USD end to end (`bench/reports/voice-live.md`). ADR 0026.
