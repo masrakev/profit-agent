@@ -52,6 +52,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+      - name: ffmpeg (voice recordings are converted to WAV)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: uv sync --frozen
       - run: uv run alembic upgrade head
       - run: uv run pytest

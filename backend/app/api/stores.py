@@ -37,7 +37,7 @@ from app.agent.llm.provider import LLMProvider
 from app.agent.steps import Step, recording
 from app.agent.trace import FINAL, recorder, steps_after
 from app.api.auth import PrincipalDep, StoreDep
-from app.api.deps import EngineDep, ProviderDep, TranscriberDep
+from app.api.deps import ConverterDep, EngineDep, ProviderDep, TranscriberDep
 from app.api.pagination import Cursor, Limit, Page, paginate
 from app.api.problems import PROBLEM_JSON, Problem
 from app.api.views import Cited, DocumentOut, FactOut, cited, document_out, fact_out
@@ -54,7 +54,8 @@ from app.facts.repository import get_facts
 from app.policies.engine import store_switch_on
 from app.settings.models import StoreSettings
 from app.settings.repository import StoreSettingsRepository
-from app.voice.audio import MAX_BYTES, MAX_SECONDS, ClipRejected, check_clip
+from app.voice.audio import MAX_BYTES, MAX_SECONDS, ClipRejected
+from app.voice.convert import prepare_clip
 from app.voice.service import ask_by_voice
 
 router = APIRouter(prefix="/api/v1/stores/{store_id}")
@@ -616,7 +617,8 @@ NO_SPEECH = "No speech was heard in the recording: nothing was asked."
             status: {"model": Problem, "content": {PROBLEM_JSON: {}}, "description": text}
             for status, text in (
                 (413, "The recording is over 6 MiB"),
-                (415, "Not a WAV file: mono, 16-bit PCM, 16 or 24 kHz"),
+                (415, "Not a WAV, Ogg/Opus, WebM/Opus or MP4/AAC recording"),
+                (503, "Recordings cannot be converted (ffmpeg is missing)"),
             )
         },
     },
@@ -626,13 +628,15 @@ def post_ask_voice(
     audio: Annotated[
         UploadFile,
         File(
-            description="The question, recorded: a WAV file (mono, 16-bit PCM, 16 or 24 kHz), "
-            f"at most {MAX_SECONDS} seconds and {MAX_BYTES} bytes."
+            description="The question, recorded: WAV, Ogg/Opus (WhatsApp), WebM/Opus "
+            "(Chrome, Firefox) or MP4/AAC (Safari), converted to WAV when needed; at most "
+            f"{MAX_SECONDS} seconds and {MAX_BYTES} bytes."
         ),
     ],
     engine: EngineDep,
     provider: ProviderDep,
     transcriber: TranscriberDep,
+    converter: ConverterDep,
 ) -> StreamingResponse:
     """Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:
     `event: transcript` (what was heard, its duration and the cost of hearing it), then the
@@ -640,14 +644,16 @@ def post_ask_voice(
     A goal said aloud is restated for confirmation, like a typed one. When nothing was heard:
     `event: no_speech`, then `event: done`. A transcript is a question, never an approval; one
     that reads like an instruction is answered as a question and flagged. The recording is not
-    stored: only its transcript, duration and cost are kept. Errors: 413 over the size, 415
-    another format, 422 over two minutes or empty."""
+    stored: only its transcript, duration and cost are kept. A WAV the transcription endpoint
+    takes is sent as it is; Ogg/Opus, WebM/Opus, MP4/AAC and other PCM WAVs are converted to
+    WAV first. Errors: 413 over the size, 415 another format or an unreadable recording, 422
+    over two minutes or empty, 503 when recordings cannot be converted."""
     try:
         clip = audio.file.read(MAX_BYTES + 1)
     finally:
         audio.file.close()
     try:
-        check_clip(clip)
+        clip, _ = prepare_clip(clip, converter)
     except ClipRejected as exc:
         raise HTTPException(
             status_code=exc.status, detail={"code": exc.code, "message": exc.message}

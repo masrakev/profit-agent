@@ -482,7 +482,7 @@
         "properties": {
           "audio": {
             "contentMediaType": "application/octet-stream",
-            "description": "The question, recorded: a WAV file (mono, 16-bit PCM, 16 or 24 kHz), at most 120 seconds and 6291456 bytes.",
+            "description": "The question, recorded: WAV, Ogg/Opus (WhatsApp), WebM/Opus (Chrome, Firefox) or MP4/AAC (Safari), converted to WAV when needed; at most 120 seconds and 6291456 bytes.",
             "title": "Audio",
             "type": "string"
           }
@@ -5751,7 +5751,7 @@
     },
     "/api/v1/stores/{store_id}/ask/voice": {
       "post": {
-        "description": "Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:\n`event: transcript` (what was heard, its duration and the cost of hearing it), then the\nquestion is answered exactly like Ask: `event: step`..., `event: answer`, `event: done`.\nA goal said aloud is restated for confirmation, like a typed one. When nothing was heard:\n`event: no_speech`, then `event: done`. A transcript is a question, never an approval; one\nthat reads like an instruction is answered as a question and flagged. The recording is not\nstored: only its transcript, duration and cost are kept. Errors: 413 over the size, 415\nanother format, 422 over two minutes or empty.",
+        "description": "Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:\n`event: transcript` (what was heard, its duration and the cost of hearing it), then the\nquestion is answered exactly like Ask: `event: step`..., `event: answer`, `event: done`.\nA goal said aloud is restated for confirmation, like a typed one. When nothing was heard:\n`event: no_speech`, then `event: done`. A transcript is a question, never an approval; one\nthat reads like an instruction is answered as a question and flagged. The recording is not\nstored: only its transcript, duration and cost are kept. A WAV the transcription endpoint\ntakes is sent as it is; Ogg/Opus, WebM/Opus, MP4/AAC and other PCM WAVs are converted to\nWAV first. Errors: 413 over the size, 415 another format or an unreadable recording, 422\nover two minutes or empty, 503 when recordings cannot be converted.",
         "operationId": "post_ask_voice_api_v1_stores__store_id__ask_voice_post",
         "parameters": [
           {
@@ -5835,7 +5835,7 @@
               },
               "application/problem+json": {}
             },
-            "description": "Not a WAV file: mono, 16-bit PCM, 16 or 24 kHz"
+            "description": "Not a WAV, Ogg/Opus, WebM/Opus or MP4/AAC recording"
           },
           "422": {
             "content": {
@@ -5858,6 +5858,17 @@
               "application/problem+json": {}
             },
             "description": "Too many requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Recordings cannot be converted (ffmpeg is missing)"
           }
         },
         "summary": "Post Ask Voice",

@@ -14,6 +14,7 @@ from app.api.deps import get_engine, get_provider, get_transcriber
 from app.api.main import app
 from app.api.middleware import UPLOAD_MAX_BYTES
 from app.voice.audio import MAX_BYTES
+from bench.golden.checks import VOICE_DIR
 from tests.api_helpers import act_as
 from tests.llm_helpers import Harness
 from tests.voice_helpers import VoiceHarness, wav
@@ -125,11 +126,11 @@ def test_a_failed_transcription_ends_the_stream(
     [
         (b"", 422, "empty_audio"),
         (b"ID3 an mp3", 415, "unsupported_audio"),
-        (wav(1.0, channels=2), 415, "unsupported_audio"),
+        (b"OggS" + bytes(range(256)) * 8, 415, "unsupported_audio"),
         (wav(121.0, tone=False), 422, "audio_too_long"),
         (b"\x00" * (MAX_BYTES + 1), 413, "audio_too_large"),
     ],
-    ids=["empty", "mp3", "stereo", "over-two-minutes", "over-the-size"],
+    ids=["empty", "mp3", "unreadable-ogg", "over-two-minutes", "over-the-size"],
 )
 def test_clips_outside_the_limits_are_refused_before_any_call(
     client: TestClient,
@@ -168,3 +169,21 @@ def test_an_oversized_upload_is_not_read(
     missing = client.post(url(golden_stockout), data={"question": "typed"})
     assert missing.status_code == 422
     assert voice.transport.requests == []
+
+
+@pytest.mark.parametrize("name", ["goal_en.ogg", "goal_en.webm", "goal_en.m4a"])
+def test_a_recording_in_another_format_is_converted_first(
+    client: TestClient,
+    voice: VoiceHarness,
+    llm: Harness,
+    golden_stockout: dict[str, Any],
+    name: str,
+) -> None:
+    voice.transport.add(f.transcription("Should I hire someone?", 6_900))
+    llm.transport.add(classified("out_of_scope"))
+    recording = (VOICE_DIR / name).read_bytes()
+    kinds = [k for k, _ in events(client.post(url(golden_stockout), files=upload(recording)).text)]
+    assert (kinds[0], kinds[-1]) == ("transcript", "done")
+    sent = voice.transport.requests[0]["audio"]
+    assert sent["type"] == "audio/wav"
+    assert sent["bytes"] > 24_000 * 2 * 6  # about seven seconds of 24 kHz PCM

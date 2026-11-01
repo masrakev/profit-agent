@@ -13,6 +13,7 @@ from app.agent.llm.transcribe import Transcriber
 from app.channels.email import EmailSender, sender_from_settings
 from app.config import Settings, get_settings
 from app.db import make_engine
+from app.voice.convert import Converter
 
 
 @cache
@@ -42,9 +43,14 @@ def get_transcriber() -> Transcriber:
     return _transcriber()
 
 
+def get_converter() -> Converter:
+    return Converter.from_settings(get_settings())
+
+
 EngineDep = Annotated[Engine, Depends(get_engine)]
 ProviderDep = Annotated[LLMProvider, Depends(get_provider)]
 TranscriberDep = Annotated[Transcriber, Depends(get_transcriber)]
+ConverterDep = Annotated[Converter, Depends(get_converter)]
 
 
 @cache

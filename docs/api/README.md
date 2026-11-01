@@ -41,7 +41,8 @@ ADR 0020.
 | `invalid_request` | 422 | The request does not validate (`errors` lists the fields) |
 | `invalid_cursor` | 422 | The cursor is not one this API issued |
 | `empty_audio`, `audio_too_long` | 422 | A voice question with no audio, or over two minutes |
-| `unsupported_audio` | 415 | Not a WAV file: mono, 16-bit PCM, 16 or 24 kHz |
+| `unsupported_audio` | 415 | Not a WAV, Ogg/Opus, WebM/Opus or MP4/AAC recording, or one that cannot be read |
+| `conversion_unavailable` | 503 | Recordings cannot be converted on this server (ffmpeg is missing); a WAV still works |
 | `audio_too_large`, `too_large` | 413 | A recording over 6 MiB, or an upload over the limit (not read) |
 | `invalid_link`, `expired_link`, `used_link` | 401 or 403, 410, 409 | Sign-in links (401) or approval links (403): not valid, expired, already used |
 | `already_decided`, `expired` | 409 | A decision is decided once, before it expires |
@@ -80,7 +81,7 @@ ADR 0020.
 | GET | `/api/v1/stores/{store_id}/briefings/{briefing_id}` | A briefing as sent |
 | POST | `/api/v1/stores/{store_id}/ask` | Ask, and wait for the answer contract |
 | POST | `/api/v1/stores/{store_id}/ask/stream` | Ask, streamed |
-| POST | `/api/v1/stores/{store_id}/ask/voice` | Ask by voice (multipart `audio`, a WAV): the transcript, then Ask, streamed |
+| POST | `/api/v1/stores/{store_id}/ask/voice` | Ask by voice (multipart `audio`: WAV, Ogg/Opus, WebM/Opus or MP4/AAC): the transcript, then Ask, streamed |
 | POST, GET | `/api/v1/stores/{store_id}/goals` | Set a goal (a draft, restated until the owner confirms it), or list goals |
 | GET | `/api/v1/stores/{store_id}/goals/{goal_id}` | A goal, its restatement and its facts |
 | POST | `/api/v1/stores/{store_id}/goals/{goal_id}/confirm` | Confirm it: its feasibility |
@@ -114,9 +115,10 @@ Goals (ADRs 0023, 0024): a goal question to `POST /ask` comes back with `status`
 (or `/confirm` for the numbers alone). Plans never execute anything: their steps become
 decisions in the normal flow.
 
-Voice (ADR 0026): `POST /ask/voice` takes the recording as a multipart `audio` part, a WAV
-(mono, 16-bit PCM, 16 or 24 kHz; convert others with `ffmpeg -i in.m4a -ac 1 -ar 24000 -c:a
-pcm_s16le out.wav`) of at most two minutes. `event: transcript` carries what was heard:
+Voice (ADR 0026): `POST /ask/voice` takes the recording as a multipart `audio` part of at most
+two minutes and 6 MiB: what browsers record (WebM/Opus in Chrome, Firefox and Edge, MP4/AAC in
+Safari), an Ogg/Opus voice note, or a WAV. A WAV the transcription endpoint takes (mono, 16-bit
+PCM, 16 or 24 kHz) is sent as it is; the others are converted to WAV on the server. `event: transcript` carries what was heard:
 `voice_id`, `transcript`, `heard` (false: no speech), `audio_duration_ms`, `billed_seconds`,
 `cost_usd` (what transcribing it cost, a measurement of the clip, not a store figure), `model`
 and `flags`; then comes Ask's stream (`step`, `answer` with the `AskResult`, `done`), or

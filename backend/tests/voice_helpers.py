@@ -2,7 +2,9 @@
 
 import io
 import math
+import shutil
 import struct
+import subprocess
 import wave
 from array import array
 from decimal import Decimal
@@ -80,3 +82,16 @@ class VoiceHarness:
             breaker=self.breaker,
             tracer_provider=tracer_provider,
         )
+
+
+def encode(source: bytes, *args: str) -> bytes:
+    """`source` (any format ffmpeg reads) re-encoded with `args`, through pipes."""
+    ffmpeg = shutil.which("ffmpeg")
+    assert ffmpeg is not None, "ffmpeg is needed (see the README)"
+    done = subprocess.run(  # noqa: S603 - test helper, fixed arguments
+        [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", "pipe:0", *args, "pipe:1"],
+        input=source,
+        capture_output=True,
+        check=True,
+    )
+    return done.stdout

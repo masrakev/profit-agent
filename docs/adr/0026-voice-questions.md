@@ -1,6 +1,6 @@
 # ADR 0026: Voice questions with Muse Voice Transcribe
 
-- Status: accepted
+- Status: accepted (amended the same day: recordings in other formats are converted)
 - Date: 2026-11-01
 
 ## Context
@@ -46,12 +46,32 @@ stays: only synthetic stores are recorded (the keywords are store names).
 
 **The product's limits are tighter than the endpoint's**: two minutes and 6 MiB (two minutes
 at 24 kHz with room for the header). A question rarely lasts 30 seconds; a ten-minute upload
-would be a misuse. Only WAV is accepted, the endpoint's own format: the backend does not
-transcode, so it carries no audio codec; a client records WAV (the Web Audio API does), and
-other files are converted first (the docs' `ffmpeg` command is in docs/api/README.md). The
-API refuses a clip before any call: 413 over the size, 415 another format, 422 over two
-minutes or empty. The middleware does not read an upload past the limit: a declared body over
-it gets 413 at once, a chunked one stops being read.
+would be a misuse. The API refuses a clip before any call: 413 over the size, 415 another
+format or an unreadable recording, 422 over two minutes or empty. The middleware does not read
+an upload past the limit: a declared body over it gets 413 at once, a chunked one stops being
+read.
+
+**Recordings are converted to WAV when the endpoint would refuse them.** Browsers record
+WebM/Opus (Chrome, Firefox, Edge) or MP4/AAC (Safari), WhatsApp voice notes are Ogg/Opus, and
+the endpoint takes WAV only (`audioEncoding` is `enum('WAV')`; the realtime endpoint takes raw
+PCM). A WAV it takes is sent as it is. Ogg/Opus, WebM/Opus, MP4/AAC and other PCM WAVs (stereo,
+44.1 or 48 kHz, float) are converted by ffmpeg (`backend/app/voice/convert.py`):
+
+1. the size is checked before any process starts;
+2. the container is recognised from the file's signature and its demuxer forced; ffprobe must
+   find exactly one stream, an audio one, with the codec whitelisted for that container (Opus
+   in Ogg and WebM, AAC in MP4, PCM in WAV); a duration the container states must be at most
+   two minutes, and one that states none (Chrome's WebM) is measured after conversion, which
+   stops one second past the limit;
+3. ffmpeg decodes that stream only, with the whitelisted decoder forced and video, subtitles,
+   data and metadata dropped, to mono 16-bit PCM at 24 kHz (the model's native rate);
+4. both run from a list of arguments, never a shell, read local files only
+   (`-protocol_whitelist file`), use one thread and stop at a timeout (20 s); the recording
+   sits in a private temporary directory deleted as soon as the conversion ends.
+
+Any failure is the recording's (415), except a missing ffmpeg (503). Considered: transcoding
+in the browser (it would not cover WhatsApp), and an in-process decoder (no timeout, and a
+codec bug would run inside the API process).
 
 **Recognition is biased toward the store's names** (`keywords`): campaign names, then product
 names, the words a speech model is least likely to know. They are merchant text, so they are
@@ -85,7 +105,10 @@ security, migration 0017; exported and deleted with the store like every tenant 
 here) and committed with a silent clip. Their real transcriptions, and the answers they led to,
 were recorded once (`VOICE_MODE=record`) and replay in CI from a fresh database. Golden question
 q37 is q31 asked aloud; typed and spoken pass the same checks through the golden runner's own
-path. Measured live (`bench/reports/voice-live.md`): a ten-second question costs 0.0005 USD to
+path. Each other format has a fixture made from the same clip with ffmpeg (an Ogg/Opus voice
+note, a WebM/Opus without a stated duration, a fragmented MP4/AAC); conversion is tested on its
+output, with codecs outside the whitelist, a video stream, recordings over two minutes with and
+without a stated duration, a timeout and a missing ffmpeg. Measured live (`bench/reports/voice-live.md`): a ten-second question costs 0.0005 USD to
 transcribe and about 0.037 USD end to end with Spark answering; the injected instruction was
 answered as out of scope and flagged, with nothing changed.
 
@@ -97,8 +120,10 @@ answered as out of scope and flagged, with nothing changed.
   once with the amount doubled ("150,000 150,000"), which the goal parser still read as
   150,000. The transcript is shown to the owner first, so a misheard question is visible before
   its answer, and a goal is confirmed on the web from its restatement.
-- Only WAV is accepted. WhatsApp voice notes (Ogg Opus) will need converting to WAV before
-  transcription (part B).
+- ffmpeg (with ffprobe) is a system requirement of the API and of the tests; CI installs it. A
+  host without it answers 503 to a recording that needs converting; a WAV still works.
+- Converted audio depends on the ffmpeg version, so recorded transcriptions are keyed on the
+  committed WAV clips only; conversions are checked on their output, not replayed.
 - The transcript is kept like a typed question would be; the audio is not, so a transcription
   cannot be re-checked against its recording later.
 - The keywords are store names: real stores' transcriptions are never recorded as cassettes.

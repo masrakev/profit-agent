@@ -23,7 +23,9 @@ What the product does, for whom, and its settings and alerting rules: see the
 
 ## Quick start
 
-Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), Docker, GNU make.
+Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), Docker, GNU make, and
+[ffmpeg](https://ffmpeg.org/) with ffprobe on the PATH (voice recordings are converted to WAV;
+`apt install ffmpeg`, `brew install ffmpeg`, `winget install Gyan.FFmpeg.Essentials`).
 
 ```bash
 cp .env.example .env
@@ -54,8 +56,9 @@ Model calls run in `replay` mode by default (committed cassettes, no key, no net
 `LLM_MODE=live` or `record` and `MODEL_API_KEY` in `.env` to call the Meta Model API. Spending
 caps per run, per day and in total are enforced before every call (see `.env.example`).
 
-Voice questions (`POST /api/v1/stores/{store_id}/ask/voice`, a WAV recording) are transcribed
-by Muse Voice Transcribe under the same modes, key and caps, then answered by Ask. The test
+Voice questions (`POST /api/v1/stores/{store_id}/ask/voice`: WAV, or a browser's WebM/Opus or
+MP4/AAC, or a WhatsApp Ogg/Opus voice note, converted to WAV with ffmpeg) are transcribed by
+Muse Voice Transcribe under the same modes, key and caps, then answered by Ask. The test
 clips are spoken offline by a local text-to-speech engine (`uv run python scripts/voice_clips.py`)
 and their real transcriptions re-recorded with
 `VOICE_MODE=record uv run pytest backend/tests/test_voice_live.py` (ADR 0026).

@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     llm_cassette_dir: str = "backend/tests/cassettes"
     # Muse Voice Transcribe (ADR 0026): same key, modes, caps and spend ledger as the models.
     voice_timeout_s: float = 60.0
+    # Recordings in other formats are converted to WAV by ffmpeg (on the PATH, or a full path).
+    voice_ffmpeg: str = "ffmpeg"
+    voice_ffprobe: str = "ffprobe"
+    voice_convert_timeout_s: float = 20.0
     # Decisions and execution (ADRs 0016-0017).
     approval_link_secret: SecretStr | None = None  # HMAC key of email approval links
     admin_token: SecretStr | None = None  # the global kill switch endpoint
