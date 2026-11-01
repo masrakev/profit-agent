@@ -346,3 +346,21 @@ def test_fixed_replies() -> None:
     assert "spending caps" in fmt().above_caps(decision).text
     for message in (help_message(), refusal_message()):
         assert not any(ch.isdigit() for ch in message.text)  # code text holds no number
+
+
+def test_no_approve_button_once_a_decision_is_decided(
+    app_engine: Engine, golden_stockout: dict[str, Any]
+) -> None:
+    store = golden_stockout["id"]
+    _, decision = proposed(app_engine, golden_stockout)
+    with tenant_transaction(app_engine, store) as conn:
+        conn.execute(text("SAVEPOINT decided"))
+        conn.execute(
+            text(
+                "UPDATE decisions SET status = 'rejected' WHERE store_id = :s AND decision_id = :d"
+            ),
+            {"s": store, "d": decision.decision_id},
+        )
+        rejected = fmt().options(conn, store, decision)  # the view still says proposed
+        conn.execute(text("ROLLBACK TO SAVEPOINT decided"))
+    assert rejected.buttons == ()

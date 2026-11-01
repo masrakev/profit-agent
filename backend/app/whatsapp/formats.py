@@ -30,7 +30,7 @@ from app.briefings.notices import alert_document, decision_document, notice_cont
 from app.channels.messages import briefing_title, load_inputs
 from app.channels.render import Channel, escape, load_entity_names, render
 from app.channels.whatsapp import ReplyButton, WhatsAppMessage
-from app.decisions.store import DecisionStatus, DecisionView
+from app.decisions.store import DecisionStatus, DecisionView, get
 from app.detection.models import AlertLevel, Incident
 from app.facts.repository import get_facts
 from app.goals import service as goal_service
@@ -80,8 +80,10 @@ class Formats:
     def _approve(
         self, conn: Connection, store_id: UUID, decision_id: str, option_id: str
     ) -> ReplyButton | None:
-        if self.secret is None:
+        if self.secret is None:  # without it no button decides
             return None
+        if get(conn, store_id, UUID(decision_id)).status is not DecisionStatus.PROPOSED:
+            return None  # decided, expired or replaced: nothing left to approve
         token = approve_button(
             conn, store_id, UUID(decision_id), option_id, secret=self.secret, now=self.now
         )
