@@ -116,8 +116,11 @@ decisions in the normal flow.
 
 Voice (ADR 0026): `POST /ask/voice` takes the recording as a multipart `audio` part, a WAV
 (mono, 16-bit PCM, 16 or 24 kHz; convert others with `ffmpeg -i in.m4a -ac 1 -ar 24000 -c:a
-pcm_s16le out.wav`) of at most two minutes. `event: transcript` carries what was heard, its
-duration and what transcribing it cost; the rest is Ask's stream. A spoken goal comes back as a
+pcm_s16le out.wav`) of at most two minutes. `event: transcript` carries what was heard:
+`voice_id`, `transcript`, `heard` (false: no speech), `audio_duration_ms`, `billed_seconds`,
+`cost_usd` (what transcribing it cost, a measurement of the clip, not a store figure), `model`
+and `flags`; then comes Ask's stream (`step`, `answer` with the `AskResult`, `done`), or
+`no_speech` (`message`) then `done`. A spoken goal comes back as a
 `confirmation` like a typed one; a transcript never approves anything, and one that reads like
 an instruction is answered as a question and flagged. The recording is not stored.
 
