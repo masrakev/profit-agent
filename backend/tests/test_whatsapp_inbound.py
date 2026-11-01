@@ -386,7 +386,7 @@ def test_approve_decides_once_through_the_normal_flow(
     world = World(app_engine)
     _, tap = post(client, "button_reply", OWNER, button_id=token)
     assert world.inbox.process(tap) == "button: approved"
-    assert world.replies()[-1].startswith("Approved: ")
+    assert world.replies()[-1].startswith("Approved for ")
     with tenant_transaction(app_engine, store["id"]) as conn:
         decision = get(conn, store["id"], store["decisions"][0])
         approval = conn.execute(

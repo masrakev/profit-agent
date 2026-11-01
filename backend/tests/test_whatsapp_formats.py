@@ -230,8 +230,8 @@ def test_a_decision_status_in_every_state(
         options = fmt().options(conn, store, decision)
     assert pending.text.startswith("A decision is waiting for your approval.")
     assert [b.title for b in pending.buttons] == ["Approve", "See options"]
-    assert states[DecisionStatus.EXECUTED].text.startswith("Done: ")
-    assert states[DecisionStatus.FAILED].text.startswith("Not done: ")
+    assert states[DecisionStatus.EXECUTED].text.startswith("Done for ")
+    assert states[DecisionStatus.FAILED].text.startswith("Not done for ")
     assert states[DecisionStatus.SUPERSEDED].text.startswith("Replaced: ")
     for message in (pending, *states.values()):
         no_references(message)

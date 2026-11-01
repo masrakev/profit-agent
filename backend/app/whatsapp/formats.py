@@ -55,14 +55,15 @@ TEMPLATES = {
     "goal": "goal_update",  # {{1}} progress
 }
 STATUS_WORDS = {
-    DecisionStatus.APPROVED: "Approved: {option} for {entity}. It runs within your spending caps.",
-    DecisionStatus.EXECUTING: "Approved: {option} for {entity}. It is being executed.",
-    DecisionStatus.EXECUTED: "Done: {option} for {entity}. It can be undone in Profit Agent.",
-    DecisionStatus.MEASURED: "Measured: what {option} for {entity} earned is in Profit Agent.",
-    DecisionStatus.FAILED: "Not done: {option} for {entity} could not be executed; nothing "
+    DecisionStatus.APPROVED: "Approved for {entity}: {option}. It runs within your spending caps.",
+    DecisionStatus.EXECUTING: "Approved for {entity}: {option}. It is being executed.",
+    DecisionStatus.EXECUTED: "Done for {entity}: {option}. It can be undone in Profit Agent.",
+    DecisionStatus.MEASURED: "Measured for {entity}: what this change earned is in Profit Agent "
+    "({option}).",
+    DecisionStatus.FAILED: "Not done for {entity}: {option} could not be executed; nothing "
     "changed.",
-    DecisionStatus.REJECTED: "Rejected: {option} for {entity}. Nothing changes.",
-    DecisionStatus.EXPIRED: "Expired: nobody approved {option} for {entity}; nothing changed.",
+    DecisionStatus.REJECTED: "Rejected for {entity}: {option}. Nothing changes.",
+    DecisionStatus.EXPIRED: "Expired for {entity}: nobody approved it ({option}); nothing changed.",
     DecisionStatus.SUPERSEDED: "Replaced: a decision on more recent data acts on {entity} instead.",
 }
 
