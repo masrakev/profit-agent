@@ -775,12 +775,20 @@ def goals(ctx: Context) -> Section:
             f"{(goal.deadline - timedelta(days=1)).isoformat()}: "
             f"{ctx.cited.ref(facts[actual])} so far"
         )
-        if last.status is not None and last.milestone_fact_id is not None:
+        waiting = last.status == "waiting_for_approval"
+        if last.status in GOAL_STATUS and last.milestone_fact_id is not None:
             text += (
                 f", {GOAL_STATUS[last.status]} the plan's milestone "
                 f"({ctx.cited.ref(facts[last.milestone_fact_id])})"
             )
-        if last.probability_fact_id is not None:
+        if waiting:
+            text += (
+                "; the plan's steps due so far are waiting for your approval: until they run, "
+                "its chance is the one without them"
+            )
+            if last.probability_fact_id is not None:
+                text += f", {ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
+        elif last.probability_fact_id is not None:
             text += (
                 f"; the chance of reaching it is now "
                 f"{ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
@@ -789,7 +797,19 @@ def goals(ctx: Context) -> Section:
         proposed = [p.reason for p in rows if p.revision_proposed and p.as_of >= last.as_of]
         if proposed:
             text += f" A revision of the plan is proposed: {'; '.join(r for r in proposed if r)}."
-        items.append(Item(text=text))
+        waiting_on = [
+            s["decision_id"]
+            for s in last.adherence.get("steps", [])
+            if s.get("state") == "awaiting_approval"
+        ]
+        for did in waiting_on if waiting else []:  # the prompt: approve the first still pending
+            decision = get(ctx.conn, ctx.store_id, UUID(did))
+            if decision.status is DecisionStatus.PROPOSED:
+                _, buttons = _recommended(ctx, decision)
+                items.append(Item(text=text, decision_id=did, buttons=buttons))
+                break
+        else:
+            items.append(Item(text=text))
     return Section(key="goals", title="Goals", items=tuple(items))
 
 

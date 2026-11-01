@@ -80,6 +80,7 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     assert goal.decisions
     # the budget reallocation step lowers the campaign the alert's decision pauses, on older
     # data: superseded, linked to the alert's decision; the other step stays the owner's
+    statuses_before = {statuses[str(d)]: str(d) for d in goal.decisions}
     assert sorted(statuses.pop(str(d)) for d in goal.decisions) == ["proposed", "superseded"]
     lost = next(
         d
@@ -111,10 +112,15 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     revision = before["goal_progress"][1]
     assert revision["revision_proposed"]
     assert revision["reason"].startswith("its reallocate budget step was superseded")
-    assert all(w["adherence"]["pending"] == len(goal.decisions) for w in goal.progress)
+    for w in goal.progress:  # its steps wait for the owner: no verdict drop, no revision
+        assert (w["status"], w["revision"]) == ("waiting_for_approval", False)
+        assert w["adherence"]["awaiting_approval"] == len(goal.decisions)
     assert (seeded.counts["goals"], seeded.counts["goal_progress"]) == (1, 3)
     [section] = [s for s in before["weekly"]["sections"] if s["key"] == "goals"]
-    assert "A revision of the plan is proposed" in section["items"][0]["text"]
+    [goal_item] = section["items"]
+    assert "A revision of the plan is proposed" in goal_item["text"]  # the superseded step
+    assert "waiting for your approval" in goal_item["text"]
+    assert goal_item["decision_id"] == statuses_before["proposed"]  # approve the pending step
     with tenant_transaction(demo["engine"], seeded.store_id) as conn:
         pending = [
             d for d in list_decisions(conn, seeded.store_id) if d.status is DecisionStatus.PROPOSED

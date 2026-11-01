@@ -205,13 +205,13 @@ def plan_out(conn: Connection, store_id: UUID, plan: PlanRecord) -> PlanOut:
 class ProgressOut(BaseModel):
     progress_id: UUID
     plan_id: UUID | None
-    kind: str  # weekly, reforecast
+    kind: str  # weekly, reforecast, revision
     as_of: date
     day: int
     actual_fact_id: int | None
     milestone_fact_id: int | None
     probability_fact_id: int | None
-    status: str | None  # ahead, on_track, behind
+    status: str | None  # ahead, on_track, behind, waiting_for_approval
     verdict: str | None
     adherence: dict[str, Any]
     revision_proposed: bool

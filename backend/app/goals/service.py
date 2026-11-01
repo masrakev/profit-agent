@@ -721,9 +721,12 @@ def progress(conn: Connection, store_id: UUID, goal_id: UUID) -> list[Progress]:
 
 
 def _adherence(conn: Connection, store_id: UUID, plan: PlanRecord, today: date) -> dict[str, Any]:
+    """The steps due so far: `awaiting_approval` (a proposed decision), `pending` (approved,
+    not executed yet, or a manual step not marked done), `done`, `skipped`, `superseded`."""
     out: dict[str, Any] = {
         "due": 0,
         "done": 0,
+        "awaiting_approval": 0,
         "pending": 0,
         "skipped": 0,
         "superseded": 0,
@@ -742,10 +745,15 @@ def _adherence(conn: Connection, store_id: UUID, plan: PlanRecord, today: date) 
                 state = "skipped"
             elif status is DecisionStatus.SUPERSEDED:
                 state = "superseded"
+            elif status is DecisionStatus.PROPOSED:
+                state = "awaiting_approval"
         elif s.status in ("done", "skipped"):
             state = s.status
         out[state] += 1
-        out["steps"].append({"position": s.position, "lever": s.lever, "state": state})
+        step: dict[str, Any] = {"position": s.position, "lever": s.lever, "state": state}
+        if state == "awaiting_approval":
+            step["decision_id"] = str(s.decision_id)
+        out["steps"].append(step)
     return out
 
 
@@ -807,6 +815,9 @@ def _record(conn: Connection, goal: Goal, **row: Any) -> Progress:
     return found
 
 
+APPROVAL_PROMPT = "the plan's steps due so far are waiting for your approval"
+
+
 def track(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime) -> Progress | None:
     """This week's progress of a goal with an accepted plan (None without one)."""
     goal = get(conn, store_id, goal_id)
@@ -822,8 +833,12 @@ def track(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime) -> 
     actual, assessment, word = _remaining(conn, goal, today)
     passed = [m for m in plan.payload["milestones"] if m["day"] <= (today - plan.as_of).days]
     milestone_id = passed[-1]["fact_id"] if passed else None
-    status = None
-    if milestone_id is not None:
+    adherence = _adherence(conn, store_id, plan, today)
+    # Steps waiting for the owner's approval: the plan has not started, so neither its
+    # milestones nor its verdict can be judged; the owner is asked to approve instead.
+    waiting = adherence["awaiting_approval"] > 0 and today < goal.deadline
+    status = "waiting_for_approval" if waiting else None
+    if milestone_id is not None and not waiting:
         [milestone] = get_facts(conn, store_id, [milestone_id]).values()
         value = _so_far(actual)
         low, high = milestone.p10 or Decimal(0), milestone.p90 or Decimal(0)
@@ -834,8 +849,11 @@ def track(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime) -> 
         reasons.append("a second week in a row outside the milestone's range")
     planned = plan.payload["verdict_with"]
     now_word = word.split("-")[-1] if word else None
-    if now_word is not None and RANK[now_word] < RANK[planned]:
+    if now_word is not None and RANK[now_word] < RANK[planned] and not waiting:
         reasons.append(f"the verdict dropped from {planned} to {now_word}")
+    revision = bool(reasons) and assessment is not None
+    if waiting:
+        reasons.append(APPROVAL_PROMPT)
     if assessment is None:
         reasons.append(f"the deadline has passed: the goal is {_close(conn, goal, actual, now)}")
     return _record(
@@ -850,8 +868,8 @@ def track(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime) -> 
         probability=assessment.probability.id if assessment else None,
         status=status,
         verdict=word,
-        adherence=_adherence(conn, store_id, plan, today),
-        revision=bool(reasons) and assessment is not None,
+        adherence=adherence,
+        revision=revision,
         reason="; ".join(reasons) or None,
         now=now,
     )

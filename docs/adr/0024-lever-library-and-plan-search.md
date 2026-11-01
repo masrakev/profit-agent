@@ -88,7 +88,10 @@ whose day has come as decisions (source `goal`); later steps are proposed by the
 when their day comes. Weekly tracking: the actual so far against the last milestone (`ahead`,
 `on_track`, `behind`), the steps executed, and the probability of what is left; a revision is
 proposed when the actual is outside the milestone band two weeks in a row or the verdict drops a
-level, never applied by itself. Every month the forecast is redone. Both are scheduler jobs, and
+level, never applied by itself. While steps due so far wait for the owner's approval, the week is
+`waiting_for_approval` (amended 2026-11-01): the plan has not started, so it is neither behind
+nor a verdict drop, and the weekly report asks for the approval instead of a revision. A step
+whose decision is superseded (ADR 0016) makes the plan propose a revision. Every month the forecast is redone. Both are scheduler jobs, and
 the weekly report shows each planned goal's progress.
 
 **Ask** (`backend/app/agent/goal.py`). A `goal` question is parsed (intent stage, structured
@@ -141,6 +144,6 @@ between two loads' statistics refreshes; the bench databases now run without aut
   validated by the simulator (its restock only ends a stockout fault).
 - The probability with the plan assumes every step is approved on its day. The weekly tracking's
   probability is the forecast of what is left from the latest data: a step not yet executed
-  counts for nothing there, so a plan whose steps wait for approval reads as a verdict drop and
-  proposes a revision.
+  counts for nothing there. While steps wait for approval the week says so, with that
+  probability as the one without them, rather than reading as a verdict drop.
 - New levers are code: a lever needs its preconditions as facts and its effect as twin actions.

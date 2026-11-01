@@ -16,6 +16,7 @@ from app.api.main import app
 from app.briefings.content import build
 from app.briefings.models import BriefingKind
 from app.db import tenant_transaction
+from app.decisions.store import Channel, Verdict, decide
 from app.decisions.store import get as get_decision
 from app.goals import service
 from app.goals.service import GoalError
@@ -135,7 +136,13 @@ def test_plan_accept_track_and_report(app_engine: Engine, store: UUID) -> None:
         assert week is not None
         assert service.track(conn, store, goal.goal_id, now=NOW) == week  # once a day
         assert (week.kind, week.day, week.plan_id) == ("weekly", 7, plan.plan_id)
-        assert week.status in ("ahead", "on_track", "behind")
+        decisions = [s for s in accepted.steps if s.kind == "decision"]
+        assert decisions
+        # its steps wait for the owner: no milestone judgement, no revision, a prompt instead
+        assert week.status == "waiting_for_approval"
+        assert not week.revision_proposed
+        assert week.reason == service.APPROVAL_PROMPT
+        assert week.adherence["awaiting_approval"] == len(decisions)
         assert week.milestone_fact_id is not None
         assert week.probability_fact_id is not None
         assert week.adherence["due"] == len(
@@ -147,10 +154,33 @@ def test_plan_accept_track_and_report(app_engine: Engine, store: UUID) -> None:
     [goals] = [s for s in content.sections if s.key == "goals"]
     [item] = goals.items
     assert item.text.startswith("Your goal of {{F")
+    assert "waiting for your approval" in item.text
+    assert "revision" not in item.text
+    assert item.decision_id in {str(s.decision_id) for s in decisions}
+    assert item.buttons
     assert not verify(item.text)
+    with tenant_transaction(app_engine, store) as conn:  # the owner decides: here, no
+        for s in decisions:
+            assert s.decision_id is not None
+            decide(
+                conn,
+                store,
+                s.decision_id,
+                None,
+                Verdict.REJECTED,
+                channel=Channel.API,
+                actor="owner:test",
+                now=NOW,
+            )
+    advance(app_engine, store, 7)
     with tenant_transaction(app_engine, store) as conn:
+        second = service.track(conn, store, goal.goal_id, now=NOW)
+        assert second is not None
+        assert second.status in ("ahead", "on_track", "behind")  # judged by its milestones
+        assert second.adherence["skipped"] == len(decisions)
         assert [p.progress_id for p in service.progress(conn, store, goal.goal_id)] == [
-            week.progress_id
+            week.progress_id,
+            second.progress_id,
         ]
 
 

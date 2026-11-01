@@ -328,3 +328,6 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     that stood, with the reason) and cannot be approved; a superseded goal step makes its plan
     propose a revision. In the demo, the stockout pause supersedes the goal's budget
     reallocation step on the same campaign. ADR 0016, amended.
+  - Goal tracking tells "behind" from "waiting for approval": while the plan's due steps wait
+    for the owner, the week is `waiting_for_approval`, with a prompt to approve in the weekly
+    report, never a verdict drop or a revision.

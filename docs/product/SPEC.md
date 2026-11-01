@@ -447,6 +447,11 @@ and checks every week."**
 
 - Every week: actual versus milestone, status `ahead`, `on_track` or `behind`, step adherence (which
   steps were executed), and the updated probability. Shown in the weekly report.
+- While steps due so far wait for the owner's approval, the status is `waiting_for_approval`: the
+  plan has not started, so it is neither behind nor a verdict drop, and no revision is proposed;
+  the weekly report asks the owner to approve instead.
+- A step whose decision is superseded by a decision on the same entity resting on more recent data
+  makes the plan propose a revision.
 - When the actual falls outside the milestone band for two consecutive weeks, or the probability
   drops by a verdict level, the product proposes a revised plan. The owner decides; the plan never
   changes by itself.

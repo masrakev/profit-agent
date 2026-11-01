@@ -10,7 +10,8 @@
 3. Two past decisions on a campaign that neither promotes the product nor is in the goal's
    plan, proposed by the owner, approved and executed: a budget cut, then a raise a week
    later. Each is measured by synthetic control after its 7-day window (measured, or
-   abstained when the fit is weak). After each week, the goal's weekly tracking.
+   abstained when the fit is weak). After each week, the goal's weekly tracking: its
+   steps wait for the owner's approval.
 4. Fourteen days before the data end, detection raises the critical stockout alert (ads still
    spending on a product out of stock); the alert proposes its decision, left pending. It acts
    on the campaign the goal's budget reallocation step lowers, on more recent data: that step's
@@ -255,7 +256,13 @@ def track_goal(engine: Engine, store: UUID, goal_id: UUID) -> dict[str, Any]:
     with tenant_transaction(engine, store) as conn:
         p = goals.track(conn, store, goal_id, now=datetime.now(UTC))
     assert p is not None
-    return {"day": p.day, "status": p.status, "verdict": p.verdict, "adherence": p.adherence}
+    return {
+        "day": p.day,
+        "status": p.status,
+        "verdict": p.verdict,
+        "adherence": p.adherence,
+        "revision": p.revision_proposed,
+    }
 
 
 def _local_today(engine: Engine, store: UUID) -> date:
@@ -368,11 +375,12 @@ def markdown(s: Seeded, started: datetime) -> str:
         "",
         "Goal tracking:",
         "",
-        "| Day | Status | Verdict | Steps due | Done | Pending |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Day | Status | Verdict | Steps due | Done | Awaiting approval | Revision proposed |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
         *(
             f"| {w['day']} | {w['status']} | {w['verdict']} | {w['adherence']['due']} | "
-            f"{w['adherence']['done']} | {w['adherence']['pending']} |"
+            f"{w['adherence']['done']} | {w['adherence']['awaiting_approval']} | "
+            f"{'yes' if w['revision'] else 'no'} |"
             for w in s.goal.progress
         ),
         "",
