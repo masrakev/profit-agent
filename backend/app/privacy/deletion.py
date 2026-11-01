@@ -4,7 +4,9 @@ The database part is one SECURITY DEFINER function (`delete_store`, migration 00
 the store's own tenant transaction: every row of every tenant table, the store, its owner
 memberships and API tokens (they cascade). Outside the database: recorded model exchanges
 (cassettes) that name the store. Model traces live in `investigation_steps` (deleted with the
-rest); the spend ledger names no store. The deletion is recorded in `control.store_deletions`.
+rest); the spend ledger names no store. Inbound WhatsApp messages the store received (schema
+`whatsapp`, outside the tenant tables) go too. The deletion is recorded in
+`control.store_deletions`.
 """
 
 import json
@@ -46,4 +48,10 @@ def delete_store(engine: Engine, store_id: UUID, *, actor: str, cassette_dir: Pa
         str(k): int(v)
         for k, v in (counts if isinstance(counts, dict) else json.loads(counts)).items()
     }
+    with engine.begin() as conn:
+        inbound = conn.execute(
+            text("DELETE FROM whatsapp.inbound WHERE store_id = :s"), {"s": store_id}
+        ).rowcount
+    if inbound:
+        rows["whatsapp.inbound"] = inbound
     return Deletion(store_id, rows, remove_cassettes(cassette_dir, store_id))

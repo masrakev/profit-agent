@@ -2,7 +2,9 @@
 
 Daily, for each store in its own tenant transaction: the agent's step traces older than the
 retention period are deleted (the verified investigations they led to stay, like facts,
-decisions and the audit log). Expired sign-in links and sessions are deleted too.
+decisions and the audit log). Expired sign-in links and sessions are deleted too, and inbound
+WhatsApp message ids past the same period (their content is cleared once processed; the id is
+kept only to recognise a message Meta delivers again, which it does within 36 hours).
 """
 
 from dataclasses import dataclass
@@ -19,6 +21,7 @@ class Purged:
     traces: int
     login_links: int
     sessions: int
+    inbound: int = 0
 
 
 def purge(engine: Engine, now: datetime, *, days: int = 30) -> Purged:
@@ -39,4 +42,8 @@ def purge(engine: Engine, now: datetime, *, days: int = 30) -> Purged:
             text("DELETE FROM auth.sessions WHERE expires_at < :now OR revoked_at < :day"),
             {"now": now, "day": now - timedelta(days=1)},
         ).rowcount
-    return Purged(traces, links, sessions)
+        inbound = conn.execute(
+            text("DELETE FROM whatsapp.inbound WHERE received_at < :cut AND status <> 'pending'"),
+            {"cut": cutoff},
+        ).rowcount
+    return Purged(traces, links, sessions, inbound)

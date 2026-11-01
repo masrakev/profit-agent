@@ -54,6 +54,7 @@ ADR 0020.
 | `no_number`, `already_verified`, `number_taken` | 409 | WhatsApp: no number in the settings; already verified; verified for another store |
 | `invalid_code`, `expired_code`, `too_many_attempts` | 422 | WhatsApp: the code does not match, has expired, or was tried five times |
 | `too_many_codes` | 429 | WhatsApp: three codes an hour at most |
+| `invalid_signature` | 401 | A webhook notification whose signature does not match (nothing is stored) |
 | `whatsapp_unavailable`, `whatsapp_failed` | 503 | WhatsApp is not configured (credentials, signing secret), or the code could not be sent |
 | `rate_limited` | 429 | Too many requests: retry after `Retry-After` seconds |
 | `not_ready` | 503 | The database does not answer (readiness) |
@@ -99,6 +100,8 @@ ADR 0020.
 | GET | `/api/v1/stores/{store_id}/whatsapp` | The WhatsApp number, whether it is verified, whether its 24-hour window is open |
 | POST | `/api/v1/stores/{store_id}/whatsapp/verification` | Send a six-digit code to it on WhatsApp (202; three an hour) |
 | POST | `/api/v1/stores/{store_id}/whatsapp/verification/confirm` | Type the code (`code`): the number is verified |
+| GET | `/api/v1/whatsapp/webhook` | Meta's handshake: the challenge, for our verify token only |
+| POST | `/api/v1/whatsapp/webhook` | Meta's notifications: signed (`X-Hub-Signature-256`), each message stored once, processed by a job |
 | GET, PUT | `/api/v1/stores/{store_id}/kill-switch` | Read or set the store's kill switch |
 | GET | `/api/v1/stores/{store_id}/decisions` | Decisions, newest first |
 | GET | `/api/v1/stores/{store_id}/decisions/{decision_id}` | A decision and its options |

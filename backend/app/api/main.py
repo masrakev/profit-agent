@@ -27,6 +27,7 @@ from app.api.privacy import router as privacy_router
 from app.api.problems import RESPONSES
 from app.api.stores import router as stores_router
 from app.api.whatsapp import router as whatsapp_router
+from app.api.whatsapp import webhook_router
 from app.db import tenant_transaction
 
 API_VERSION = "v1"
@@ -107,6 +108,7 @@ def create_app(limiter: RateLimiter | None = None) -> FastAPI:
     app.include_router(decisions_router)
     app.include_router(goals_router)
     app.include_router(whatsapp_router)
+    app.include_router(webhook_router)
     return app
 
 

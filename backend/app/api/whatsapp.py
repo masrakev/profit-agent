@@ -1,15 +1,23 @@
-"""WhatsApp (ADR 0027): the owner's number and its verification.
+"""WhatsApp (ADR 0027): the owner's number and its verification, and the webhook.
 
 The number is set in the store's settings (`whatsapp_number`). `POST .../whatsapp/verification`
 sends a six-digit code to it on WhatsApp (an approved authentication template, since the number
 has not written yet); the owner types it on the web, `POST .../whatsapp/verification/confirm`.
 Only a verified number interacts with the store.
+
+The webhook (`/api/v1/whatsapp/webhook`) is Meta's: the handshake echoes the challenge for our
+verify token; every notification must carry a valid `X-Hub-Signature-256`. It stores each new
+message once by its id, queues it, and answers at once (app.whatsapp.webhook).
 """
 
+import json
 from datetime import UTC, datetime
+from functools import cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.auth import PrincipalDep, StoreDep
@@ -18,10 +26,12 @@ from app.channels.whatsapp import WhatsAppError, WhatsAppMessage, WhatsAppSender
 from app.channels.whatsapp import sender_from_settings as whatsapp_from_settings
 from app.config import Settings, get_settings
 from app.db import tenant_transaction
-from app.whatsapp import numbers
+from app.whatsapp import numbers, webhook
 from app.whatsapp.numbers import NumberError, NumberState
+from app.whatsapp.queue import ArqQueue, InboundQueue
 
 router = APIRouter(prefix="/api/v1/stores/{store_id}/whatsapp", tags=["whatsapp"])
+webhook_router = APIRouter(prefix="/api/v1/whatsapp", tags=["whatsapp"])
 CODE_TEMPLATE = "verification_code"
 
 
@@ -30,6 +40,18 @@ def get_whatsapp_sender() -> WhatsAppSender | None:
 
 
 WhatsAppDep = Annotated[WhatsAppSender | None, Depends(get_whatsapp_sender)]
+
+
+@cache
+def _queue() -> ArqQueue:
+    return ArqQueue(get_settings().redis_url)
+
+
+def get_inbound_queue() -> InboundQueue:
+    return _queue()
+
+
+InboundQueueDep = Annotated[InboundQueue, Depends(get_inbound_queue)]
 
 
 class WhatsAppNumber(BaseModel):
@@ -145,3 +167,63 @@ def post_confirm(
     if isinstance(found, NumberError):  # a wrong code: the attempt is counted, then refused
         raise _error(found)
     return _out(found, now)
+
+
+# --- the webhook ---------------------------------------------------------------------------
+
+
+class Received(BaseModel):
+    messages: int  # messages in the notification
+    new: int  # stored now (a replayed message id is not)
+    statuses: int  # statuses of sent messages, counted only
+
+
+def _secret_of(value: object) -> str:
+    getter = getattr(value, "get_secret_value", None)
+    return str(getter()) if getter is not None else ""
+
+
+@webhook_router.get("/webhook", response_class=PlainTextResponse)
+def get_webhook(
+    settings: SettingsDep,
+    mode: Annotated[str | None, Query(alias="hub.mode")] = None,
+    token: Annotated[str | None, Query(alias="hub.verify_token")] = None,
+    challenge: Annotated[str | None, Query(alias="hub.challenge")] = None,
+) -> PlainTextResponse:
+    """Meta's subscription handshake: the challenge, for our verify token only."""
+    answer = webhook.handshake(mode, token, challenge, _secret_of(settings.whatsapp_verify_token))
+    if answer is None:
+        raise HTTPException(
+            status_code=403, detail={"code": "forbidden", "message": "not our verify token"}
+        )
+    return PlainTextResponse(answer)
+
+
+@webhook_router.post("/webhook", response_model=Received)
+async def post_webhook(
+    request: Request, engine: EngineDep, settings: SettingsDep, queue: InboundQueueDep
+) -> Received:
+    """A notification from Meta: signed, stored once per message id, queued, answered at once."""
+    secret = _secret_of(settings.whatsapp_app_secret)
+    if not secret:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "whatsapp_unavailable", "message": "WhatsApp is not configured"},
+        )
+    body = await request.body()
+    if not webhook.signature_valid(request.headers.get("x-hub-signature-256"), body, secret):
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "invalid_signature", "message": "the signature does not match"},
+        )
+    try:
+        payload = json.loads(body)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400, detail={"code": "bad_request", "message": "not JSON"}
+        ) from exc
+    messages, statuses = webhook.parse(payload)
+    new = await run_in_threadpool(webhook.store, engine, messages)
+    for message_id in new:
+        await queue.enqueue(message_id)
+    return Received(messages=len(messages), new=len(new), statuses=statuses)

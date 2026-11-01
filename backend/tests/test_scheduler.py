@@ -7,11 +7,13 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from pydantic import SecretStr
 from sqlalchemy import Engine
 
 from app.agent.llm import fake as f
 from app.briefings.models import BriefingKind
 from app.channels.email import RecordingSender
+from app.config import get_settings
 from app.db import tenant_transaction
 from app.delivery.worker import DeliveryWorker
 from app.privacy.retention import Purged
@@ -133,3 +135,41 @@ def test_the_arq_tasks(app_engine: Engine, monkeypatch: pytest.MonkeyPatch) -> N
     asyncio.run(worker.startup(started))
     assert isinstance(started["delivery"], DeliveryWorker)
     asyncio.run(worker.shutdown(started))
+
+
+def test_the_whatsapp_inbox_job_and_its_sweep(app_engine: Engine) -> None:
+    class Inbox:
+        def __init__(self) -> None:
+            self.processed: list[str] = []
+
+        def pending(self) -> list[str]:
+            return ["wamid.missed"]
+
+        def process(self, message_id: str) -> str:
+            self.processed.append(message_id)
+            return "done"
+
+    sender = RecordingSender()
+    inbox = Inbox()
+    ctx: dict[str, Any] = {
+        "delivery": DeliveryWorker(app_engine, sender, "https://app.example"),
+        "inbox": inbox,
+    }
+    assert asyncio.run(worker.whatsapp_inbound(ctx, "wamid.queued")) == "done"
+    asyncio.run(worker.deliveries(ctx))
+    assert inbox.processed == ["wamid.queued", "wamid.missed"]
+    assert asyncio.run(worker.whatsapp_inbound({}, "wamid.x")) is None
+    assert "whatsapp_inbound" in {f.__name__ for f in worker.WorkerSettings.functions}
+    settings = get_settings()
+    assert worker.inbox(settings, app_engine, Harness().provider) is None  # not configured
+    configured = settings.model_copy(
+        update={
+            "whatsapp_access_token": SecretStr("t"),
+            "whatsapp_phone_number_id": "1",
+            "whatsapp_app_secret": SecretStr("s"),
+            "approval_link_secret": SecretStr("k"),
+        }
+    )
+    built = worker.inbox(configured, app_engine, Harness().provider)
+    assert built is not None
+    assert (built.approval_secret, built.refusal_key) == ("k", "s")
