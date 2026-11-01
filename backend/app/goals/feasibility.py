@@ -82,6 +82,10 @@ class Feasibility:
         return self.probability if self.shows_point else None
 
 
+YEAR_OF_HISTORY = 365  # below it, the forecast cannot learn a yearly season (ADR 0023)
+SEASONALITY_NOT_LEARNED = "yearly seasonality not learned"
+
+
 def low_evidence(f: Forecast) -> tuple[str, ...]:
     """Why the evidence is weak, in words without numbers (they reach the owner's text)."""
     reasons = []
@@ -98,6 +102,8 @@ def low_evidence(f: Forecast) -> tuple[str, ...]:
             f"forecasts of {f.metric.replace('_', ' ')} this far ahead were poorly calibrated "
             "in the backtest"
         )
+    if f.history_days < YEAR_OF_HISTORY:  # the forecast errs one way at a time of year
+        reasons.append(SEASONALITY_NOT_LEARNED)
     return tuple(reasons)
 
 

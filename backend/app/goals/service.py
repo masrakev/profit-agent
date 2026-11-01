@@ -16,7 +16,7 @@
 """
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -41,6 +41,7 @@ from app.goals.feasibility import (
     Assessment,
     assess_store,
     checkpoints,
+    low_evidence,
     seed_of,
     verdict,
 )
@@ -447,6 +448,7 @@ def _plan_facts(
             for s in plan.experiments
         ],
         "assumptions": list(plan.assumptions),
+        "low_evidence": list(plan.low_evidence),
         "detailed_days": plan.days,
     }
 
@@ -482,7 +484,7 @@ def compute_plan(
         background=usual_reorders(ctx),
     )
     method = f"{PLAN_METHOD};{METHOD};calibration {base.calibration};twin {model.fingerprint}"
-    return plan, method
+    return replace(plan, low_evidence=low_evidence(base)), method
 
 
 def make_plan(conn: Connection, store_id: UUID, goal_id: UUID, *, now: datetime) -> PlanRecord:

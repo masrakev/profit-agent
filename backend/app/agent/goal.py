@@ -291,6 +291,7 @@ def _plan_data(goal: Goal, plan: PlanRecord) -> dict[str, Any]:
             "deadline_making_it_possible": alt["deadline"],
         },
         "assumptions": p["assumptions"],
+        "weak_evidence": p.get("low_evidence", []),
     }
 
 
@@ -464,6 +465,8 @@ def explain(
     else:
         answer, status = _with_evidence(_fallback(goal, data, plan is not None)), "fallback"
     weak = list(assessment.feasibility.low_evidence)
+    if plan is not None:
+        weak += [r for r in plan.payload.get("low_evidence", []) if r not in weak]
     if weak and Flag.LOW_EVIDENCE not in answer.flags:
         answer = answer.model_copy(update={"flags": [*answer.flags, Flag.LOW_EVIDENCE]})
     if plan is not None and plan.payload["lowers_profit"]:

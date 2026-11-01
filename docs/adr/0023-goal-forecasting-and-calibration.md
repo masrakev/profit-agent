@@ -104,7 +104,9 @@ is the last 28 days' mean times the horizon, with a normal spread.
   store errs the same way at the same cut. The pooled reliability averages these out. A real
   store with a season would see the same. Not fixed here: a yearly term needs more than a year
   of history; the options are a seasonal prior by category, a yearly term once a store has two
-  years, and suites whose stores peak on different days.
+  years, and suites whose stores peak on different days. Until then (2026-11-01), a forecast
+  from less than a year of history is `low_evidence` with the reason "yearly seasonality not
+  learned", on every goal answer and plan.
 - The benchmark stores grow and shift by the generator's own rules; a real store's trend can
   change for reasons none of this models. The backtest on real stores' histories is the next
   check, with the design partners.

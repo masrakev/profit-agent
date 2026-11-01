@@ -331,3 +331,6 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - Goal tracking tells "behind" from "waiting for approval": while the plan's due steps wait
     for the owner, the week is `waiting_for_approval`, with a prompt to approve in the weekly
     report, never a verdict drop or a revision.
+  - Every goal answer and plan on a store with less than a year of history carries
+    `low_evidence` with the reason "yearly seasonality not learned" (ADR 0023's time-of-year
+    limitation, also listed in `docs/launch-readiness.md`).

@@ -116,6 +116,7 @@ def test_plan_accept_track_and_report(app_engine: Engine, store: UUID) -> None:
         assert payload["shows_point"] is True
         assert payload["checkpoints"] == []
         assert len(payload["assumptions"]) == 5
+        assert "yearly seasonality not learned" in payload["low_evidence"]  # under a year of data
         assert all(not verify(s.summary) for s in plan.steps)
         assert service.track(conn, store, goal.goal_id, now=NOW) is None  # no accepted plan
         accepted = service.accept(conn, store, plan.plan_id, now=NOW, actor="owner:test")
@@ -304,6 +305,6 @@ def test_the_goals_api(client: TestClient, app_engine: Engine, store: UUID) -> N
     far = client.post(f"{base}/{long['goal_id']}/confirm").json()
     assert (far["verdict"], far["probability"]) == (None, None)
     assert [c["day"] for c in far["checkpoints"]] == [90, 150]
-    assert far["low_evidence"]
+    assert far["low_evidence"][-1] == "yearly seasonality not learned"
     assert client.post(f"{base}/{uuid4()}/revise", json={}).status_code == 404
     assert client.post(f"{base}/{uuid4()}/confirm").status_code == 404

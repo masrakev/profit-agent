@@ -159,6 +159,8 @@ def test_the_feasibility_is_explained(app_engine: Engine, store: UUID) -> None:
         goal,
     )
     assert "likely" in result.answer.answer  # a tiny target
+    assert Flag.LOW_EVIDENCE in result.answer.flags  # less than a year of history
+    assert "yearly seasonality not learned" in data_of(h.transport.requests[0])["weak_evidence"]
     with tenant_transaction(app_engine, store) as conn:
         assert service.get(conn, store, goal).status == "confirmed"
 
@@ -203,6 +205,8 @@ def test_a_plan_is_explained(
     assert result.answer.answer.startswith("Careful: this plan grows revenue but lowers net profit")
     sent = data_of(h.transport.requests[0])
     assert sent["alternatives"] is not None  # an unlikely target
+    assert "yearly seasonality not learned" in sent["weak_evidence"]  # the plan's own reasons
+    assert Flag.LOW_EVIDENCE in result.answer.flags
     assert "experiments_never_counted" in sent
     assert not verify(result.answer.answer)
 

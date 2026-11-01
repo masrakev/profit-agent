@@ -200,6 +200,7 @@ class Plan:
     profit_change: tuple[float, float, float]  # the plan's effect on net profit
     alternatives: Alternatives | None
     assumptions: tuple[str, ...] = field(default=ASSUMPTIONS)
+    low_evidence: tuple[str, ...] = ()  # why its forecast is weak (feasibility.low_evidence)
 
     @property
     def verdict_with(self) -> str:

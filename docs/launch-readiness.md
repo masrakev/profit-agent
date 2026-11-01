@@ -138,8 +138,10 @@ figure above is now measured, and total cost includes payment processing.
 - **Goal forecasts** (ADR 0023) are calibrated on average over the year (80-81% coverage to
   90 days on the hold-out), not at each time of year: with no yearly term, a forecast made
   while a store's season falls or at its trough errs one way (at 60 days, 2% to 60% of
-  outcomes above the 70th percentile depending on the day, expected 30%). Beyond 90 days a
-  goal shows a probability range, never a point.
+  outcomes above the 70th percentile depending on the day, expected 30%). A store with less
+  than a year of history (every store at launch) cannot have its yearly season learned: every
+  goal answer and plan for it carries `low_evidence` with the reason "yearly seasonality not
+  learned". Beyond 90 days a goal shows a probability range, never a point.
 - **Goal plans** (ADR 0024) raise the chance of reaching a goal by 4.8 points on the hold-out
   (interval 2.0 to 7.5), validated on simulated stores only; almost every plan scales
   profitable campaigns, and reorder steps are not validated (the simulator cannot).

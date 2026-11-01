@@ -148,8 +148,13 @@ def test_probability_gap_and_low_evidence(tmp_path: Path, monkeypatch: pytest.Mo
     reasons = low_evidence(f)
     assert reasons[0] == "the goal's horizon is longer than the store's history"
     assert "revenue this far ahead were poorly calibrated" in reasons[1]
+    assert reasons[2] == "yearly seasonality not learned"
     assert not any(verify(r) for r in reasons)  # they reach the owner's text: no numbers
-    assert low_evidence(forecast(series(200), START, "revenue", 30, seed=4)) == ()
+    # a year of history or more: the season can be learned
+    assert low_evidence(forecast(series(200), START, "revenue", 30, seed=4)) == (
+        "yearly seasonality not learned",
+    )
+    assert low_evidence(forecast(series(365), START, "revenue", 30, seed=4)) == ()
 
 
 def test_beyond_90_days_a_probability_is_a_range(
