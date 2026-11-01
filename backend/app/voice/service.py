@@ -42,7 +42,7 @@ from app.voice.keywords import store_keywords
 MAX_QUESTION_CHARS = 2000  # Ask's own limit
 _SPACE = re.compile(r"\s+")
 _LETTER = re.compile(r"[^\W\d_]")
-Channel = Literal["web"]
+Channel = Literal["web", "whatsapp"]
 
 
 class VoiceTranscript(BaseModel):

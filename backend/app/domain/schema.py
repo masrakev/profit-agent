@@ -635,3 +635,14 @@ whatsapp_numbers = Table(
     _ts("created_at"),
     _ts("updated_at"),
 )
+
+goal_links = Table(
+    "goal_links",
+    metadata,
+    Column("link_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("goal_id", Uuid, nullable=False),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("used_at", DateTime(timezone=True), nullable=True),
+    _ts("created_at"),
+)

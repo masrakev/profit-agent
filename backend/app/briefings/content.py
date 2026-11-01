@@ -59,6 +59,7 @@ from app.detection.series import StoreSeries, load_series
 from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.model import Fact, Period, Scope
 from app.goals import service as goal_service
+from app.goals.service import Goal
 from app.policies.trust import trust_ledger
 from app.settings.models import AutonomyLevel, StoreSettings
 from app.settings.repository import StoreSettingsRepository
@@ -756,60 +757,65 @@ def watchlist(ctx: Context) -> Section:
 GOAL_STATUS = {"ahead": "ahead of", "on_track": "on track with", "behind": "behind"}
 
 
-def goals(ctx: Context) -> Section:
-    """Goal progress (SPEC 17.5): each planned goal's latest weekly tracking, and the
-    revisions proposed since (a step superseded by a decision on more recent data)."""
-    items = []
-    for goal in goal_service.active_goals(ctx.conn, ctx.store_id):
-        rows = goal_service.progress(ctx.conn, ctx.store_id, goal.goal_id)
-        weekly = [p for p in rows if p.kind == "weekly"]
-        target, actual = goal.target_fact_id, weekly[-1].actual_fact_id if weekly else None
-        if target is None or actual is None:
-            continue
-        last = weekly[-1]
-        ids = [target, actual, last.milestone_fact_id, last.probability_fact_id]
-        facts = ctx.cited.load(i for i in ids if i is not None)
-        words = goal_service.METRIC_WORDS[goal.metric]
-        text = (
-            f"Your goal of {ctx.cited.ref(facts[target])} in {words} by "
-            f"{(goal.deadline - timedelta(days=1)).isoformat()}: "
-            f"{ctx.cited.ref(facts[actual])} so far"
+def goal_item(ctx: Context, goal: Goal) -> Item | None:
+    """A planned goal's latest weekly tracking, and the revisions proposed since (a step
+    superseded by a decision on more recent data); None before its first week."""
+    rows = goal_service.progress(ctx.conn, ctx.store_id, goal.goal_id)
+    weekly = [p for p in rows if p.kind == "weekly"]
+    target, actual = goal.target_fact_id, weekly[-1].actual_fact_id if weekly else None
+    if target is None or actual is None:
+        return None
+    last = weekly[-1]
+    ids = [target, actual, last.milestone_fact_id, last.probability_fact_id]
+    facts = ctx.cited.load(i for i in ids if i is not None)
+    words = goal_service.METRIC_WORDS[goal.metric]
+    text = (
+        f"Your goal of {ctx.cited.ref(facts[target])} in {words} by "
+        f"{(goal.deadline - timedelta(days=1)).isoformat()}: "
+        f"{ctx.cited.ref(facts[actual])} so far"
+    )
+    waiting = last.status == "waiting_for_approval"
+    if last.status in GOAL_STATUS and last.milestone_fact_id is not None:
+        text += (
+            f", {GOAL_STATUS[last.status]} the plan's milestone "
+            f"({ctx.cited.ref(facts[last.milestone_fact_id])})"
         )
-        waiting = last.status == "waiting_for_approval"
-        if last.status in GOAL_STATUS and last.milestone_fact_id is not None:
-            text += (
-                f", {GOAL_STATUS[last.status]} the plan's milestone "
-                f"({ctx.cited.ref(facts[last.milestone_fact_id])})"
-            )
-        if waiting:
-            text += (
-                "; the plan's steps due so far are waiting for your approval: until they run, "
-                "its chance is the one without them"
-            )
-            if last.probability_fact_id is not None:
-                text += f", {ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
-        elif last.probability_fact_id is not None:
-            text += (
-                f"; the chance of reaching it is now "
-                f"{ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
-            )
-        text += "."
-        proposed = [p.reason for p in rows if p.revision_proposed and p.as_of >= last.as_of]
-        if proposed:
-            text += f" A revision of the plan is proposed: {'; '.join(r for r in proposed if r)}."
-        waiting_on = [
-            s["decision_id"]
-            for s in last.adherence.get("steps", [])
-            if s.get("state") == "awaiting_approval"
-        ]
-        for did in waiting_on if waiting else []:  # the prompt: approve the first still pending
-            decision = get(ctx.conn, ctx.store_id, UUID(did))
-            if decision.status is DecisionStatus.PROPOSED:
-                _, buttons = _recommended(ctx, decision)
-                items.append(Item(text=text, decision_id=did, buttons=buttons))
-                break
-        else:
-            items.append(Item(text=text))
+    if waiting:
+        text += (
+            "; the plan's steps due so far are waiting for your approval: until they run, "
+            "its chance is the one without them"
+        )
+        if last.probability_fact_id is not None:
+            text += f", {ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
+    elif last.probability_fact_id is not None:
+        text += (
+            f"; the chance of reaching it is now "
+            f"{ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
+        )
+    text += "."
+    proposed = [p.reason for p in rows if p.revision_proposed and p.as_of >= last.as_of]
+    if proposed:
+        text += f" A revision of the plan is proposed: {'; '.join(r for r in proposed if r)}."
+    waiting_on = [
+        s["decision_id"]
+        for s in last.adherence.get("steps", [])
+        if s.get("state") == "awaiting_approval"
+    ]
+    for did in waiting_on if waiting else []:  # the prompt: approve the first still pending
+        decision = get(ctx.conn, ctx.store_id, UUID(did))
+        if decision.status is DecisionStatus.PROPOSED:
+            _, buttons = _recommended(ctx, decision)
+            return Item(text=text, decision_id=did, buttons=buttons)
+    return Item(text=text)
+
+
+def goals(ctx: Context) -> Section:
+    """Goal progress (SPEC 17.5): each planned goal's latest weekly tracking."""
+    items = [
+        item
+        for goal in goal_service.active_goals(ctx.conn, ctx.store_id)
+        if (item := goal_item(ctx, goal)) is not None
+    ]
     return Section(key="goals", title="Goals", items=tuple(items))
 
 
