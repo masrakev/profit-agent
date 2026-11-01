@@ -54,6 +54,15 @@ class Settings(BaseSettings):
     email_smtp_password: SecretStr | None = None
     email_smtp_timeout_s: float = 10.0
     email_from: str = "Profit Agent <briefings@profit-agent.localhost>"
+    # WhatsApp Cloud API (ADR 0027). Without the token and phone number id, WhatsApp deliveries
+    # are skipped and the webhook answers nothing; the app secret checks webhook signatures.
+    whatsapp_access_token: SecretStr | None = None
+    whatsapp_phone_number_id: str | None = None
+    whatsapp_app_secret: SecretStr | None = None
+    whatsapp_verify_token: SecretStr | None = None
+    whatsapp_test_recipient: str | None = None  # the live smoke script's number
+    whatsapp_api_version: str = "v25.0"
+    whatsapp_template_language: str = "en"
     # Links in messages: the web platform (evidence, decisions, the approval confirmation page).
     app_base_url: str = "http://localhost:3000"
     # Session cookies are Secure (HTTPS only); turn off only for plain-HTTP local development.
