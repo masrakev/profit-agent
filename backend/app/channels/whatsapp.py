@@ -12,7 +12,8 @@ access token (Graph API reference and guides, checked on 2026-11-01):
   owner last wrote: `{"type": "template", "template": {"name", "language": {"code"},
   "components": [{"type": "body", "parameters": [{"type": "text", "text"}]}, {"type":
   "button", "sub_type": "quick_reply", "index": "0", "parameters": [{"type": "payload",
-  "payload"}]}]}}`. Template parameters hold no line break, tab or run of spaces.
+  "payload"}]}]}}`. Template parameters hold no line break, tab or run of spaces; an
+  authentication template's copy-code button takes the code as a `url` button parameter.
 
 Media (a voice note): `GET /{version}/{media_id}` returns a URL valid five minutes, which is
 then fetched with the same token. Errors are `{"error": {"message", "type", "code",
@@ -63,6 +64,7 @@ class WhatsAppMessage:
     footer: str | None = None
     template: str | None = None
     params: tuple[str, ...] = ()
+    copy_code: str | None = None  # an authentication template's one-time code button
 
     def __post_init__(self) -> None:
         if len(self.buttons) > MAX_BUTTONS:
@@ -121,6 +123,15 @@ def payload(to: str, message: WhatsAppMessage, *, session: bool, language: str) 
             }
             for i, b in enumerate(message.buttons)
         ]
+        if message.copy_code is not None:
+            components.append(
+                {
+                    "type": "button",
+                    "sub_type": "url",
+                    "index": "0",
+                    "parameters": [{"type": "text", "text": message.copy_code}],
+                }
+            )
         return {
             **base,
             "type": "template",

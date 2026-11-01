@@ -131,6 +131,9 @@ class StoreSettings(_Frozen):
     notification_email: str | None = Field(
         default=None, max_length=254, pattern=r"^[^@\s<>\"']+@[^@\s<>\"']+\.[^@\s<>\"']+$"
     )
+    # The owner's WhatsApp number (E.164). It acts only once verified: a code sent to it on
+    # WhatsApp, typed on the web (app.whatsapp.numbers); changing it starts over.
+    whatsapp_number: str | None = Field(default=None, pattern=r"^\+[1-9][0-9]{6,14}$")
 
     @model_validator(mode="after")
     def _complete(self) -> Self:

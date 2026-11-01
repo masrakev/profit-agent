@@ -265,6 +265,7 @@ store_settings = Table(
     Column("language", Text, nullable=False),
     _ts("updated_at"),
     Column("notification_email", Text, nullable=True),
+    Column("whatsapp_number", Text, nullable=True),
 )
 
 incidents = Table(
@@ -616,4 +617,21 @@ voice_questions = Table(
     Column("question_type", Text, nullable=True),
     Column("status", Text, nullable=True),
     _ts("created_at"),
+)
+
+whatsapp_numbers = Table(
+    "whatsapp_numbers",
+    metadata,
+    Column("store_id", Uuid, primary_key=True),
+    Column("phone", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("code_hash", LargeBinary, nullable=True),
+    Column("code_expires_at", DateTime(timezone=True), nullable=True),
+    Column("code_attempts", Integer, nullable=False),
+    Column("codes_sent", Integer, nullable=False),
+    Column("last_code_at", DateTime(timezone=True), nullable=True),
+    Column("verified_at", DateTime(timezone=True), nullable=True),
+    Column("last_inbound_at", DateTime(timezone=True), nullable=True),
+    _ts("created_at"),
+    _ts("updated_at"),
 )

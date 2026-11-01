@@ -51,6 +51,10 @@ ADR 0020.
 | `invalid_goal` | 422 | A goal's metric, target or deadline cannot be taken (the deadline within six months) |
 | `not_confirmed` | 409 | The goal is a draft: confirm the restated goal first |
 | `conflict`, `no_data` | 409 | The plan is not the one to accept (already accepted or superseded); the store has no data to forecast |
+| `no_number`, `already_verified`, `number_taken` | 409 | WhatsApp: no number in the settings; already verified; verified for another store |
+| `invalid_code`, `expired_code`, `too_many_attempts` | 422 | WhatsApp: the code does not match, has expired, or was tried five times |
+| `too_many_codes` | 429 | WhatsApp: three codes an hour at most |
+| `whatsapp_unavailable`, `whatsapp_failed` | 503 | WhatsApp is not configured (credentials, signing secret), or the code could not be sent |
 | `rate_limited` | 429 | Too many requests: retry after `Retry-After` seconds |
 | `not_ready` | 503 | The database does not answer (readiness) |
 | `internal_error` | 500 | Unexpected: quote the `request_id` |
@@ -91,7 +95,10 @@ ADR 0020.
 | POST | `/api/v1/stores/{store_id}/goals/{goal_id}/plans/{plan_id}/accept` | Accept it: its steps due today become decisions to approve |
 | GET | `/api/v1/stores/{store_id}/goals/{goal_id}/progress` | Weekly tracking and monthly re-forecasts |
 | POST | `/api/v1/stores/{store_id}/goals/{goal_id}/revise` | A new target or deadline: confirmed again, plans superseded |
-| GET, PUT | `/api/v1/stores/{store_id}/settings` | The store's settings (every change audited) |
+| GET, PUT | `/api/v1/stores/{store_id}/settings` | The store's settings (every change audited); `whatsapp_number` (E.164) acts once verified |
+| GET | `/api/v1/stores/{store_id}/whatsapp` | The WhatsApp number, whether it is verified, whether its 24-hour window is open |
+| POST | `/api/v1/stores/{store_id}/whatsapp/verification` | Send a six-digit code to it on WhatsApp (202; three an hour) |
+| POST | `/api/v1/stores/{store_id}/whatsapp/verification/confirm` | Type the code (`code`): the number is verified |
 | GET, PUT | `/api/v1/stores/{store_id}/kill-switch` | Read or set the store's kill switch |
 | GET | `/api/v1/stores/{store_id}/decisions` | Decisions, newest first |
 | GET | `/api/v1/stores/{store_id}/decisions/{decision_id}` | A decision and its options |

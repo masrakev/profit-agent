@@ -128,6 +128,15 @@ def test_template_outside_the_window() -> None:
         "parameters": [{"type": "payload", "payload": "d.token"}],
     }
     assert options["index"] == "1"
+    code = WhatsAppMessage(
+        text="Code 123456", template="verification_code", params=("123456",), copy_code="123456"
+    )
+    assert payload(TO, code, session=False, language="en")["template"]["components"][1] == {
+        "type": "button",
+        "sub_type": "url",
+        "index": "0",
+        "parameters": [{"type": "text", "text": "123456"}],
+    }
     with pytest.raises(WhatsAppError, match="no template"):
         payload(TO, WhatsAppMessage(text="x"), session=False, language="en")
 

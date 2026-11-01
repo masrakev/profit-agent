@@ -1,4 +1,5 @@
-"""Load and save store settings. Every change is recorded in the audit log."""
+"""Load and save store settings. Every change is recorded in the audit log; a new WhatsApp
+number starts its verification over (app.whatsapp.numbers)."""
 
 from typing import Any
 from uuid import UUID
@@ -20,6 +21,7 @@ from app.settings.models import (
     StoreSettings,
     WeeklyReport,
 )
+from app.whatsapp.numbers import sync_number
 
 
 def _row(settings: StoreSettings) -> dict[str, Any]:
@@ -50,6 +52,7 @@ def _row(settings: StoreSettings) -> dict[str, Any]:
         ),
         "language": settings.language,
         "notification_email": settings.notification_email,
+        "whatsapp_number": settings.whatsapp_number,
     }
 
 
@@ -87,6 +90,7 @@ def _from_row(row: Any) -> StoreSettings:
         ),
         language=row.language,
         notification_email=row.notification_email,
+        whatsapp_number=row.whatsapp_number,
     )
 
 
@@ -127,4 +131,5 @@ class StoreSettingsRepository:
             action="settings.saved",
             payload=settings.model_dump(mode="json"),
         )
+        sync_number(self.conn, settings.store_id, settings.whatsapp_number)
         return settings
