@@ -1,0 +1,61 @@
+{
+  "key": "4b1719ada8f966af672d2e0134c210091077b7449f1552a5c5e57367ed5675c7",
+  "note": "",
+  "request": {
+    "body": {
+      "audio": {
+        "bytes": 96044,
+        "sha256": "d303811b8c84619667cd0501342f84ec6cbe69f7aa3856dcf52fabda374c92b8",
+        "type": "audio/wav"
+      },
+      "request": {
+        "audioEncoding": "WAV",
+        "keywords": [
+          "Campaign 1",
+          "Campaign 2",
+          "Campaign 3",
+          "Campaign 4",
+          "Campaign 5",
+          "Classic Kettle 9",
+          "Classic Mug 1",
+          "Classic Planter 17",
+          "Compact Scarf 6",
+          "Compact Tote 14",
+          "Deluxe Journal 7",
+          "Deluxe Wallet 15",
+          "Eco Bottle 8",
+          "Eco Mug 16",
+          "Everyday Candle 12",
+          "Everyday Lamp 4",
+          "Everyday Pillow 20",
+          "Organic Apron 18",
+          "Organic Notebook 10",
+          "Organic Planter 2",
+          "Premium Apron 3",
+          "Premium Backpack 11",
+          "Premium Lamp 19",
+          "Travel Blanket 13",
+          "Travel Pillow 5",
+          "Travel Scarf 21"
+        ],
+        "mode": "PUSH_TO_TALK",
+        "model": "muse-voice-transcribe-1.0"
+      }
+    },
+    "method": "POST",
+    "path": "/v1/asr/transcribe"
+  },
+  "response": {
+    "body": {
+      "audioDurationMs": 3040,
+      "sessionId": "079047704bcc489784e87222f2b7758d",
+      "transcript": "",
+      "turns": []
+    },
+    "headers": {
+      "content-type": "application/json"
+    },
+    "status": 200
+  },
+  "synthetic": false
+}

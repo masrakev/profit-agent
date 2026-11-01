@@ -1,0 +1,61 @@
+{
+  "key": "1d29fc18b662518aeb773bd2094f95c5cd8a0bf0292f330c00fafe87d19f6783",
+  "note": "",
+  "request": {
+    "body": {
+      "audio": {
+        "bytes": 322444,
+        "sha256": "cbeb6d6b4152253ad57a247852cb27ca664b5dc86f339ab8a101c33d276197bb",
+        "type": "audio/wav"
+      },
+      "request": {
+        "audioEncoding": "WAV",
+        "keywords": [
+          "Campaign 1",
+          "Campaign 2",
+          "Campaign 3",
+          "Campaign 4",
+          "Campaign 5",
+          "Classic Kettle 9",
+          "Classic Mug 1",
+          "Classic Planter 17",
+          "Compact Scarf 6",
+          "Compact Tote 14",
+          "Deluxe Journal 7",
+          "Deluxe Wallet 15",
+          "Eco Bottle 8",
+          "Eco Mug 16",
+          "Everyday Candle 12",
+          "Everyday Lamp 4",
+          "Everyday Pillow 20",
+          "Organic Apron 18",
+          "Organic Notebook 10",
+          "Organic Planter 2",
+          "Premium Apron 3",
+          "Premium Backpack 11",
+          "Premium Lamp 19",
+          "Travel Blanket 13",
+          "Travel Pillow 5",
+          "Travel Scarf 21"
+        ],
+        "mode": "PUSH_TO_TALK",
+        "model": "muse-voice-transcribe-1.0"
+      }
+    },
+    "method": "POST",
+    "path": "/v1/asr/transcribe"
+  },
+  "response": {
+    "body": {
+      "audioDurationMs": 10080,
+      "sessionId": "03ca6afeaa974796a030bc564d316694",
+      "transcript": "hello i would like to know what my net profit was last week and which of my ad campaigns cost me the most compared with the sales it brought brought back",
+      "turns": []
+    },
+    "headers": {
+      "content-type": "application/json"
+    },
+    "status": 200
+  },
+  "synthetic": false
+}

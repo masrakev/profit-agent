@@ -22,6 +22,8 @@ from app.facts.model import Fact, FactKind
 from app.verifier import entity_references, fact_references, verify
 
 GOLDEN_DIR = Path(__file__).resolve().parent
+# Committed clips (scripts/voice_clips.py): a question with `voice` is asked aloud.
+VOICE_DIR = GOLDEN_DIR.parents[1] / "backend" / "tests" / "fixtures" / "voice"
 PENDING_TYPES: frozenset[QuestionType] = frozenset()
 TEXT_FIELDS = ("answer", "reasoning", "uncertainty", "recommendation", "would_change_my_mind")
 EXACT_WORDS = re.compile(r"(?i)\b(?:exactly|precisely|exact)\b")
@@ -61,6 +63,9 @@ class Question(BaseModel):
     must_include_fields: list[str]
     forbidden: list[str]
     goal: GoalExpectation | None = None
+    # A clip in VOICE_DIR (without `.wav`): the question is asked aloud, transcribed by Muse
+    # Voice Transcribe, and the transcript asked; `question` is what the clip says.
+    voice: str | None = None
 
 
 @dataclass(frozen=True)

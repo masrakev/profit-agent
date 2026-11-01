@@ -22,6 +22,9 @@
 #                        verdict; range_only: past a quarter, a range only, flagged low
 #                        evidence; alternatives: the reachable targets, cited; lowers_profit:
 #                        code's warning that a revenue plan lowers net profit
+#   voice                a committed clip (backend/tests/fixtures/voice/<name>.wav): the question
+#                        is asked aloud and its transcript goes through Ask; `question` is what
+#                        the clip says
 
 version: 1
 
@@ -337,3 +340,16 @@ questions:
       target: 900000
       last_day: 2027-03-31
       range_only: true
+
+  # --- Voice (Task 8 A): q31 asked aloud, the same checks as typed ------------
+  - id: q37
+    scenario: healthy-a
+    type: goal
+    question: "I want to make 150,000 in net profit by the end of November. Can I?"
+    voice: goal_en
+    goal:
+      then: feasibility
+      metric: net_profit
+      target: 150000
+      last_day: 2026-11-30
+      verdict: [likely]

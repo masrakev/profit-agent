@@ -4,6 +4,9 @@
     uv run python -m bench.golden.runner --routing production # realistic cost
     uv run python -m bench.golden.runner --only q01 q06
 
+A question with a `voice` clip is asked aloud: the clip is transcribed by Muse Voice Transcribe
+(in the same mode) and its transcript asked.
+
 Each needed golden scenario is generated and loaded once into a dedicated database
 (`profit_golden`), run through detection, then every non-pending question is asked through Ask.
 Writes bench/reports/golden-<timestamp>.json and golden-latest.md.
@@ -25,8 +28,9 @@ from sqlalchemy import Engine, select, text
 
 from app.agent.ask import AskResult, ask, explain_goal
 from app.agent.llm.cassette import LLMMode
-from app.agent.llm.factory import build_provider
+from app.agent.llm.factory import build_provider, build_transcriber
 from app.agent.llm.provider import LLMProvider
+from app.agent.llm.transcribe import Transcriber
 from app.agent.stages import Routing
 from app.config import get_settings
 from app.db import make_engine, tenant_transaction
@@ -35,8 +39,10 @@ from app.domain.schema import investigations
 from app.facts.repository import get_facts
 from app.goals import service as goals
 from app.observability import configure_logging
+from app.voice.service import transcribe_question
 from bench.generator.load import load
 from bench.golden.checks import (
+    VOICE_DIR,
     CheckResult,
     GoalDecided,
     GoldenSet,
@@ -99,12 +105,20 @@ def run_question(
     provider: LLMProvider,
     routing: Routing,
     run_id: str,
+    transcriber: Transcriber | None = None,
 ) -> dict[str, Any]:
     decided: GoalDecided | None = None
+    heard: str | None = None
     try:
-        result: AskResult = ask(
-            engine, store_id, _question_text(q, names), provider, routing=routing, run_id=run_id
-        )
+        asked = _question_text(q, names)
+        if q.voice is not None:
+            if transcriber is None:
+                raise ValueError(f"{q.id} is asked aloud: it needs a transcriber")
+            audio = (VOICE_DIR / f"{q.voice}.wav").read_bytes()
+            asked = heard = transcribe_question(
+                engine, store_id, audio, transcriber, run_id=run_id
+            ).transcript
+        result: AskResult = ask(engine, store_id, asked, provider, routing=routing, run_id=run_id)
         usage = result.usage + result.classification_usage
         if q.goal is not None:
             first = result
@@ -137,6 +151,7 @@ def run_question(
         "passed": all(c.passed for c in checks),
         "failed_checks": [f"{c.name} ({c.detail})" for c in checks if not c.passed],
         "status": result.status,
+        **({"heard": heard} if heard is not None else {}),
         "classified_as": result.question_type.value if result.question_type else None,
         "answer": result.answer.model_dump(mode="json"),
         "usage": usage.model_dump(mode="json"),
@@ -312,6 +327,8 @@ def main(argv: list[str] | None = None) -> int:
     # Decision scenarios are the same stores as their bases: a database of their own.
     decisions_engine = make_engine(prepare_database(GOLDEN_DECISIONS_DB))
     provider = build_provider(get_settings(), mode=LLMMode(args.mode))
+    voiced = any(q.voice for q in questions)
+    transcriber = build_transcriber(get_settings(), mode=LLMMode(args.mode)) if voiced else None
     manifests = {m.scenario_id: m for m in load_suite("golden")}
     rows: list[dict[str, Any]] = []
     stores: dict[str, tuple[Engine, UUID, dict[str, str], dict[str, str]]] = {}
@@ -345,6 +362,7 @@ def main(argv: list[str] | None = None) -> int:
                 provider,
                 routing,
                 run_id,
+                transcriber,
             )
             for q in todo
         ]

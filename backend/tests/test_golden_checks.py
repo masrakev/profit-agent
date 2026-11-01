@@ -193,7 +193,7 @@ def test_forbidden_behaviours(check: str, bad: dict[str, object], good: dict[str
 
 def test_the_golden_set_loads_with_pending_questions() -> None:
     golden = load_golden()
-    assert len(golden.questions) == 36
+    assert len(golden.questions) == 37
     pending = {q.id for q in golden.questions if golden.pending_reason(q)}
     assert pending == set()  # q25-q26 run on their decision scenarios (bench/golden/decisions.py)
     q13 = next(q for q in golden.questions if q.id == "q13")

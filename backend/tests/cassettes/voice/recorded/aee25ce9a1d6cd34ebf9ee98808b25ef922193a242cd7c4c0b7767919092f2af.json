@@ -1,0 +1,61 @@
+{
+  "key": "aee25ce9a1d6cd34ebf9ee98808b25ef922193a242cd7c4c0b7767919092f2af",
+  "note": "",
+  "request": {
+    "body": {
+      "audio": {
+        "bytes": 218764,
+        "sha256": "871202b5cea0271a145de25052959e96915acdfa294b8fb5428f4798b28cc0e4",
+        "type": "audio/wav"
+      },
+      "request": {
+        "audioEncoding": "WAV",
+        "keywords": [
+          "Campaign 1",
+          "Campaign 2",
+          "Campaign 3",
+          "Campaign 4",
+          "Campaign 5",
+          "Classic Kettle 9",
+          "Classic Mug 1",
+          "Classic Planter 17",
+          "Compact Scarf 6",
+          "Compact Tote 14",
+          "Deluxe Journal 7",
+          "Deluxe Wallet 15",
+          "Eco Bottle 8",
+          "Eco Mug 16",
+          "Everyday Candle 12",
+          "Everyday Lamp 4",
+          "Everyday Pillow 20",
+          "Organic Apron 18",
+          "Organic Notebook 10",
+          "Organic Planter 2",
+          "Premium Apron 3",
+          "Premium Backpack 11",
+          "Premium Lamp 19",
+          "Travel Blanket 13",
+          "Travel Pillow 5",
+          "Travel Scarf 21"
+        ],
+        "mode": "PUSH_TO_TALK",
+        "model": "muse-voice-transcribe-1.0"
+      }
+    },
+    "method": "POST",
+    "path": "/v1/asr/transcribe"
+  },
+  "response": {
+    "body": {
+      "audioDurationMs": 6880,
+      "sessionId": "0cbeb5d8f4dd49c0be7e0d05a5c78ea2",
+      "transcript": "Quel a été mon bénéfice net la semaine dernière et quelle campagne m'a coûté le plus cher?",
+      "turns": []
+    },
+    "headers": {
+      "content-type": "application/json"
+    },
+    "status": 200
+  },
+  "synthetic": false
+}

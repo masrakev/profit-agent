@@ -213,6 +213,10 @@ class MetaVoiceTranscriber:
         self._clock = clock
         self._log = get_logger(__name__)
 
+    def close(self) -> None:
+        """Release the HTTP connections."""
+        self._client.close()
+
     def transcribe(self, request: TranscriptionRequest) -> Transcription:
         with self._tracer.start_as_current_span("voice.transcribe") as span:
             span.set_attributes(

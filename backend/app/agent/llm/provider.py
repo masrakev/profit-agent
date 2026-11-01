@@ -103,6 +103,10 @@ class MetaResponsesProvider:
         self._clock = clock
         self._log = get_logger(__name__)
 
+    def close(self) -> None:
+        """Release the HTTP connections."""
+        self._client.close()
+
     def generate(self, request: LLMRequest) -> LLMResult:
         spec = MODELS[request.model]
         with self._tracer.start_as_current_span("llm.generate") as span:
