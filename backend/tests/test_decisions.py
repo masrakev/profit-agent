@@ -29,10 +29,13 @@ from app.decisions.store import (
     list_decisions,
     propose,
     read_link,
+    shared_targets,
+    targets,
     transition,
 )
 from app.facts.engine import FactEngine
 from app.twin import fit_twin
+from app.verifier import verify
 
 pytestmark = pytest.mark.db
 SECRET = "test-approval-secret"
@@ -107,6 +110,7 @@ PATHS = {
         DecisionStatus.EXECUTED,
         DecisionStatus.MEASURED,
     ],
+    DecisionStatus.SUPERSEDED: [],  # a later decision on the same entity supersedes it
 }
 
 
@@ -117,6 +121,8 @@ def test_the_database_refuses_every_illegal_transition(
     for start in DecisionStatus:
         d = proposed(conn, golden_stockout)
         _drive(conn, d, PATHS[start])
+        if start is DecisionStatus.SUPERSEDED:
+            proposed(conn, golden_stockout)
         assert get(conn, d.store_id, d.decision_id).status is start
         for to in DecisionStatus:
             if (start, to) in TRANSITIONS:
@@ -292,3 +298,70 @@ def test_email_links_are_signed_single_use_and_expire(
     with pytest.raises(DecisionError, match="no option"):
         create_link(conn, d.store_id, d.decision_id, "missing", Verdict.APPROVED, secret=SECRET)
     assert isinstance(claims.store_id, UUID)
+
+
+def test_conflicting_pending_decisions_leave_one_standing(
+    conn: Connection, golden_stockout: dict[str, Any]
+) -> None:
+    store = golden_stockout["id"]
+    first = proposed(conn, golden_stockout)
+    second = proposed(conn, golden_stockout)  # the same campaigns, on the same data: it stands
+    lost = get(conn, store, first.decision_id)
+    assert lost.status is DecisionStatus.SUPERSEDED
+    assert lost.superseded_by == second.decision_id
+    assert lost.superseded_reason is not None
+    assert lost.superseded_reason.startswith("a later pending decision acts on {{E:campaign:")
+    assert not verify(lost.superseded_reason)
+    with pytest.raises(DecisionError, match="superseded"):
+        decide(
+            conn,
+            store,
+            lost.decision_id,
+            lost.recommended_option_id,
+            Verdict.APPROVED,
+            channel=Channel.API,
+            actor="o",
+            now=NOW,
+        )
+    # Proposed later on older data: the decision on the more recent data stands.
+    model = fit_twin(conn, store)
+    older = fit_twin(conn, store, as_of=model.as_of - timedelta(days=7))
+    stale = propose(
+        conn,
+        FactEngine(conn, store),
+        older,
+        build_options(
+            older,
+            "stockout_on_promoted",
+            f"product:{golden_stockout['product']}",
+            floor_monthly=Decimal(100),
+        ),
+        source="owner",
+        now=NOW,
+    )
+    assert stale.status is DecisionStatus.SUPERSEDED
+    assert stale.superseded_by == second.decision_id
+    assert "more recent data" in (stale.superseded_reason or "")
+    assert get(conn, store, second.decision_id).status is DecisionStatus.PROPOSED
+    pending = [d for d in list_decisions(conn, store) if d.status is DecisionStatus.PROPOSED]
+    for a, b in product(pending, pending):
+        assert a == b or not shared_targets(targets(a), targets(b))
+    audited = conn.execute(
+        text(
+            "SELECT count(*) FROM audit_log WHERE store_id = :s AND action = 'decision.superseded'"
+        ),
+        {"s": store},
+    ).scalar_one()
+    assert audited >= 2
+
+
+def test_a_superseded_decision_names_its_successor(
+    conn: Connection, golden_stockout: dict[str, Any]
+) -> None:
+    d = proposed(conn, golden_stockout)
+    with pytest.raises(IntegrityError, match="superseded_check"), conn.begin_nested():
+        transition(conn, d.store_id, d.decision_id, DecisionStatus.SUPERSEDED)
+    every = frozenset({"campaign:*"})
+    assert shared_targets(every, frozenset({"campaign:a", "product:b"})) == {"campaign:a"}
+    assert shared_targets(every, every) == {"campaign:*"}
+    assert shared_targets(frozenset({"product:b"}), frozenset({"campaign:a"})) == set()

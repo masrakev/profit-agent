@@ -27,7 +27,7 @@ from sqlalchemy import Connection, text
 
 from app.agent.contracts import ActionFamily
 from app.decisions.options import Option, OptionKind, OptionSet, Reversibility
-from app.decisions.store import DecisionStatus, propose
+from app.decisions.store import DecisionStatus, DecisionView, propose
 from app.decisions.store import get as get_decision
 from app.detection.series import load_series
 from app.domain.audit import append_audit
@@ -721,7 +721,14 @@ def progress(conn: Connection, store_id: UUID, goal_id: UUID) -> list[Progress]:
 
 
 def _adherence(conn: Connection, store_id: UUID, plan: PlanRecord, today: date) -> dict[str, Any]:
-    out: dict[str, Any] = {"due": 0, "done": 0, "pending": 0, "skipped": 0, "steps": []}
+    out: dict[str, Any] = {
+        "due": 0,
+        "done": 0,
+        "pending": 0,
+        "skipped": 0,
+        "superseded": 0,
+        "steps": [],
+    }
     for s in plan.steps:
         if s.due_date > today:
             continue
@@ -733,6 +740,8 @@ def _adherence(conn: Connection, store_id: UUID, plan: PlanRecord, today: date) 
                 state = "done"
             elif status in (DecisionStatus.REJECTED, DecisionStatus.EXPIRED):
                 state = "skipped"
+            elif status is DecisionStatus.SUPERSEDED:
+                state = "superseded"
         elif s.status in ("done", "skipped"):
             state = s.status
         out[state] += 1
@@ -924,6 +933,47 @@ def revise(
         occurred_at=now,
     )
     return get(conn, store_id, goal_id)
+
+
+def step_superseded(conn: Connection, decision: DecisionView, *, now: datetime) -> None:
+    """A goal step's decision was superseded by a decision on the same entity resting on more
+    recent data (`app.decisions.store`): the step is `superseded` and its plan proposes a
+    revision, never applied by itself."""
+    row = conn.execute(
+        text(
+            "SELECT s.step_id, s.lever, p.plan_id, p.goal_id FROM goal_steps s "
+            "JOIN goal_plans p ON p.store_id = s.store_id AND p.plan_id = s.plan_id "
+            "WHERE s.store_id = :s AND s.decision_id = :d"
+        ),
+        {"s": decision.store_id, "d": decision.decision_id},
+    ).first()
+    if row is None:
+        return
+    conn.execute(
+        text("UPDATE goal_steps SET status = 'superseded' WHERE store_id = :s AND step_id = :id"),
+        {"s": decision.store_id, "id": row.step_id},
+    )
+    goal = get(conn, decision.store_id, row.goal_id)
+    today = data_end(conn, decision.store_id)
+    plan = get_plan(conn, decision.store_id, row.plan_id)
+    _record(
+        conn,
+        goal,
+        p=row.plan_id,
+        kind="revision",
+        as_of=today,
+        day=(today - goal.as_of).days,
+        actual=None,
+        milestone=None,
+        probability=None,
+        status=None,
+        verdict=None,
+        adherence=_adherence(conn, decision.store_id, plan, today),
+        revision=True,
+        reason=f"its {row.lever.replace('_', ' ')} step was superseded: "
+        f"{decision.superseded_reason}",
+        now=now,
+    )
 
 
 def active_goals(conn: Connection, store_id: UUID) -> list[Goal]:

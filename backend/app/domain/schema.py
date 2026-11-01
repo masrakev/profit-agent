@@ -316,6 +316,8 @@ decisions = Table(
     Column("payload", JSONB, nullable=False),
     _ts("created_at"),
     _ts("updated_at"),
+    Column("superseded_by", Uuid, nullable=True),
+    Column("superseded_reason", Text, nullable=True),
 )
 
 decision_options = Table(

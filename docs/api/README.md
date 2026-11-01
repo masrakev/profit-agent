@@ -41,6 +41,7 @@ ADR 0020.
 | `invalid_cursor` | 422 | The cursor is not one this API issued |
 | `invalid_link`, `expired_link`, `used_link` | 401 or 403, 410, 409 | Sign-in links (401) or approval links (403): not valid, expired, already used |
 | `already_decided`, `expired` | 409 | A decision is decided once, before it expires |
+| `superseded` | 409 | Another pending decision on the same campaign or product, on more recent data, superseded it (`superseded_by`) |
 | `unknown_option`, `not_executable` | 404, 422 | The option is not one of the decision's, or cannot run |
 | `invalid_goal` | 422 | A goal's metric, target or deadline cannot be taken (the deadline within six months) |
 | `not_confirmed` | 409 | The goal is a draft: confirm the restated goal first |

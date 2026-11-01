@@ -322,3 +322,9 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     ADR 0023 as a known limitation.
   - The demo store (`make demo-seed`) has a 90-day goal with its plan accepted and two weeks of
     tracking.
+- **Day 11 - backend complete: conflicts, approvals and seasonality**
+  - Two pending decisions never act on the same campaign or product: the one resting on the
+    most recent data stands, the other is `superseded` (a terminal state, linked to the one
+    that stood, with the reason) and cannot be approved; a superseded goal step makes its plan
+    propose a revision. In the demo, the stockout pause supersedes the goal's budget
+    reallocation step on the same campaign. ADR 0016, amended.

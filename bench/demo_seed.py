@@ -7,12 +7,14 @@
 2. The owner sets a goal: net profit over the next 90 days, at the forecast's median (a goal
    reached about one time in two without a plan). Confirmed, planned, and the plan accepted:
    its first steps are proposed as decisions, left pending (the owner's to approve).
-3. Two past decisions on campaigns that do not promote the product, proposed by the owner,
-   approved and executed: a budget cut, then a raise a week later. Each is measured by
-   synthetic control after its 7-day window (measured, or abstained when the fit is weak).
-   After each week, the goal's weekly tracking.
+3. Two past decisions on a campaign that neither promotes the product nor is in the goal's
+   plan, proposed by the owner, approved and executed: a budget cut, then a raise a week
+   later. Each is measured by synthetic control after its 7-day window (measured, or
+   abstained when the fit is weak). After each week, the goal's weekly tracking.
 4. Fourteen days before the data end, detection raises the critical stockout alert (ads still
-   spending on a product out of stock); the alert proposes its decision, left pending.
+   spending on a product out of stock); the alert proposes its decision, left pending. It acts
+   on the campaign the goal's budget reallocation step lowers, on more recent data: that step's
+   decision is superseded, and the goal's plan proposes a revision.
 5. The alert is investigated; its step trace is kept.
 6. The daily brief, the weekly report (with the goal's progress) and the monthly review.
 7. An owner and an API token (printed once, never written to the report).
@@ -46,7 +48,8 @@ from app.causal.outcome import WINDOW_DAYS, measure
 from app.config import Settings, get_settings, repo_path
 from app.db import make_engine, tenant_transaction
 from app.decisions.options import Option, OptionKind, OptionSet, Reversibility
-from app.decisions.store import Channel, Verdict, decide, propose
+from app.decisions.store import Channel, Verdict, decide, propose, targets
+from app.decisions.store import get as get_decision
 from app.delivery.alerts import dispatch_alerts
 from app.detection.models import AlertLevel, Incident
 from app.detection.pipeline import run_pipeline
@@ -106,6 +109,8 @@ class DemoGoal:
     steps: list[str]  # the plan's levers
     decisions: list[UUID]  # its due steps, proposed: the owner's to approve
     progress: list[dict[str, Any]]  # each week's tracking
+    states: dict[str, str]  # each step decision's status once the alert's decision is proposed
+    revisions: int  # revisions the plan proposes
 
 
 @dataclass(frozen=True)
@@ -140,6 +145,13 @@ def _campaigns(engine: Engine, store: UUID, promoted: UUID) -> list[UUID]:
         )
 
 
+def _planned(engine: Engine, store: UUID, decisions: list[UUID]) -> set[UUID]:
+    """The campaigns the goal plan's pending decisions act on."""
+    with tenant_transaction(engine, store) as conn:
+        acted = {t for d in decisions for t in targets(get_decision(conn, store, d))}
+    return {UUID(t.split(":", 1)[1]) for t in acted if t.startswith("campaign:") and "*" not in t}
+
+
 def owner_option(campaign: UUID, change: Decimal) -> OptionSet:
     kind = OptionKind.REDUCE_BUDGET if change < 0 else OptionKind.INCREASE_BUDGET
     family = (
@@ -166,13 +178,26 @@ def owner_option(campaign: UUID, change: Decimal) -> OptionSet:
 
 
 def past_decision(
-    engine: Engine, store: UUID, campaign: UUID, label: str, change: Decimal, seed: int
+    engine: Engine,
+    store: UUID,
+    campaign: UUID,
+    label: str,
+    change: Decimal,
+    seed: int,
+    *,
+    when: datetime,
 ) -> Past:
-    """Proposed, approved, executed, then measured once its window has passed."""
+    """Proposed, approved and executed at `when` (its week: the policy allows one change per
+    campaign a day), then measured once its window has passed."""
     with tenant_transaction(engine, store) as conn:
         model = fit_twin(conn, store)
         d = propose(
-            conn, FactEngine(conn, store), model, owner_option(campaign, change), source="owner"
+            conn,
+            FactEngine(conn, store),
+            model,
+            owner_option(campaign, change),
+            source="owner",
+            now=when,
         )
         decide(
             conn,
@@ -182,8 +207,9 @@ def past_decision(
             Verdict.APPROVED,
             channel=Channel.API,
             actor=f"owner:{OWNER}",
+            now=when,
         )
-    Executor(engine, {"simulator": SimulatorAdapter(engine)}).run_once()
+    Executor(engine, {"simulator": SimulatorAdapter(engine)}, clock=lambda: when).run_once()
     advance(engine, store, WINDOW_DAYS)
     with tenant_transaction(engine, store) as conn:
         action_id: UUID = conn.execute(
@@ -261,10 +287,15 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
     assert promoted is not None
     store = register(engine, manifest, manifest.config.days - DAYS_BEFORE_END)
     goal_id, plan_id, levers, proposed = set_goal(engine, store)
-    others = _campaigns(engine, store, promoted)
+    planned = _planned(engine, store, proposed)
+    others = [c for c in _campaigns(engine, store, promoted) if c not in planned]
+    assert others, "no campaign outside the promoted one and the goal's plan"
     past, weeks = [], []
-    for seed, (campaign, (name, change)) in enumerate(zip(others, PAST, strict=False)):
-        past.append(past_decision(engine, store, campaign, name, change, seed))
+    now = datetime.now(UTC)
+    for seed, (name, change) in enumerate(PAST):
+        campaign = others[seed % len(others)]  # with one such campaign: cut, then raise it
+        when = now - timedelta(days=WINDOW_DAYS * (len(PAST) - seed))  # its week, in the past
+        past.append(past_decision(engine, store, campaign, name, change, seed, when=when))
         weeks.append(track_goal(engine, store, goal_id))
     detected = run_pipeline(engine, store)
     alert = next(
@@ -274,6 +305,9 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
     )
     assert alert.decision_id is not None
     incident = next(i for i in detected.incidents if i.incident_id == alert.incident_id)
+    with tenant_transaction(engine, store) as conn:
+        states = {str(d): get_decision(conn, store, d).status.value for d in proposed}
+        revisions = sum(p.kind == "revision" for p in goals.progress(conn, store, goal_id))
     investigation_id = uuid4()
     run_investigation(engine, provider, store, incident.incident_id, investigation_id, True)
     with tenant_transaction(engine, store) as conn:
@@ -293,7 +327,7 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
     return Seeded(
         store_id=store,
         manifest=manifest,
-        goal=DemoGoal(goal_id, plan_id, levers, proposed, weeks),
+        goal=DemoGoal(goal_id, plan_id, levers, proposed, weeks, states, revisions),
         incident=incident,
         decision_id=alert.decision_id,
         investigation_id=investigation_id,
@@ -323,7 +357,14 @@ def markdown(s: Seeded, started: datetime) -> str:
         f"- Goal `{s.goal.goal_id}`: net profit over the next {GOAL_DAYS} days; plan "
         f"`{s.goal.plan_id}` accepted ("
         + (", ".join(f"`{lv}`" for lv in s.goal.steps) or "no step")
-        + "); its due steps are decisions pending the owner's approval.",
+        + "); its due steps' decisions: "
+        + ", ".join(f"`{d[:8]}` {state}" for d, state in s.goal.states.items())
+        + (
+            " (superseded: the alert's decision acts on the same campaign, on more recent "
+            f"data); revisions proposed: {s.goal.revisions}."
+            if "superseded" in s.goal.states.values()
+            else "."
+        ),
         "",
         "Goal tracking:",
         "",

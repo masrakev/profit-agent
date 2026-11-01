@@ -757,14 +757,12 @@ GOAL_STATUS = {"ahead": "ahead of", "on_track": "on track with", "behind": "behi
 
 
 def goals(ctx: Context) -> Section:
-    """Goal progress (SPEC 17.5): each planned goal's latest weekly tracking."""
+    """Goal progress (SPEC 17.5): each planned goal's latest weekly tracking, and the
+    revisions proposed since (a step superseded by a decision on more recent data)."""
     items = []
     for goal in goal_service.active_goals(ctx.conn, ctx.store_id):
-        weekly = [
-            p
-            for p in goal_service.progress(ctx.conn, ctx.store_id, goal.goal_id)
-            if p.kind == "weekly"
-        ]
+        rows = goal_service.progress(ctx.conn, ctx.store_id, goal.goal_id)
+        weekly = [p for p in rows if p.kind == "weekly"]
         target, actual = goal.target_fact_id, weekly[-1].actual_fact_id if weekly else None
         if target is None or actual is None:
             continue
@@ -788,8 +786,9 @@ def goals(ctx: Context) -> Section:
                 f"{ctx.cited.ref(facts[last.probability_fact_id])} ({last.verdict})"
             )
         text += "."
-        if last.revision_proposed:
-            text += f" A revision of the plan is proposed: {last.reason}."
+        proposed = [p.reason for p in rows if p.revision_proposed and p.as_of >= last.as_of]
+        if proposed:
+            text += f" A revision of the plan is proposed: {'; '.join(r for r in proposed if r)}."
         items.append(Item(text=text))
     return Section(key="goals", title="Goals", items=tuple(items))
 

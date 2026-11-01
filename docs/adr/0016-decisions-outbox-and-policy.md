@@ -1,6 +1,6 @@
 # ADR 0016: Decisions, approvals, the outbox and the policy engine
 
-- Status: accepted
+- Status: accepted, amended 2026-11-01 (conflicting pending decisions)
 - Date: 2026-10-30
 
 ## Context
@@ -18,7 +18,7 @@ the database: an insert starts at `proposed`; a trigger refuses every update tha
 
 | From | To |
 | --- | --- |
-| proposed | approved, rejected, expired |
+| proposed | approved, rejected, expired, superseded |
 | approved | executing |
 | executing | executed, failed |
 | executed | measured |
@@ -62,6 +62,18 @@ no rollback, a promotion to the next autonomy level is *proposed*; nothing is ch
 **Cross-tenant work.** The worker finds stores with ready outbox rows through one
 `SECURITY DEFINER` function returning store ids only, then claims rows inside each store's own
 tenant transaction, under row-level security.
+
+**Conflicting pending decisions** (amended 2026-11-01, migration 0015). An owner never sees
+two pending decisions acting on the same campaign or product: a goal step raising a campaign's
+budget and an incident pausing it would ask for contradictory approvals. When a decision is
+proposed, every other pending decision acting on an entity any of its options acts on (its own
+entity, and each action's campaign or product; a store-wide budget change acts on every
+campaign) is compared with it. The one resting on the most recent evidence (the last day of its
+data) stands, at equal evidence the later proposal; the other becomes `superseded`, a terminal
+state reached from `proposed` only, linked to the decision that stood (`superseded_by`) with the
+reason, both required by a constraint. Approving a superseded decision is refused
+(`superseded`, 409), by any channel; its message, if not sent yet, is never sent. A superseded
+goal step makes its plan propose a revision (ADR 0024), never applied by itself.
 
 ## Consequences
 

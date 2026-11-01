@@ -134,6 +134,8 @@ class DeliveryWorker:
             decision = get(conn, store_id, UUID(subject_id))
         except LookupError as exc:
             raise UnrenderableError(str(exc)) from exc
+        if decision.status is DecisionStatus.SUPERSEDED:  # never ask about a decision that lost
+            raise UnrenderableError(f"decision {subject_id} was superseded")
         document = decision_document(notice_context(conn, store_id, now), decision)
         return render_document(document, load_inputs(conn, store_id, document), links)
 

@@ -6,6 +6,12 @@ this module is the only writer. Approving a decision creates its actions and the
 in the same transaction, so an approved decision always has work queued and nothing is queued
 without an approval.
 
+An owner never sees two pending decisions acting on the same campaign or product: when a
+decision is proposed and another pending one acts on an entity it acts on, the one resting on
+the most recent evidence (its data's last day; at equal evidence, the later proposal) stands,
+and the other is `superseded`, a terminal state, linked to the one that stood, with the reason.
+A superseded goal step makes its plan propose a revision (`app.goals.service`).
+
 Email approval links are HMAC-SHA256 signed, name one decision, option and verdict, expire after
 24 hours and work once (the link row is consumed atomically). A link whose option goes beyond
 the spending caps only returns a confirmation: approving it takes the web (API) channel.
@@ -46,6 +52,7 @@ class DecisionStatus(StrEnum):
     EXECUTED = "executed"
     FAILED = "failed"
     MEASURED = "measured"
+    SUPERSEDED = "superseded"  # another pending decision on the same entity stood
 
 
 TRANSITIONS: frozenset[tuple[DecisionStatus, DecisionStatus]] = frozenset(
@@ -57,6 +64,7 @@ TRANSITIONS: frozenset[tuple[DecisionStatus, DecisionStatus]] = frozenset(
         (DecisionStatus.EXECUTING, DecisionStatus.EXECUTED),
         (DecisionStatus.EXECUTING, DecisionStatus.FAILED),
         (DecisionStatus.EXECUTED, DecisionStatus.MEASURED),
+        (DecisionStatus.PROPOSED, DecisionStatus.SUPERSEDED),
     }
 )
 
@@ -119,6 +127,8 @@ class DecisionView(BaseModel):
     created_at: datetime
     updated_at: datetime
     options: list[OptionRow]
+    superseded_by: UUID | None = None  # the decision that stood
+    superseded_reason: str | None = None
 
     def option(self, option_id: str) -> OptionRow:
         found = next((o for o in self.options if o.option_id == option_id), None)
@@ -126,6 +136,16 @@ class DecisionView(BaseModel):
             raise DecisionError("unknown_option", f"decision has no option {option_id!r}")
         return found
 
+
+# What each action acts on, to find decisions acting on the same entity.
+ENTITY_KINDS = {
+    ActionKind.CHANGE_BUDGET: "campaign",
+    ActionKind.PAUSE_CAMPAIGN: "campaign",
+    ActionKind.CHANGE_PRICE: "product",
+    ActionKind.LAUNCH_CAMPAIGN: "product",
+    ActionKind.RESTOCK_PRODUCT: "product",
+}
+EVERY_CAMPAIGN = "campaign:*"
 
 EXECUTABLE_KINDS = {
     ActionKind.PAUSE_CAMPAIGN: "pause_campaign",
@@ -224,7 +244,15 @@ def propose(
         },
         occurred_at=now,
     )
-    if source != "incident":  # an alert's message carries the decision of its incident
+    lost = resolve_conflicts(conn, get(conn, model.store_id, decision_id), now)
+    for loser in lost:
+        if loser.source == "goal":
+            # goals build on decisions; imported here, where a goal step's decision is involved
+            from app.goals.service import step_superseded
+
+            step_superseded(conn, loser, now=now)
+    stands = all(d.decision_id != decision_id for d in lost)
+    if stands and source != "incident":  # an alert's message carries its incident's decision
         notify(
             conn,
             model.store_id,
@@ -234,6 +262,92 @@ def propose(
             now=now,
         )
     return get(conn, model.store_id, decision_id)
+
+
+def targets(decision: DecisionView) -> frozenset[str]:
+    """The campaigns and products a decision acts on (any of its options), and its own
+    entity; a store-wide budget change acts on every campaign."""
+    out = {decision.entity} if ":" in decision.entity else set()
+    for option in decision.options:
+        for action in option.actions:
+            kind = ActionKind(action["kind"])
+            if kind is ActionKind.CHANGE_ALL_AD_SPEND:
+                out.add(EVERY_CAMPAIGN)
+            elif action.get("entity") and kind in ENTITY_KINDS:
+                out.add(f"{ENTITY_KINDS[kind]}:{action['entity']}")
+    return frozenset(out)
+
+
+def shared_targets(a: frozenset[str], b: frozenset[str]) -> set[str]:
+    shared = set(a & b) - {EVERY_CAMPAIGN}
+    for one, other in ((a, b), (b, a)):
+        if EVERY_CAMPAIGN in one:
+            shared |= {t for t in other if t.startswith("campaign:")} or {EVERY_CAMPAIGN}
+    return shared
+
+
+def _reason(shared: set[str], winner: DecisionView, loser: DecisionView) -> str:
+    on = ", ".join(
+        "every campaign" if t == EVERY_CAMPAIGN else "{{E:" + t + "}}" for t in sorted(shared)
+    )
+    if winner.as_of > loser.as_of:
+        return (
+            f"another pending decision acts on {on} and rests on more recent data "
+            f"(through {winner.as_of}, against {loser.as_of})"
+        )
+    return f"a later pending decision acts on {on}, on data as recent (through {winner.as_of})"
+
+
+def resolve_conflicts(
+    conn: Connection, decision: DecisionView, now: datetime
+) -> list[DecisionView]:
+    """Supersede what conflicts with a newly proposed decision: the other pending decisions
+    acting on an entity it acts on, unless one of them rests on more recent data, in which case
+    the new decision is the one superseded. Returns the decisions superseded."""
+    mine = targets(decision)
+    rivals = []
+    for other_id in conn.execute(
+        text(
+            "SELECT decision_id FROM decisions WHERE store_id = :s AND status = 'proposed' "
+            "AND decision_id <> :d ORDER BY created_at FOR UPDATE"
+        ),
+        {"s": decision.store_id, "d": decision.decision_id},
+    ).scalars():
+        other = get(conn, decision.store_id, other_id)
+        shared = shared_targets(mine, targets(other))
+        if shared:
+            rivals.append((other, shared))
+    newer = [(o, shared) for o, shared in rivals if o.as_of > decision.as_of]
+    if newer:
+        winner, shared = max(newer, key=lambda r: (r[0].as_of, r[0].created_at))
+        return [supersede(conn, decision, winner, _reason(shared, winner, decision), now)]
+    return [supersede(conn, o, decision, _reason(shared, decision, o), now) for o, shared in rivals]
+
+
+def supersede(
+    conn: Connection, loser: DecisionView, winner: DecisionView, reason: str, now: datetime
+) -> DecisionView:
+    """`loser` leaves the pending decisions for good, linked to `winner`."""
+    conn.execute(
+        text(
+            "UPDATE decisions SET status = 'superseded', superseded_by = :w, "
+            "superseded_reason = :r WHERE store_id = :s AND decision_id = :d"
+        ),
+        {"w": winner.decision_id, "r": reason, "s": loser.store_id, "d": loser.decision_id},
+    )
+    append_audit(
+        conn,
+        loser.store_id,
+        actor="system:decisions",
+        action="decision.superseded",
+        payload={
+            "decision_id": str(loser.decision_id),
+            "superseded_by": str(winner.decision_id),
+            "reason": reason,
+        },
+        occurred_at=now,
+    )
+    return get(conn, loser.store_id, loser.decision_id)
 
 
 def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = False) -> DecisionView:
@@ -290,6 +404,8 @@ def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = Fal
         created_at=row.created_at,
         updated_at=row.updated_at,
         options=options,
+        superseded_by=row.superseded_by,
+        superseded_reason=row.superseded_reason,
     )
 
 
@@ -376,6 +492,12 @@ def decide(
     decision = get(conn, store_id, decision_id, lock=True)
     if _expire_if_due(conn, decision, now):
         raise DecisionError("expired", "the decision expired before it was decided")
+    if decision.status is DecisionStatus.SUPERSEDED:
+        raise DecisionError(
+            "superseded",
+            f"the decision was superseded by {decision.superseded_by}: "
+            f"{decision.superseded_reason}",
+        )
     if decision.status is not DecisionStatus.PROPOSED:
         raise DecisionError("already_decided", f"the decision is already {decision.status.value}")
     option = decision.option(option_id) if option_id is not None else None

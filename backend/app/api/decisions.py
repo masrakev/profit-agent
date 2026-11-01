@@ -51,6 +51,7 @@ router = APIRouter(prefix="/api/v1")
 STATUS = {
     "already_decided": 409,
     "expired": 409,
+    "superseded": 409,
     "not_executable": 422,
     "unknown_option": 404,
     "invalid_link": 403,

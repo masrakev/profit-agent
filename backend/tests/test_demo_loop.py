@@ -20,7 +20,8 @@ import bench.demo_seed
 from app.api.deps import get_engine
 from app.api.main import app
 from app.config import get_settings
-from app.db import make_engine
+from app.db import make_engine, tenant_transaction
+from app.decisions.store import DecisionStatus, list_decisions, shared_targets, targets
 from bench.demo import markdown, run
 from bench.demo_seed import demo_provider, seed
 from bench.demo_seed import markdown as seed_markdown
@@ -62,6 +63,7 @@ def demo(database_urls: tuple[str, str]) -> dict[str, Any]:
             "journal": "/journal?limit=200",
             "goal": f"/goals/{seeded.goal.goal_id}",
             "goal_progress": f"/goals/{seeded.goal.goal_id}/progress",
+            "weekly": f"/briefings/{seeded.briefings['weekly']}",
         },
     )
     result = run(engine, settings, seeded)
@@ -76,7 +78,17 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     assert statuses.pop(str(seeded.decision_id)) == "proposed"  # the owner's to approve
     goal = seeded.goal  # the plan's due steps, proposed: the owner's to approve too
     assert goal.decisions
-    assert {statuses.pop(str(d)) for d in goal.decisions} == {"proposed"}
+    # the budget reallocation step lowers the campaign the alert's decision pauses, on older
+    # data: superseded, linked to the alert's decision; the other step stays the owner's
+    assert sorted(statuses.pop(str(d)) for d in goal.decisions) == ["proposed", "superseded"]
+    lost = next(
+        d
+        for d in before["decisions"]["items"]
+        if d["decision_id"] in map(str, goal.decisions) and d["status"] == "superseded"
+    )
+    assert lost["superseded_by"] == str(seeded.decision_id)
+    assert lost["options"][0]["option_id"].startswith("goal:reallocate_budget")
+    assert "more recent data" in lost["superseded_reason"]
     assert set(statuses) == {str(p.decision_id) for p in seeded.past}
     assert all(p.outcome["status"] in ("measured", "abstained") for p in seeded.past)
     assert set(statuses.values()) <= {"measured", "executed"}
@@ -94,9 +106,21 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     assert seeded.counts["briefings"] == 3
     assert before["goal"]["status"] == "planned"
     assert [w["day"] for w in goal.progress] == [7, 14]  # a week, then another
-    assert [p["day"] for p in before["goal_progress"]] == [7, 14]
+    progress = [(p["day"], p["kind"]) for p in before["goal_progress"]]
+    assert progress == [(7, "weekly"), (14, "revision"), (14, "weekly")]
+    revision = before["goal_progress"][1]
+    assert revision["revision_proposed"]
+    assert revision["reason"].startswith("its reallocate budget step was superseded")
     assert all(w["adherence"]["pending"] == len(goal.decisions) for w in goal.progress)
-    assert (seeded.counts["goals"], seeded.counts["goal_progress"]) == (1, 2)
+    assert (seeded.counts["goals"], seeded.counts["goal_progress"]) == (1, 3)
+    [section] = [s for s in before["weekly"]["sections"] if s["key"] == "goals"]
+    assert "A revision of the plan is proposed" in section["items"][0]["text"]
+    with tenant_transaction(demo["engine"], seeded.store_id) as conn:
+        pending = [
+            d for d in list_decisions(conn, seeded.store_id) if d.status is DecisionStatus.PROPOSED
+        ]
+    for a in pending:  # never two pending decisions acting on one entity
+        assert all(a == b or not shared_targets(targets(a), targets(b)) for b in pending)
     assert seeded.counts["investigation_steps"] == len(before["steps"])
     text = seed_markdown(seeded, datetime.now(UTC))
     assert "| budget -30% |" in text

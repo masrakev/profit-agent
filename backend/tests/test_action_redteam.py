@@ -271,6 +271,46 @@ def test_kill_switches(
     )
 
 
+def test_a_superseded_decision_cannot_be_approved(
+    app_engine: Engine, sim: dict[str, Any], client: TestClient
+) -> None:
+    """Two pending decisions on one campaign, a raise then a pause on data as recent: the
+    raise is superseded. Approving it, on the web or through a link issued while it was
+    pending, is refused and queues nothing; one pending decision remains on the campaign."""
+    campaign = sim["campaigns"][1]
+    raise_ = proposed(app_engine, sim["id"], campaign, "0.2", "raise")
+    token = client.post(
+        f"/api/v1/stores/{sim['id']}/decisions/{raise_.decision_id}/links",
+        json={"option_id": raise_.recommended_option_id},
+    ).json()["token"]
+    pause = proposed(app_engine, sim["id"], campaign, None, "pause")
+    web = client.post(
+        f"/api/v1/stores/{sim['id']}/decisions/{raise_.decision_id}/approve",
+        json={"option_id": raise_.recommended_option_id},
+    )
+    email = client.post(f"/api/v1/approval-links/{token}")
+    seen = client.get(f"/api/v1/stores/{sim['id']}/decisions/{raise_.decision_id}").json()
+    listed = client.get(f"/api/v1/stores/{sim['id']}/decisions").json()["items"]
+    on_campaign = [
+        d
+        for d in listed
+        if d["status"] == "proposed"
+        and any(str(campaign) in str(o["actions"]) for o in d["options"])
+    ]
+    record(
+        "approving a superseded decision",
+        web.status_code == 409
+        and web.json()["code"] == "superseded"
+        and email.status_code == 409
+        and actions(app_engine, sim["id"], raise_.decision_id) == []
+        and seen["status"] == "superseded"
+        and seen["superseded_by"] == str(pause.decision_id)
+        and [d["decision_id"] for d in on_campaign] == [str(pause.decision_id)],
+        f"web {web.status_code}, email {email.status_code}, status {seen['status']}, "
+        f"pending on the campaign {len(on_campaign)}",
+    )
+
+
 def test_targets_over_every_action(
     app_engine: Engine, sim: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:

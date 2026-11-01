@@ -913,7 +913,8 @@
           "executing",
           "executed",
           "failed",
-          "measured"
+          "measured",
+          "superseded"
         ],
         "title": "DecisionStatus",
         "type": "string"
@@ -1003,6 +1004,29 @@
             "format": "uuid",
             "title": "Store Id",
             "type": "string"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "superseded_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded Reason"
           },
           "updated_at": {
             "format": "date-time",
