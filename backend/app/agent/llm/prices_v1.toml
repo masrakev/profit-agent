@@ -1,8 +1,9 @@
-# Meta Model API token prices, USD per 1M tokens.
-# Source: https://dev.meta.ai/docs/pricing-rate-limits, checked on 2026-10-28 (the page shows no
-# "last updated" date). Reasoning tokens are billed as output tokens. Any change bumps `version`.
-version = 1
-verified_on = 2026-10-28
+# Meta Model API prices. Token models: USD per 1M tokens. Audio models: USD per hour of audio.
+# Source: https://dev.meta.ai/docs/pricing-rate-limits, checked on 2026-11-01 (the page shows no
+# "last updated" date; token prices unchanged since 2026-10-28). Reasoning tokens are billed as
+# output tokens. Any change bumps `version` (2: audio models added; the file name is kept).
+version = 2
+verified_on = 2026-11-01
 source = "https://dev.meta.ai/docs/pricing-rate-limits"
 
 [models.muse-spark-1_3]
@@ -25,3 +26,10 @@ mode = "standard"
 input = "4.00"
 cached_input = "0.20"
 output = "20.00"
+
+# Metered in whole seconds of audio processed, rounded down; streaming and file uploads cost the
+# same; failed requests and 429 responses are not billed (https://dev.meta.ai/docs/speech-to-text).
+[audio.muse-voice-transcribe-1_0]
+id = "muse-voice-transcribe-1.0"
+mode = "standard"
+per_hour = "0.18"

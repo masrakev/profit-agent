@@ -2,7 +2,9 @@
 
 A cassette is one HTTP exchange with the Meta Model API, keyed by the SHA-256 of the normalised
 request (method, path and JSON body with sorted keys; headers, including the key, are never part
-of it). Cassettes are committed under `backend/tests/cassettes/`:
+of it). A multipart upload (voice transcription) is normalised part by part: its JSON part as
+JSON, its audio as a hash, never the audio itself. Cassettes are committed under
+`backend/tests/cassettes/`:
 
 - `recorded/`: real responses written in `record` mode (synthetic benchmark data only);
 - `synthetic/`: hand-written responses in the documented format, marked `"synthetic": true`,
@@ -12,7 +14,9 @@ Modes: `live` (network), `record` (network, then write the cassette), `replay` (
 a miss raises `CassetteMissError`, so CI fails instead of calling a model).
 """
 
+import hashlib
 import json
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -35,11 +39,46 @@ class LLMMode(StrEnum):
 
 def normalized_request(request: httpx2.Request) -> dict[str, Any]:
     raw = request.read()
-    return {
-        "method": request.method,
-        "path": request.url.path,
-        "body": json.loads(raw) if raw else None,
-    }
+    content_type = request.headers.get("content-type", "")
+    if content_type.startswith("multipart/form-data"):
+        body: Any = multipart_body(raw, content_type)
+    else:
+        body = json.loads(raw) if raw else None
+    return {"method": request.method, "path": request.url.path, "body": body}
+
+
+_BOUNDARY = re.compile(r'boundary="?([^";]+)"?')
+_NAME = re.compile(r'\bname="([^"]*)"')
+
+
+def multipart_body(raw: bytes, content_type: str) -> dict[str, Any]:
+    """A multipart body by part name, without its random boundary: JSON parts parsed, any other
+    part (audio) as its SHA-256, size and type only, so a cassette never holds the audio."""
+    found = _BOUNDARY.search(content_type)
+    if found is None:
+        raise ValueError("multipart request without a boundary")
+    parts: dict[str, Any] = {}
+    for chunk in raw.split(b"--" + found.group(1).encode())[1:]:
+        if chunk.startswith(b"--"):  # the closing delimiter
+            break
+        head, _, payload = chunk.removeprefix(b"\r\n").partition(b"\r\n\r\n")
+        headers = {}
+        for line in head.decode("utf-8").split("\r\n"):
+            key, _, value = line.partition(":")
+            headers[key.strip().lower()] = value.strip()
+        payload = payload.removesuffix(b"\r\n")
+        name = _NAME.search(headers.get("content-disposition", ""))
+        kind = headers.get("content-type", "")
+        parts[name.group(1) if name else ""] = (
+            json.loads(payload)
+            if kind.startswith("application/json")
+            else {
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": len(payload),
+                "type": kind,
+            }
+        )
+    return parts
 
 
 def cassette_key(normalized: dict[str, Any]) -> str:
@@ -48,9 +87,10 @@ def cassette_key(normalized: dict[str, Any]) -> str:
 
 def _summary(normalized: dict[str, Any]) -> str:
     body = normalized.get("body") or {}
+    model = body.get("model") or (body.get("request") or {}).get("model")
     items = body.get("input") or []
     last = items[-1].get("type") if items and isinstance(items[-1], dict) else None
-    return f"{normalized['method']} {normalized['path']} model={body.get('model')} last={last}"
+    return f"{normalized['method']} {normalized['path']} model={model} last={last}"
 
 
 @dataclass(frozen=True)

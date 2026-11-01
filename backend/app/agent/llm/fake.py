@@ -1,7 +1,8 @@
 """A deterministic fake of the Meta Model API for tests and dry runs.
 
 `FakeTransport` is an HTTP transport the real SDK client talks to: it answers each
-`POST /v1/responses` with the next scripted step and records the request bodies it received.
+`POST /v1/responses` (and `POST /v1/asr/transcribe`) with the next scripted step and records
+the request bodies it received.
 The builders produce bodies in the documented Responses API format
 (https://dev.meta.ai/docs/protocols/responses and the error-handling page), so the provider is
 exercised end to end, SDK included, without a network or a key.
@@ -16,7 +17,10 @@ from typing import Any
 
 import httpx2
 
+from app.agent.llm.cassette import normalized_request
+
 _ids = count(1)
+ENDPOINTS = ("/responses", "/asr/transcribe")
 
 
 @dataclass(frozen=True)
@@ -53,9 +57,10 @@ class FakeTransport(httpx2.BaseTransport):
         return len(self._steps)
 
     def handle_request(self, request: httpx2.Request) -> httpx2.Response:
-        if request.method != "POST" or not request.url.path.endswith("/responses"):
+        if request.method != "POST" or not request.url.path.endswith(ENDPOINTS):
             return httpx2.Response(404, request=request)
-        self.requests.append(json.loads(request.read() or b"{}"))
+        # Responses API bodies as JSON; a transcription upload by part, its audio as a hash.
+        self.requests.append(normalized_request(request)["body"] or {})
         self.headers.append({k.lower(): v for k, v in request.headers.items()})
         if not self._steps:
             raise AssertionError("FakeTransport: no scripted step left for this request")
@@ -194,4 +199,14 @@ def overloaded(retry_after: float | None = None) -> Reply:
         "Service overloaded",
         code="service_overloaded",
         retry_after=retry_after,
+    )
+
+
+def transcription(
+    text: str, duration_ms: int = 4_000, *, session_id: str = "fake-session"
+) -> Reply:
+    """A buffered `TranscribeResponse` (PUSH_TO_TALK: no turns)."""
+    return Reply(
+        200,
+        {"sessionId": session_id, "transcript": text, "audioDurationMs": duration_ms, "turns": []},
     )

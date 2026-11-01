@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # replay: committed cassettes only, never the network (the default, and the only CI mode).
     llm_mode: Literal["live", "record", "replay"] = "replay"
     llm_cassette_dir: str = "backend/tests/cassettes"
+    # Muse Voice Transcribe (ADR 0026): same key, modes, caps and spend ledger as the models.
+    voice_timeout_s: float = 60.0
     # Decisions and execution (ADRs 0016-0017).
     approval_link_secret: SecretStr | None = None  # HMAC key of email approval links
     admin_token: SecretStr | None = None  # the global kill switch endpoint

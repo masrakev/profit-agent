@@ -16,12 +16,19 @@ from app.agent.llm.errors import ContributorModeForbiddenError
 
 PRICES_FILE = Path(__file__).with_name("prices_v1.toml")
 PER_TOKENS = Decimal(1_000_000)
+SECONDS_PER_HOUR = Decimal(3600)
 
 
 class ModelId(StrEnum):
     SPARK = "muse-spark-1.3"
     SPARK_CONTRIBUTOR = "muse-spark-1.3-contributor"
     WONDER = "muse-wonder-1.0"
+
+
+class AudioModelId(StrEnum):
+    """Models priced per hour of audio, not per token (Standard mode only)."""
+
+    VOICE_TRANSCRIBE = "muse-voice-transcribe-1.0"
 
 
 class DataMode(StrEnum):
@@ -103,14 +110,28 @@ class Price:
 
 
 @dataclass(frozen=True)
+class AudioPrice:
+    """USD per hour of audio processed."""
+
+    per_hour: Decimal
+
+
+@dataclass(frozen=True)
 class PriceTable:
     version: int
     verified_on: date
     source: str
     prices: dict[ModelId, Price]
+    audio: dict[AudioModelId, AudioPrice]
 
     def price(self, model: ModelId) -> Price:
         return self.prices[model]
+
+    def audio_cost(self, model: AudioModelId, billed_seconds: int) -> Decimal:
+        """Exact USD cost of `billed_seconds` of audio (whole seconds, as metered)."""
+        if billed_seconds < 0:
+            raise ValueError("billed seconds cannot be negative")
+        return self.audio[model].per_hour * billed_seconds / SECONDS_PER_HOUR
 
     def cost(self, model: ModelId, usage: Usage) -> Decimal:
         """Exact USD cost of one call: uncached input, cached input and output (reasoning
@@ -142,7 +163,12 @@ def load_prices(path: Path = PRICES_FILE) -> PriceTable:
         prices[model] = Price(
             Decimal(entry["input"]), Decimal(entry["cached_input"]), Decimal(entry["output"])
         )
-    missing = set(ModelId) - set(prices)
+    audio: dict[AudioModelId, AudioPrice] = {}
+    for entry in raw.get("audio", {}).values():
+        if DataMode(entry["mode"]) is not DataMode.STANDARD:
+            raise ValueError(f"price table mode of {entry['id']} disagrees: audio is Standard")
+        audio[AudioModelId(entry["id"])] = AudioPrice(Decimal(entry["per_hour"]))
+    missing = sorted(set(ModelId) - set(prices)) + sorted(set(AudioModelId) - set(audio))
     if missing:
-        raise ValueError(f"price table misses {sorted(missing)}")
-    return PriceTable(int(raw["version"]), raw["verified_on"], str(raw["source"]), prices)
+        raise ValueError(f"price table misses {missing}")
+    return PriceTable(int(raw["version"]), raw["verified_on"], str(raw["source"]), prices, audio)

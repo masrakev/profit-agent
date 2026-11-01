@@ -147,7 +147,7 @@ def test_gateway_timeouts_count_against_the_circuit() -> None:
 
 def test_price_table_matches_the_published_prices() -> None:
     table = load_prices()
-    assert (table.version, table.verified_on) == (1, date(2026, 10, 28))
+    assert (table.version, table.verified_on) == (2, date(2026, 11, 1))
     expected = {
         ModelId.SPARK: ("1.25", "0.15", "4.25"),
         ModelId.SPARK_CONTRIBUTOR: ("0.10", "0.002", "0.20"),
