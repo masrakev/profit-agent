@@ -109,7 +109,7 @@ path. Each other format has a fixture made from the same clip with ffmpeg (an Og
 note, a WebM/Opus without a stated duration, a fragmented MP4/AAC); conversion is tested on its
 output, with codecs outside the whitelist, a video stream, recordings over two minutes with and
 without a stated duration, a timeout and a missing ffmpeg. Measured live (`bench/reports/voice-live.md`): a ten-second question costs 0.0005 USD to
-transcribe and about 0.037 USD end to end with Spark answering; the injected instruction was
+transcribe and 0.034 to 0.037 USD end to end with Spark answering (two recordings); the injected instruction was
 answered as out of scope and flagged, with nothing changed.
 
 ## Consequences

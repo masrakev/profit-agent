@@ -41,6 +41,7 @@ from app.goals import service as goals
 from app.observability import configure_logging
 from app.voice.service import transcribe_question
 from bench.generator.load import load
+from bench.golden import demo_goal
 from bench.golden.checks import (
     VOICE_DIR,
     CheckResult,
@@ -343,6 +344,9 @@ def main(argv: list[str] | None = None) -> int:
             if q.scenario in RECIPES:
                 where = decisions_engine
                 store_id = set_up(where, manifest)
+            elif q.scenario == demo_goal.SCENARIO:  # the stockout store, in the simulator
+                where = decisions_engine
+                store_id = demo_goal.set_up(where, manifest)
             else:
                 where = engine
                 data = manifest.generate()

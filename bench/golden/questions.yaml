@@ -353,3 +353,18 @@ questions:
       target: 150000
       last_day: 2026-11-30
       verdict: [likely]
+
+  # The demo store's goal (bench/demo_seed.py: net profit over its next 90 days at the
+  # forecast's median), asked aloud; the store's today is 2026-09-01, so the 90 days end on
+  # November 29 ("three months" would end on November 30, past the 90 days of a point verdict).
+  - id: q38
+    scenario: golden-demo-goal
+    type: goal
+    question: "I want 225,000 in net profit by November 29."
+    voice: demo_goal_en
+    goal:
+      then: feasibility
+      metric: net_profit
+      target: 225000
+      last_day: 2026-11-29
+      verdict: [possible]

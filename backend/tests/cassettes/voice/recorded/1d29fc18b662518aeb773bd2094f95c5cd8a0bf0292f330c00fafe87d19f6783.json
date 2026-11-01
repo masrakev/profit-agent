@@ -48,8 +48,8 @@
   "response": {
     "body": {
       "audioDurationMs": 10080,
-      "sessionId": "03ca6afeaa974796a030bc564d316694",
-      "transcript": "hello i would like to know what my net profit was last week and which of my ad campaigns cost me the most compared with the sales it brought brought back",
+      "sessionId": "18b3292094444b22acbebe86875e5a57",
+      "transcript": "Hello. I would like to know what know what my net profit was last week. And which of my ad campaigns cost me the most compared with the sales it brought back.",
       "turns": []
     },
     "headers": {

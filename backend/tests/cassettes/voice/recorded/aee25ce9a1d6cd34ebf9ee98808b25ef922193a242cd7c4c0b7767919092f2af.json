@@ -48,8 +48,8 @@
   "response": {
     "body": {
       "audioDurationMs": 6880,
-      "sessionId": "0cbeb5d8f4dd49c0be7e0d05a5c78ea2",
-      "transcript": "Quel a été mon bénéfice net la semaine dernière et quelle campagne m'a coûté le plus cher?",
+      "sessionId": "9dabff57249242af801e182dd0277181",
+      "transcript": "Quel a été mon bénéfice net la semaine dernière et quelle campagne m'a coûté le plus cher ?",
       "turns": []
     },
     "headers": {

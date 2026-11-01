@@ -304,3 +304,17 @@ def test_multipart_bodies_need_a_boundary() -> None:
         b'Content-Type: application/json\r\n\r\n{"a": 1}\r\n--b--\r\n'
     )
     assert multipart_body(raw, 'multipart/form-data; boundary="b"') == {"request": {"a": 1}}
+
+
+def test_closing_a_recorder_closes_the_real_connections(tmp_path: Path) -> None:
+    closed: list[bool] = []
+
+    class Live(f.FakeTransport):
+        def close(self) -> None:
+            closed.append(True)
+
+    recorder = build_transcriber(
+        settings(tmp_path), mode=LLMMode.RECORD, live_transport=Live([]), cassette_dir=tmp_path
+    )
+    recorder.close()
+    assert closed == [True]

@@ -196,6 +196,9 @@ class RecordTransport(httpx2.BaseTransport):
         self.note = note
         self.written: list[Path] = []
 
+    def close(self) -> None:
+        self.inner.close()  # the real connections
+
     def handle_request(self, request: httpx2.Request) -> httpx2.Response:
         normalized = normalized_request(request)
         response = self.inner.handle_request(request)

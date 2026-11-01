@@ -391,6 +391,12 @@ DECISION_SCENARIOS = {
     "golden-cpa_drift-with-decision": "golden-cpa_drift",
     "golden-short-history-decision": "golden-underfunded_campaign",
 }
+# The demo store (bench/demo_seed.py) when its owner sets the 90-day goal: the stockout store in
+# the simulator, set up by bench/golden/demo_goal.py (golden question q38).
+STORE_SCENARIOS = {
+    **{name: (base, "with a recorded decision") for name, base in DECISION_SCENARIOS.items()},
+    "golden-demo-goal": ("golden-stockout_on_promoted", "the demo store, 28 days before its end"),
+}
 
 
 def _golden_plan() -> list[tuple[str, str]]:
@@ -449,13 +455,13 @@ def build_golden(only: set[str] | None = None) -> list[ScenarioManifest]:
         else:
             manifests.append(_build_condition(name, kind, first_seed))
     by_id = {m.scenario_id: m for m in manifests}
-    for name, base in DECISION_SCENARIOS.items():
+    for name, (base, what) in STORE_SCENARIOS.items():
         if (only is None or name in only) and base in by_id:
             manifests.append(
                 by_id[base].model_copy(
                     update={
                         "scenario_id": name,
-                        "description": f"{by_id[base].description}; with a recorded decision",
+                        "description": f"{by_id[base].description}; {what}",
                     }
                 )
             )

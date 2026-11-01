@@ -361,5 +361,5 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     only its transcript, duration and cost (`voice_questions`, row-level security).
   - English and French clips spoken offline by a local text-to-speech engine, their real
     transcriptions recorded once and replayed in CI. Golden question q37 is q31 asked aloud and
-    passes the same checks. Live: a ten-second question costs 0.0005 USD to transcribe and about
-    0.037 USD end to end (`bench/reports/voice-live.md`). ADR 0026.
+    passes the same checks. Live: a ten-second question costs 0.0005 USD to transcribe and 0.034
+    to 0.037 USD end to end (`bench/reports/voice-live.md`). ADR 0026.

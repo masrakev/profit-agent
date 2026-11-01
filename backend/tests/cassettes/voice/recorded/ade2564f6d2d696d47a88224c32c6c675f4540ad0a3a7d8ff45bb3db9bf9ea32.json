@@ -1,0 +1,64 @@
+{
+  "key": "ade2564f6d2d696d47a88224c32c6c675f4540ad0a3a7d8ff45bb3db9bf9ea32",
+  "note": "",
+  "request": {
+    "body": {
+      "audio": {
+        "bytes": 195404,
+        "sha256": "25f195db97c969c5ae08abb289a46a18045698718ed963817cbe93f1ed51c672",
+        "type": "audio/wav"
+      },
+      "request": {
+        "audioEncoding": "WAV",
+        "keywords": [
+          "Campaign 1",
+          "Campaign 2",
+          "Campaign 3",
+          "Campaign 4",
+          "Classic Kettle 9",
+          "Classic Mug 1",
+          "Classic Notebook 25",
+          "Classic Planter 17",
+          "Compact Journal 22",
+          "Compact Scarf 6",
+          "Compact Tote 14",
+          "Deluxe Bottle 23",
+          "Deluxe Journal 7",
+          "Deluxe Wallet 15",
+          "Eco Bottle 8",
+          "Eco Kettle 24",
+          "Eco Mug 16",
+          "Everyday Candle 12",
+          "Everyday Lamp 4",
+          "Everyday Pillow 20",
+          "Organic Apron 18",
+          "Organic Notebook 10",
+          "Organic Planter 2",
+          "Premium Apron 3",
+          "Premium Backpack 11",
+          "Premium Lamp 19",
+          "Travel Blanket 13",
+          "Travel Pillow 5",
+          "Travel Scarf 21"
+        ],
+        "mode": "PUSH_TO_TALK",
+        "model": "muse-voice-transcribe-1.0"
+      }
+    },
+    "method": "POST",
+    "path": "/v1/asr/transcribe"
+  },
+  "response": {
+    "body": {
+      "audioDurationMs": 6160,
+      "sessionId": "3827d01f37154584af40a63dab3f7033",
+      "transcript": "I want 225,000 in net profit by November 29th.",
+      "turns": []
+    },
+    "headers": {
+      "content-type": "application/json"
+    },
+    "status": 200
+  },
+  "synthetic": false
+}
