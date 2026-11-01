@@ -85,11 +85,51 @@ Each Makefile target runs these commands:
 | `make openapi` | `uv run python -m app.api.openapi` (writes the frozen contract `docs/api/openapi.json`) |
 | `make demo-seed` | `uv run python -m bench.demo_seed` (a fresh `profit_demo` database with the demo store) |
 | `make demo` | `uv run python -m bench.demo` (seeds the demo store, runs the loop; writes `bench/reports/demo-stockout.md`) |
+| `make demo-whatsapp` | `uv run python -m bench.demo_whatsapp` (the stockout alert on WhatsApp, approved from the phone; writes `bench/reports/demo-whatsapp.md`) |
+| `make smoke-whatsapp` | `uv run python scripts/whatsapp_smoke.py` (live: a template, a text and reply buttons to `WHATSAPP_TEST_RECIPIENT`) |
 
 The compose stack publishes PostgreSQL on port 55432 and Redis on 56379 to avoid clashing with
 local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them), and Mailpit, which
 receives every email locally: SMTP on 1025, its inbox on http://localhost:8025. Briefing costs
 are measured with `uv run python -m bench.briefing_costs` (live, golden scenarios).
+
+## WhatsApp setup
+
+WhatsApp is a full channel (ADR 0027): alerts, briefings, decision status and goal progress go out;
+texts, voice notes and button taps come in. Without credentials it runs on the fake adapter (tests,
+`make demo-whatsapp`); with them:
+
+1. **Meta app.** In Meta for Developers, create a Business app and add the WhatsApp product. From
+   WhatsApp > API Setup take the phone number id and an access token (a system user token for
+   anything lasting), and add your own number as a test recipient. From App settings > Basic take
+   the app secret. Choose any verify token.
+2. **`.env`.** `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`,
+   `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_TEST_RECIPIENT` (your number, digits with the country code),
+   and `APPROVAL_LINK_SECRET` (it signs the buttons that decide). `make smoke-whatsapp` then sends
+   the `hello_world` template, and, once you have written to the business number in the last 24
+   hours, a text and a reply-button message.
+3. **Templates.** Outside the 24-hour window only approved templates can be sent. Create them in
+   WhatsApp Manager, language `en` (each variable is one line of the session message):
+
+   | Name | Category | Body | Buttons |
+   | --- | --- | --- | --- |
+   | `profit_alert` | Utility | `Profit Agent alert` / `{{1}}` / `{{2}}` / `{{3}}` | Quick replies `Approve`, `See options` |
+   | `data_alert` | Utility | `Profit Agent data notice` / `{{1}}` / `{{2}}` / `{{3}}` | - |
+   | `daily_brief` | Utility | `{{1}}` / `{{2}}` / `{{3}}` | - |
+   | `decision_update` | Utility | `Profit Agent decision: {{1}}` | - |
+   | `goal_update` | Utility | `Profit Agent goal progress: {{1}}` | - |
+   | `verification_code` | Authentication | the code (`{{1}}`) | Copy code |
+
+4. **Webhook, locally through a tunnel.** Run `make up`, `make api` and `make scheduler` (the worker
+   processes inbound messages and sends deliveries), then expose the API:
+   `cloudflared tunnel --url http://localhost:8000`. In WhatsApp > Configuration set the callback
+   URL to `https://<the tunnel's host>/api/v1/whatsapp/webhook` and the verify token to
+   `WHATSAPP_VERIFY_TOKEN` (Meta's handshake is answered at once), then subscribe to `messages`.
+   Every notification is checked against `X-Hub-Signature-256` with the app secret.
+5. **The owner's number.** Put it in the store's settings (`whatsapp_number`, E.164), send the code
+   (`POST /api/v1/stores/{store_id}/whatsapp/verification`), type it on the web
+   (`.../verification/confirm`), and add `whatsapp` to `alert_channels`. Only a verified number
+   reaches the store; anyone else gets one polite refusal.
 
 ## Layout
 
@@ -121,7 +161,10 @@ backend/app/
                   the lever library, plans, tracking and re-forecasts
   voice/          voice questions: clip limits, recognition biased to the store's names, the
                   transcript kept (never the audio), then Ask
-  channels/       per-channel rendering of merchant text; email (SMTP) and its templates
+  channels/       per-channel rendering of merchant text; email (SMTP) and its templates;
+                  the WhatsApp Cloud API adapter and its fake
+  whatsapp/       verified owner numbers, short formats, signed buttons, the webhook, inbound
+                  messages (texts, voice notes, button taps) and their job queue
   settings/       per-store settings (SPEC section 4) with defaults and audited saves
   observability/  structlog JSON logging
 backend/migrations/  Alembic (schema, row-level security, grants)
@@ -136,6 +179,7 @@ bench/twin/          twin calibration on dev scenarios, options report on golden
 bench/simulator.py   synthetic stores that live day by day, with the owner's actions applied
 bench/demo_seed.py   the demo store: the golden stockout store with a history (make demo-seed)
 bench/demo.py        the demo loop on the seeded store
+bench/demo_whatsapp.py  the stockout alert on WhatsApp, approved from the phone
 bench/outcome_validation.py   outcome intervals against the truth (the store without the action)
 bench/outcome_calibration.py  the outcome intervals' conformal widening, fitted on dev
 bench/unit_economics.py       unit economics from measured costs
@@ -147,7 +191,8 @@ bench/reports/       committed benchmark reports (latest.md = test_v3 suite)
 docs/adr/            architecture decision records
 docs/api/            the API contract (openapi.json) and its conventions
 docs/product/        product specification
-scripts/             live smoke test of the Meta models; the voice test clips (local TTS)
+scripts/             live smoke tests of the Meta models and of WhatsApp; the voice test clips
+                     (local TTS)
 ```
 
 ## Built during the hackathon
@@ -363,3 +408,23 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     transcriptions recorded once and replayed in CI. Golden question q37 is q31 asked aloud and
     passes the same checks. Live: a ten-second question costs 0.0005 USD to transcribe and 0.034
     to 0.037 USD end to end (`bench/reports/voice-live.md`). ADR 0026.
+- **Day 13 - voice formats and WhatsApp (Task 8 part B)**
+  - Recordings in other formats are converted to WAV with ffmpeg before transcription (the
+    endpoint takes WAV only): Ogg/Opus voice notes, WebM/Opus from Chrome, MP4/AAC from Safari and
+    other PCM WAVs; size first, a container and codec whitelist, the duration checked before
+    converting, argument lists without a shell, a timeout. Golden question q38: the demo store's
+    90-day goal asked aloud, recorded once.
+  - WhatsApp Cloud API adapter (session messages, reply buttons, templates outside the 24-hour
+    window, voice note download) in the same delivery pipeline as email: severity, quiet hours,
+    alert budget, retries, a circuit breaker, delivery records. Short formats: alert (impact
+    range, recommendation, Approve and See options), daily brief, decision status, goal progress.
+  - The owner's number is verified by a code sent on WhatsApp and typed on the web; anyone else
+    gets one polite refusal. The webhook checks `X-Hub-Signature-256`, stores each message once by
+    its id and answers at once; a job processes it. Texts and voice notes go to Ask (never an
+    approval); "Approve" carries a short signed single-use token with the email links' rules;
+    "Confirm goal" confirms a dictated goal. Red team: forged signature, replayed message id,
+    unknown sender, replayed and expired buttons, a button above the caps, an instruction in a
+    voice note, a text asking to approve.
+  - `make demo-whatsapp`: the stockout alert delivered on WhatsApp with its buttons, approved
+    from the phone, the pause executed through the policy engine and the executor. ADR 0027;
+    README "WhatsApp setup". Live verification waits for WhatsApp credentials.

@@ -34,6 +34,9 @@ scenarios:
 smoke-live:
 	uv run python scripts/smoke_live.py
 
+smoke-whatsapp:
+	uv run python scripts/whatsapp_smoke.py
+
 api:
 	uv run uvicorn app.api.main:app --app-dir backend
 

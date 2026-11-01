@@ -136,6 +136,13 @@ and `flags`; then comes Ask's stream (`step`, `answer` with the `AskResult`, `do
 `confirmation` like a typed one; a transcript never approves anything, and one that reads like
 an instruction is answered as a question and flagged. The recording is not stored.
 
+WhatsApp (ADR 0027): the owner's number is `whatsapp_number` in the settings; it acts only once
+verified (`POST /whatsapp/verification` sends a code to it on WhatsApp, `.../confirm` takes it).
+The webhook is Meta's: a GET handshake for the verify token, and signed POST notifications, each
+message stored once by its id and processed by a job. Texts and voice notes reach Ask; buttons
+carry short signed single-use tokens (an approval keeps every rule of email links, above the caps
+only a link to the web confirmation page).
+
 Privacy (ADR 0021): the export and the deletion cover every table with a `store_id`, found when
 they run; a deletion is recorded outside the store's data (who, when, rows per table). Model
 traces (investigation steps) are deleted after 30 days.

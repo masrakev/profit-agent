@@ -108,12 +108,14 @@ def payload(to: str, message: WhatsAppMessage, *, session: bool, language: str) 
     if not session:
         if message.template is None:
             raise WhatsAppError("no template for a message outside the window", retryable=False)
-        components: list[dict[str, Any]] = [
-            {
-                "type": "body",
-                "parameters": [{"type": "text", "text": _param(p)} for p in message.params],
-            }
-        ]
+        components: list[dict[str, Any]] = []
+        if message.params:
+            components.append(
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": _param(p)} for p in message.params],
+                }
+            )
         components += [
             {
                 "type": "button",
@@ -132,15 +134,10 @@ def payload(to: str, message: WhatsAppMessage, *, session: bool, language: str) 
                     "parameters": [{"type": "text", "text": message.copy_code}],
                 }
             )
-        return {
-            **base,
-            "type": "template",
-            "template": {
-                "name": message.template,
-                "language": {"code": language},
-                "components": components,
-            },
-        }
+        template: dict[str, Any] = {"name": message.template, "language": {"code": language}}
+        if components:
+            template["components"] = components
+        return {**base, "type": "template", "template": template}
     if not message.buttons:
         return {
             **base,

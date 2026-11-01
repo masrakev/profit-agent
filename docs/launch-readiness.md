@@ -38,6 +38,7 @@ and followed closely.
 | Store-provided text passed as escaped data, never in system prompts | Ready |
 | Merchant names escaped per channel (HTML, plain text) | Ready |
 | Email approval links HMAC-signed, single use, 24 h expiry; above cap only a confirmation page | Ready |
+| WhatsApp: webhook signature (`X-Hub-Signature-256`) checked on every notification, each message processed once by its id, only verified owner numbers reach a store; buttons carry a short signed token with the email links' rules; texts and voice notes never approve (ADR 0027) | Ready (live verification pending credentials) |
 | Secrets only in environment; gitleaks in CI; cassettes scanned for keys | Ready |
 | Dependency audit (pip-audit) in CI | Ready |
 | `SECURITY DEFINER` function hardened (fixed search_path, no free-form arguments, typed parameters only, no PUBLIC grant) | Ready |
@@ -60,7 +61,11 @@ and followed closely.
 - **Rights.** Export and deletion of all of a store's data on request, with the deletion itself
   recorded outside the store's data (`GET /stores/{id}/export`, `DELETE /stores/{id}`; ADR 0021).
   Both run at once; target: completed within 30 days of the request, backups included.
-- **Sub-processors.** Meta Model API (model inference and speech-to-text), hosting provider, transactional email
+- **WhatsApp.** The owner's number is kept with its verification state; an inbound message's
+  content and sender are cleared once processed and its id deleted after 30 days; an unknown
+  sender is kept only as an HMAC of its number. Voice notes are never stored (ADR 0027).
+- **Sub-processors.** Meta Model API (model inference and speech-to-text), Meta WhatsApp Cloud
+  API (messages to and from the owner), hosting provider, transactional email
   provider. Listed publicly before the beta.
 - **GDPR.** Required before onboarding any store in the European Union: a data processing
   agreement, the sub-processor list and the rights process above.
@@ -123,6 +128,9 @@ figure above is now measured, and total cost includes payment processing.
 
 ## 8. Known limitations (published, not hidden)
 
+- **WhatsApp** is verified against the documented API with a fake adapter only, until
+  credentials and approved templates exist; one WhatsApp number per store, and one store per
+  number.
 - **Root-cause accuracy** is 70% top-1 and 75% top-3 on unseen stores; the detectors reach 86% on
   the scenarios they were tuned on. The investigator agent does not yet improve the ranking.
 - **Golden questions** pass at 73–83% depending on routing and run, against a 90% target (six
