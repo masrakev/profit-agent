@@ -4,6 +4,8 @@
   response header, in error bodies and in every log line of the request.
 - Security headers on `/api` responses: no sniffing, no framing, no referrer, a CSP that loads
   nothing, HSTS, and no caching (responses are per caller).
+- Uploads (a voice question) are capped: a declared body over the limit is refused with 413
+  before it is read, an undeclared one stops being read past it.
 - Rate limits, fixed one-minute windows: per client IP, stricter on sign-in routes, and per
   store for store routes. Over a limit: 429 with `Retry-After`. Counters are kept in the
   process (one API process per deployment for now; a shared store such as Redis would be the
@@ -18,14 +20,19 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import structlog
+from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.api.problems import problem
+from app.voice.audio import MAX_BYTES
 
 REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 STORE_PATH = re.compile(r"^/api/v1/stores/([0-9a-fA-F-]{36})(?:/|$)")
 SIGN_IN = ("/api/v1/auth/magic-links", "/api/v1/auth/sessions")
+# Uploads are read only up to their limit: a voice clip and its multipart envelope.
+UPLOAD_PATH = re.compile(r"^/api/v1/stores/[0-9a-fA-F-]{36}/ask/voice$")
+UPLOAD_MAX_BYTES = MAX_BYTES + 64 * 1024
 SECURITY_HEADERS = (
     (b"x-content-type-options", b"nosniff"),
     (b"x-frame-options", b"DENY"),
@@ -62,6 +69,22 @@ class RateLimiter:
         if count > limit:
             return (window + 1) * self.window_s - now
         return None
+
+
+def _capped(receive: Receive, limit: int) -> Receive:
+    """A body sent without its length (chunked) stops being read past `limit`."""
+    seen = 0
+
+    async def capped() -> Message:
+        nonlocal seen
+        message = await receive()
+        if message["type"] == "http.request":
+            seen += len(message.get("body", b""))
+            if seen > limit:
+                raise HTTPException(413, f"an upload of at most {limit} bytes")
+        return message
+
+    return capped
 
 
 def _client(scope: Scope) -> str:
@@ -108,6 +131,17 @@ class ApiMiddleware:
                 )
                 await response(scope, receive, send_with_headers)
                 return
+            if api and UPLOAD_PATH.match(path):
+                declared = headers.get("content-length", "")
+                if declared.isdigit() and int(declared) > UPLOAD_MAX_BYTES:
+                    response = problem(
+                        Request(scope),
+                        413,
+                        detail=f"an upload of at most {UPLOAD_MAX_BYTES} bytes",
+                    )
+                    await response(scope, receive, send_with_headers)
+                    return
+                receive = _capped(receive, UPLOAD_MAX_BYTES)
             await self.app(scope, receive, send_with_headers)
         finally:
             structlog.contextvars.unbind_contextvars("request_id")

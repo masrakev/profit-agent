@@ -1,4 +1,5 @@
-"""Shared API dependencies: engines, the model provider, settings (replaced in tests)."""
+"""Shared API dependencies: engines, the model provider and transcriber, settings (replaced
+in tests)."""
 
 from functools import cache
 from typing import Annotated
@@ -6,8 +7,9 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import Engine
 
-from app.agent.llm.factory import build_provider
+from app.agent.llm.factory import build_provider, build_transcriber
 from app.agent.llm.provider import LLMProvider
+from app.agent.llm.transcribe import Transcriber
 from app.channels.email import EmailSender, sender_from_settings
 from app.config import Settings, get_settings
 from app.db import make_engine
@@ -23,6 +25,11 @@ def _provider() -> LLMProvider:
     return build_provider(get_settings())
 
 
+@cache
+def _transcriber() -> Transcriber:
+    return build_transcriber(get_settings())
+
+
 def get_engine() -> Engine:
     return _engine()
 
@@ -31,8 +38,13 @@ def get_provider() -> LLMProvider:
     return _provider()
 
 
+def get_transcriber() -> Transcriber:
+    return _transcriber()
+
+
 EngineDep = Annotated[Engine, Depends(get_engine)]
 ProviderDep = Annotated[LLMProvider, Depends(get_provider)]
+TranscriberDep = Annotated[Transcriber, Depends(get_transcriber)]
 
 
 @cache

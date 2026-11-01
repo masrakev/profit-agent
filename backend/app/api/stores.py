@@ -1,6 +1,7 @@
 """What the web platform reads about a store (ADR 0020): overview, incidents and their
 investigations (the agent's trace streamed while it runs), facts with their formula and lineage
-(the "clickable number"), the profit bridge, briefings, Ask streamed, settings.
+(the "clickable number"), the profit bridge, briefings, Ask streamed (typed or spoken),
+settings.
 
 Streams are server-sent events (`text/event-stream`): `event: step` for each step of the agent,
 then `event: answer` (Ask) and `event: done`, or `event: failed`.
@@ -10,13 +11,22 @@ import json
 import queue
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Path, Query
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    File,
+    Header,
+    HTTPException,
+    Path,
+    Query,
+    UploadFile,
+)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import Engine, text
@@ -27,8 +37,9 @@ from app.agent.llm.provider import LLMProvider
 from app.agent.steps import Step, recording
 from app.agent.trace import FINAL, recorder, steps_after
 from app.api.auth import PrincipalDep, StoreDep
-from app.api.deps import EngineDep, ProviderDep
+from app.api.deps import EngineDep, ProviderDep, TranscriberDep
 from app.api.pagination import Cursor, Limit, Page, paginate
+from app.api.problems import PROBLEM_JSON, Problem
 from app.api.views import Cited, DocumentOut, FactOut, cited, document_out, fact_out
 from app.briefings import periods
 from app.briefings.content import build, context, open_incidents, profit_bridge
@@ -43,6 +54,8 @@ from app.facts.repository import get_facts
 from app.policies.engine import store_switch_on
 from app.settings.models import StoreSettings
 from app.settings.repository import StoreSettingsRepository
+from app.voice.audio import MAX_BYTES, MAX_SECONDS, ClipRejected, check_clip
+from app.voice.service import ask_by_voice
 
 router = APIRouter(prefix="/api/v1/stores/{store_id}")
 IncidentId = Annotated[str, Path(pattern=r"^inc-[0-9a-f]{12}$")]
@@ -532,6 +545,32 @@ class Question(BaseModel):
     question: str
 
 
+Events = queue.Queue[tuple[str, Any]]
+
+
+def _streamed(work: Callable[[Events], None]) -> StreamingResponse:
+    """Run `work` in a thread; stream the events it puts until `done` or `failed`."""
+    events: Events = queue.Queue()
+
+    def stream() -> Iterator[str]:
+        thread = threading.Thread(target=work, args=(events,), daemon=True)
+        thread.start()
+        seq, deadline = 0, time.monotonic() + STREAM_TIMEOUT_S
+        while time.monotonic() < deadline:
+            try:
+                kind, data = events.get(timeout=1.0)
+            except queue.Empty:
+                yield ": keep-alive\n\n"
+                continue
+            seq += 1
+            yield _event(kind, data, seq)
+            if kind in ("done", "failed"):
+                return
+        yield _event("failed", {"error": "timeout"})
+
+    return StreamingResponse(stream(), media_type=SSE, headers={"X-Accel-Buffering": "no"})
+
+
 @router.post(
     "/ask/stream",
     tags=["ask"],
@@ -548,9 +587,8 @@ def post_ask_stream(
             status_code=422,
             detail={"code": "invalid_request", "message": "a question of 1 to 2000 characters"},
         )
-    events: queue.Queue[tuple[str, Any]] = queue.Queue()
 
-    def work() -> None:
+    def work(events: Events) -> None:
         with recording(lambda s: events.put(("step", s.__dict__))):
             try:
                 result: AskResult = ask(engine, store_id, body.question, provider)
@@ -560,23 +598,82 @@ def post_ask_stream(
         events.put(("answer", result.model_dump(mode="json")))
         events.put(("done", {}))
 
-    def stream() -> Iterator[str]:
-        thread = threading.Thread(target=work, daemon=True)
-        thread.start()
-        seq, deadline = 0, time.monotonic() + STREAM_TIMEOUT_S
-        while time.monotonic() < deadline:
-            try:
-                kind, data = events.get(timeout=1.0)
-            except queue.Empty:
-                yield ": keep-alive\n\n"
-                continue
-            seq += 1
-            yield _event(kind, data, seq)
-            if kind in ("done", "failed"):
-                return
-        yield _event("failed", {"error": "timeout"})
+    return _streamed(work)
 
-    return StreamingResponse(stream(), media_type=SSE, headers={"X-Accel-Buffering": "no"})
+
+# --- Ask by voice, streamed ------------------------------------------------------------------
+
+NO_SPEECH = "No speech was heard in the recording: nothing was asked."
+
+
+@router.post(
+    "/ask/voice",
+    tags=["ask"],
+    response_class=StreamingResponse,
+    responses={
+        200: {"content": {SSE: {}}, "description": "server-sent events"},
+        **{
+            status: {"model": Problem, "content": {PROBLEM_JSON: {}}, "description": text}
+            for status, text in (
+                (413, "The recording is over 6 MiB"),
+                (415, "Not a WAV file: mono, 16-bit PCM, 16 or 24 kHz"),
+            )
+        },
+    },
+)
+def post_ask_voice(
+    store_id: StoreDep,
+    audio: Annotated[
+        UploadFile,
+        File(
+            description="The question, recorded: a WAV file (mono, 16-bit PCM, 16 or 24 kHz), "
+            f"at most {MAX_SECONDS} seconds and {MAX_BYTES} bytes."
+        ),
+    ],
+    engine: EngineDep,
+    provider: ProviderDep,
+    transcriber: TranscriberDep,
+) -> StreamingResponse:
+    """Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:
+    `event: transcript` (what was heard, its duration and the cost of hearing it), then the
+    question is answered exactly like Ask: `event: step`..., `event: answer`, `event: done`.
+    A goal said aloud is restated for confirmation, like a typed one. When nothing was heard:
+    `event: no_speech`, then `event: done`. A transcript is a question, never an approval; one
+    that reads like an instruction is answered as a question and flagged. The recording is not
+    stored: only its transcript, duration and cost are kept. Errors: 413 over the size, 415
+    another format, 422 over two minutes or empty."""
+    try:
+        clip = audio.file.read(MAX_BYTES + 1)
+    finally:
+        audio.file.close()
+    try:
+        check_clip(clip)
+    except ClipRejected as exc:
+        raise HTTPException(
+            status_code=exc.status, detail={"code": exc.code, "message": exc.message}
+        ) from exc
+
+    def work(events: Events) -> None:
+        with recording(lambda s: events.put(("step", s.__dict__))):
+            try:
+                done = ask_by_voice(
+                    engine,
+                    store_id,
+                    clip,
+                    transcriber,
+                    provider,
+                    on_transcript=lambda h: events.put(("transcript", h.model_dump(mode="json"))),
+                )
+            except Exception as exc:  # the stream must end, whatever happened
+                events.put(("failed", {"error": type(exc).__name__}))
+                return
+        if done.result is None:
+            events.put(("no_speech", {"message": NO_SPEECH}))
+        else:
+            events.put(("answer", done.result.model_dump(mode="json")))
+        events.put(("done", {}))
+
+    return _streamed(work)
 
 
 # --- settings and the kill switch -------------------------------------------------------------

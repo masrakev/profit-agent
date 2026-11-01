@@ -478,6 +478,21 @@
         "title": "AutonomyLevel",
         "type": "integer"
       },
+      "Body_post_ask_voice_api_v1_stores__store_id__ask_voice_post": {
+        "properties": {
+          "audio": {
+            "contentMediaType": "application/octet-stream",
+            "description": "The question, recorded: a WAV file (mono, 16-bit PCM, 16 or 24 kHz), at most 120 seconds and 6291456 bytes.",
+            "title": "Audio",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "title": "Body_post_ask_voice_api_v1_stores__store_id__ask_voice_post",
+        "type": "object"
+      },
       "Bridge": {
         "properties": {
           "baseline_end": {
@@ -5729,6 +5744,123 @@
           }
         },
         "summary": "Post Ask Stream",
+        "tags": [
+          "ask"
+        ]
+      }
+    },
+    "/api/v1/stores/{store_id}/ask/voice": {
+      "post": {
+        "description": "Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:\n`event: transcript` (what was heard, its duration and the cost of hearing it), then the\nquestion is answered exactly like Ask: `event: step`..., `event: answer`, `event: done`.\nA goal said aloud is restated for confirmation, like a typed one. When nothing was heard:\n`event: no_speech`, then `event: done`. A transcript is a question, never an approval; one\nthat reads like an instruction is answered as a question and flagged. The recording is not\nstored: only its transcript, duration and cost are kept. Errors: 413 over the size, 415\nanother format, 422 over two minutes or empty.",
+        "operationId": "post_ask_voice_api_v1_stores__store_id__ask_voice_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "store_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Store Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_post_ask_voice_api_v1_stores__store_id__ask_voice_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "server-sent events"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not signed in, or the token is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not allowed (CSRF, a token where a session is needed)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not found, or not one of the caller's stores"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "The recording is over 6 MiB"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not a WAV file: mono, 16-bit PCM, 16 or 24 kHz"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "The request is not valid"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Too many requests"
+          }
+        },
+        "summary": "Post Ask Voice",
         "tags": [
           "ask"
         ]

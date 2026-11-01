@@ -27,7 +27,8 @@ ADR 0020.
 - Numbers are facts: text cites them as `{{F<id>}}` and entities as `{{E:...}}`; responses
   carry the cited `facts` (with a `formatted` value) and the raw `names` (escape them).
 - Streams are server-sent events (`text/event-stream`): `event: step` per agent step, then
-  `answer` (Ask), `done` or `failed`. A reconnecting client sends `Last-Event-ID`.
+  `answer` (Ask), `done` or `failed`. A reconnecting client sends `Last-Event-ID`. Ask by voice
+  starts with `event: transcript`, and ends with `no_speech` then `done` when nothing was heard.
 
 ## Problem codes
 
@@ -39,6 +40,9 @@ ADR 0020.
 | `not_found` | 404 | No such resource, or not one of the caller's stores |
 | `invalid_request` | 422 | The request does not validate (`errors` lists the fields) |
 | `invalid_cursor` | 422 | The cursor is not one this API issued |
+| `empty_audio`, `audio_too_long` | 422 | A voice question with no audio, or over two minutes |
+| `unsupported_audio` | 415 | Not a WAV file: mono, 16-bit PCM, 16 or 24 kHz |
+| `audio_too_large`, `too_large` | 413 | A recording over 6 MiB, or an upload over the limit (not read) |
 | `invalid_link`, `expired_link`, `used_link` | 401 or 403, 410, 409 | Sign-in links (401) or approval links (403): not valid, expired, already used |
 | `already_decided`, `expired` | 409 | A decision is decided once, before it expires |
 | `superseded` | 409 | Another pending decision on the same campaign or product, on more recent data, superseded it (`superseded_by`) |
@@ -76,6 +80,7 @@ ADR 0020.
 | GET | `/api/v1/stores/{store_id}/briefings/{briefing_id}` | A briefing as sent |
 | POST | `/api/v1/stores/{store_id}/ask` | Ask, and wait for the answer contract |
 | POST | `/api/v1/stores/{store_id}/ask/stream` | Ask, streamed |
+| POST | `/api/v1/stores/{store_id}/ask/voice` | Ask by voice (multipart `audio`, a WAV): the transcript, then Ask, streamed |
 | POST, GET | `/api/v1/stores/{store_id}/goals` | Set a goal (a draft, restated until the owner confirms it), or list goals |
 | GET | `/api/v1/stores/{store_id}/goals/{goal_id}` | A goal, its restatement and its facts |
 | POST | `/api/v1/stores/{store_id}/goals/{goal_id}/confirm` | Confirm it: its feasibility |
@@ -108,6 +113,13 @@ Goals (ADRs 0023, 0024): a goal question to `POST /ask` comes back with `status`
 `confirmation` and the draft's `goal_id`; the owner confirms with `POST /goals/{goal_id}/explain`
 (or `/confirm` for the numbers alone). Plans never execute anything: their steps become
 decisions in the normal flow.
+
+Voice (ADR 0026): `POST /ask/voice` takes the recording as a multipart `audio` part, a WAV
+(mono, 16-bit PCM, 16 or 24 kHz; convert others with `ffmpeg -i in.m4a -ac 1 -ar 24000 -c:a
+pcm_s16le out.wav`) of at most two minutes. `event: transcript` carries what was heard, its
+duration and what transcribing it cost; the rest is Ask's stream. A spoken goal comes back as a
+`confirmation` like a typed one; a transcript never approves anything, and one that reads like
+an instruction is answered as a question and flagged. The recording is not stored.
 
 Privacy (ADR 0021): the export and the deletion cover every table with a `store_id`, found when
 they run; a deletion is recorded outside the store's data (who, when, rows per table). Model
