@@ -599,3 +599,21 @@ goal_progress = Table(
     Column("reason", Text, nullable=True),
     _ts("created_at"),
 )
+
+voice_questions = Table(
+    "voice_questions",
+    metadata,
+    Column("voice_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("channel", Text, nullable=False),
+    Column("transcript", Text, nullable=False),
+    Column("audio_duration_ms", Integer, nullable=False),
+    Column("billed_seconds", Integer, nullable=False),
+    Column("cost_usd", Numeric(12, 6), nullable=False),
+    Column("model", Text, nullable=False),
+    Column("flags", JSONB, nullable=False),
+    Column("ask_id", Uuid, nullable=True),
+    Column("question_type", Text, nullable=True),
+    Column("status", Text, nullable=True),
+    _ts("created_at"),
+)

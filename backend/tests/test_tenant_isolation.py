@@ -49,6 +49,7 @@ TENANT_TABLES = (
     "goal_plans",
     "goal_steps",
     "goal_progress",
+    "voice_questions",
 )
 
 
