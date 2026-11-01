@@ -34,7 +34,7 @@ from bench.generator.load import load
 from bench.golden.decisions import RECIPES, set_up
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
-from bench.scenarios.manifest import load_suite
+from bench.scenarios.manifest import STORE_COPIES, load_suite
 
 COSTS_DB = "profit_briefing_costs"
 COSTS_DECISIONS_DB = "profit_briefing_costs_decisions"
@@ -62,6 +62,8 @@ def run(mode: LLMMode, only: list[str] | None) -> tuple[str, list[dict[str, Any]
             continue
         if manifest.scenario_id in RECIPES:
             where, store_id = decisions, set_up(decisions, manifest)
+        elif manifest.scenario_id in STORE_COPIES:
+            continue  # the same store as its base
         else:
             where = engine
             data = manifest.generate()

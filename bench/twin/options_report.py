@@ -19,7 +19,7 @@ from app.twin import fit_twin
 from bench.generator.load import load
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
-from bench.scenarios.manifest import ScenarioManifest, load_suite
+from bench.scenarios.manifest import STORE_COPIES, ScenarioManifest, load_suite
 
 PRODUCT_CAUSES = frozenset({"stockout_on_promoted", "supplier_cost_increase", "refund_spike"})
 
@@ -83,7 +83,7 @@ def main() -> int:
     ]
     for manifest in load_suite("golden"):
         found = cause_of(manifest)
-        if found is None:
+        if found is None or manifest.scenario_id in STORE_COPIES:  # a copy: its base covers it
             continue
         data = manifest.generate()
         load(engine, data, manifest.config)

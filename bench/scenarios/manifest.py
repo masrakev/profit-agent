@@ -21,6 +21,15 @@ SCENARIO_DIR = Path(__file__).resolve().parent
 # goals_dev: 400-day stores for tuning goal forecasts. goals_test: the same, reported once.
 Suite = Literal["dev", "test_v3", "golden", "outcomes_v1", "goals_dev", "goals_test"]
 CONDITION_STREAM = 100  # random streams of conditions start after those of faults
+# Golden scenarios that are another scenario's store, set up differently by the code that uses
+# them, in a database of their own: name -> (base scenario, what differs). The same store id as
+# their base, so a run over the whole suite loads the base only.
+STORE_COPIES = {
+    "golden-cpa_drift-with-decision": ("golden-cpa_drift", "with a recorded decision"),
+    "golden-short-history-decision": ("golden-underfunded_campaign", "with a recorded decision"),
+    # bench/golden/demo_goal.py: the demo store (bench/demo_seed.py) as its goal is set (q38)
+    "golden-demo-goal": ("golden-stockout_on_promoted", "the demo store, 28 days before its end"),
+}
 
 
 class ScenarioManifest(BaseModel):

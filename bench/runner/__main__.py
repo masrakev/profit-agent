@@ -28,7 +28,7 @@ from bench.runner.proposals import write_proposals
 from bench.runner.report import REPORT_DIR, write_reports
 from bench.runner.run import run_job, worker_init
 from bench.runner.score import judge, summarize
-from bench.scenarios.manifest import load_suite
+from bench.scenarios.manifest import STORE_COPIES, load_suite
 
 ROOT = Path(__file__).resolve().parents[2]
 BENCH_DB = "profit_bench"
@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     configure_logging("WARNING")
 
-    manifests = load_suite(args.suite)
+    manifests = [m for m in load_suite(args.suite) if m.scenario_id not in STORE_COPIES]
     if args.only:
         manifests = [m for m in manifests if m.scenario_id in set(args.only)]
     if not manifests:
