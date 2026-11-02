@@ -13,6 +13,8 @@ export interface StoreRef {
   name: string | null;
   /** A generated store (the demo): the header says so. */
   synthetic: boolean;
+  /** The store's time zone (IANA), for times of day. */
+  timezone: string;
 }
 
 export const storeKey = (storeId: string) => ["store", storeId] as const;

@@ -1,10 +1,11 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Composer, COMPOSER_PROMISE } from "./Composer";
 import { readCollapsed, SIDEBAR_STORAGE_KEY, writeCollapsed } from "./sidebar";
 import { problem } from "@/test/fakeApi";
+import { MAX_SECONDS, type Recorder } from "@/voice/recorder";
 import { mockSystemTheme } from "@/test/matchMedia";
 import { renderApp, signedInApi } from "@/test/render";
 
@@ -166,14 +167,82 @@ describe("the composer", () => {
     expect(box).toHaveValue("");
   });
 
-  it("keeps the question while it cannot send, and asks by voice when it can", async () => {
-    const onVoice = vi.fn();
-    const { rerender } = render(<Composer />);
+  it("keeps the question while it cannot send", async () => {
+    render(<Composer />);
     expect(screen.getByRole("button", { name: "Ask by voice" })).toBeDisabled();
     await userEvent.type(screen.getByRole("textbox"), "Hello{Enter}");
     expect(screen.getByRole("textbox")).toHaveValue("Hello");
-    rerender(<Composer onVoice={onVoice} />);
+  });
+
+  function fakeRecorder(overrides: Partial<Recorder> = {}) {
+    const recorder: Recorder = {
+      start: vi.fn(() => Promise.resolve()),
+      stop: vi.fn(() => Promise.resolve(new Blob(["sound"], { type: "audio/webm" }))),
+      cancel: vi.fn(),
+      samples: () => new Uint8Array([128, 255, 0, 140]),
+      ...overrides,
+    };
+    return { recorder, factory: () => recorder };
+  }
+
+  it("records a spoken question with its waveform, then sends it", async () => {
+    const paint = { clearRect: vi.fn(), fillRect: vi.fn(), fillStyle: "" };
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      paint as unknown as CanvasRenderingContext2D,
+    );
+    const onVoice = vi.fn();
+    const { recorder, factory } = fakeRecorder();
+    render(<Composer onVoice={onVoice} recorder={factory} />);
     await userEvent.click(screen.getByRole("button", { name: "Ask by voice" }));
-    expect(onVoice).toHaveBeenCalledOnce();
+    const group = screen.getByRole("group", { name: "Recording your question" });
+    expect(within(group).getByRole("status")).toHaveTextContent("Listening");
+    await waitFor(() => {
+      expect(paint.fillRect).toHaveBeenCalled();
+    });
+    await userEvent.click(within(group).getByRole("button", { name: "Send" }));
+    expect(recorder.stop).toHaveBeenCalledOnce();
+    expect(onVoice).toHaveBeenCalledWith(expect.any(Blob));
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  it("drops a cancelled or empty recording", async () => {
+    const onVoice = vi.fn();
+    const { recorder, factory } = fakeRecorder({
+      stop: vi.fn(() => Promise.resolve(new Blob([]))),
+    });
+    render(<Composer onVoice={onVoice} recorder={factory} />);
+    await userEvent.click(screen.getByRole("button", { name: "Ask by voice" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel the recording" }));
+    expect(recorder.cancel).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole("button", { name: "Ask by voice" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(onVoice).not.toHaveBeenCalled();
+  });
+
+  it("says when the microphone is not available", async () => {
+    const { factory } = fakeRecorder({ start: () => Promise.reject(new Error("denied")) });
+    render(<Composer onVoice={vi.fn()} recorder={factory} />);
+    await userEvent.click(screen.getByRole("button", { name: "Ask by voice" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The microphone is not available");
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  it("stops by itself at two minutes, and when it leaves the page", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"], shouldAdvanceTime: true });
+    try {
+      const onVoice = vi.fn();
+      const { recorder, factory } = fakeRecorder();
+      const { unmount } = render(<Composer onVoice={onVoice} recorder={factory} />);
+      fireEvent.click(screen.getByRole("button", { name: "Ask by voice" }));
+      await screen.findByRole("group", { name: "Recording your question" });
+      await act(() => vi.advanceTimersByTimeAsync(MAX_SECONDS * 1000));
+      expect(onVoice).toHaveBeenCalledOnce();
+      fireEvent.click(screen.getByRole("button", { name: "Ask by voice" }));
+      await screen.findByRole("group", { name: "Recording your question" });
+      unmount();
+      expect(recorder.cancel).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

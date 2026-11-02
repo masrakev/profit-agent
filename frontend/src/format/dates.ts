@@ -13,6 +13,18 @@ const DAY_YEAR = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
+const WEEKDAY = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+const TIME_UTC = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
+
 function instant(text: string): Date | null {
   const date = new Date(text);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -34,4 +46,25 @@ export function formatPeriod(start: string, endExclusive: string): string | null
 export function formatDay(day: string): string {
   const date = instant(`${day}T00:00:00Z`);
   return date ? DAY_YEAR.format(date) : day;
+}
+
+/** A store's calendar day as a heading: "TUE, SEP 15" (upper case is the style's). */
+export function formatWeekday(day: string): string {
+  const date = instant(`${day}T00:00:00Z`);
+  return date ? WEEKDAY.format(date) : day;
+}
+
+/** An instant's time of day in the store's time zone: "8:00 AM". */
+export function formatTime(at: string, timeZone: string): string {
+  const date = instant(at);
+  if (!date) return at;
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone,
+    }).format(date);
+  } catch {
+    return TIME_UTC.format(date); // an unknown time zone: UTC, rather than nothing
+  }
 }

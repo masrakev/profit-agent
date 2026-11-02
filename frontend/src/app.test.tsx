@@ -62,10 +62,9 @@ describe("the store", () => {
   it("is named, or called your store until the API names it", () => {
     expect(storeLabel({ name: "Northwind Outdoor" })).toBe("Northwind Outdoor");
     expect(storeLabel({ name: null })).toBe("Your store");
-    expect(storeLine({ storeId: STORE_ID, name: "Acme", synthetic: false })).toBe("Acme");
-    expect(storeLine({ storeId: STORE_ID, name: "Acme", synthetic: true })).toBe(
-      "Acme · Demo store",
-    );
+    const store = { storeId: STORE_ID, name: "Acme", timezone: "UTC" };
+    expect(storeLine({ ...store, synthetic: false })).toBe("Acme");
+    expect(storeLine({ ...store, synthetic: true })).toBe("Acme · Demo store");
     expect(initials("Northwind Outdoor")).toBe("NO");
     expect(initials("  acme  ")).toBe("A");
   });

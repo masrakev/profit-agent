@@ -82,7 +82,9 @@ export function renderApp(path: string, api: Api, { dev = false }: { dev?: boole
 /** A component that uses the store and the proof sheet, as the signed-in pages do. */
 export function renderInStore(ui: ReactElement, api: Api) {
   return renderWithApi(
-    <StoreContext.Provider value={{ storeId: STORE_ID, name: STORE.name, synthetic: true }}>
+    <StoreContext.Provider
+      value={{ storeId: STORE_ID, name: STORE.name, synthetic: true, timezone: "UTC" }}
+    >
       <ProofProvider storeId={STORE_ID}>{ui}</ProofProvider>
     </StoreContext.Provider>,
     api,

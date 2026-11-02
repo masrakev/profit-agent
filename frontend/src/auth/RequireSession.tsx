@@ -26,7 +26,12 @@ export function RequireSession() {
   const store = useMemo<StoreRef | null>(
     () =>
       storeId
-        ? { storeId, name: info.data?.name ?? null, synthetic: info.data?.synthetic ?? false }
+        ? {
+            storeId,
+            name: info.data?.name ?? null,
+            synthetic: info.data?.synthetic ?? false,
+            timezone: info.data?.timezone ?? "UTC",
+          }
         : null,
     [storeId, info.data],
   );

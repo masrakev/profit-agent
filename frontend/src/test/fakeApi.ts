@@ -48,3 +48,14 @@ export function fakeApi(): FakeApi {
   };
   return fake;
 }
+
+/** A server-sent event stream, as the API sends one: `[event, data]` pairs. */
+export function sse(...events: [string, unknown][]): Response {
+  const text = events
+    .map(
+      ([event, data], index) =>
+        `id: ${String(index + 1)}\nevent: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+    )
+    .join("");
+  return new Response(text, { headers: { "Content-Type": "text/event-stream" } });
+}

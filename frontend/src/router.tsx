@@ -2,7 +2,8 @@ import type { RouteObject } from "react-router";
 
 import { RequireSession } from "@/auth/RequireSession";
 import { SignInPage } from "@/auth/SignInPage";
-import { ChatPage, NotFoundPage, PendingPage } from "@/pages/placeholders";
+import { ChatPage } from "@/pages/ChatPage";
+import { NotFoundPage, PendingPage } from "@/pages/placeholders";
 import { AppShell, type RouteHandle } from "@/shell/AppShell";
 
 const conversation: RouteHandle = { composer: true };

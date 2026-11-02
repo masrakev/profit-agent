@@ -33,6 +33,8 @@ export interface PermissionCardProps {
   onDecline: () => void;
   /** While the owner's answer is being sent: both buttons wait. */
   pending?: boolean;
+  /** A safety check would stop it: it cannot be approved. */
+  blocked?: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export function PermissionCard({
   onApprove,
   onDecline,
   pending = false,
+  blocked = false,
 }: PermissionCardProps) {
   const [expanded, setExpanded] = useState(true);
   const summaryId = useId();
@@ -120,10 +123,10 @@ export function PermissionCard({
         </div>
       </section>
 
-      <p className="text-small text-ink-muted">{safety}</p>
+      <p className={cx("text-small", blocked ? "text-danger-ink" : "text-ink-muted")}>{safety}</p>
 
       <div className="flex flex-wrap gap-2.5">
-        <Button onClick={onApprove} disabled={pending} aria-busy={pending}>
+        <Button onClick={onApprove} disabled={pending || blocked} aria-busy={pending}>
           Approve
         </Button>
         <Button variant="secondary" onClick={onDecline} disabled={pending}>

@@ -16,3 +16,6 @@ afterEach(() => {
     if (name) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
   });
 });
+
+// jsdom does not lay pages out: scrolling a message into view does nothing there.
+Element.prototype.scrollIntoView = () => undefined;
