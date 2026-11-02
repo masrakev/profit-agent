@@ -1,4 +1,4 @@
-.PHONY: up down migrate test lint format eval eval-dev scenarios smoke-live smoke-whatsapp api openapi worker scheduler demo-seed demo demo-whatsapp
+.PHONY: up down migrate test lint format web web-install web-lint web-test web-audit eval eval-dev scenarios smoke-live smoke-whatsapp api openapi worker scheduler demo-seed demo demo-whatsapp
 
 up:
 	docker compose up -d --wait
@@ -12,11 +12,13 @@ migrate:
 
 test:
 	uv run pytest
+	$(MAKE) web-test
 
 lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run mypy
+	$(MAKE) web-lint
 
 format:
 	uv run ruff check --fix .
@@ -57,3 +59,20 @@ demo:
 
 demo-whatsapp:
 	uv run python -m bench.demo_whatsapp
+
+# --- the web platform (frontend/, Task 7) ---------------------------------------------------
+
+web:
+	cd frontend && npm run dev
+
+web-install:
+	cd frontend && npm ci
+
+web-lint:
+	cd frontend && npm run api:check && npm run typecheck && npm run lint
+
+web-test:
+	cd frontend && npm test
+
+web-audit:
+	cd frontend && npm audit --omit=dev --audit-level=low

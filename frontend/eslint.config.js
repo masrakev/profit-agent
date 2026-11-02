@@ -1,0 +1,78 @@
+// @ts-check
+import js from "@eslint/js";
+import jsxA11y from "eslint-plugin-jsx-a11y";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+
+// The frontend never computes a number (Task 7, rule 1): every number shown is a fact the API
+// computed and formatted. Rounding, number formatting and locale conversion are banned here;
+// plotting a value on an axis (a position, never shown as a number) lives in src/charts only.
+const NO_NUMBER_MAKING = [
+  ...["round", "floor", "ceil", "trunc"].map((property) => ({
+    object: "Math",
+    property,
+    message: "The frontend never rounds a number: show the fact's `formatted` text.",
+  })),
+  ...["toFixed", "toPrecision", "toLocaleString"].map((property) => ({
+    property,
+    message: "The frontend never formats a number: show the fact's `formatted` text.",
+  })),
+];
+
+export default tseslint.config(
+  { ignores: ["dist", "coverage", "node_modules", "src/api/schema.d.ts"] },
+  {
+    files: ["**/*.{ts,tsx}"],
+    extends: [
+      js.configs.recommended,
+      ...tseslint.configs.strictTypeChecked,
+      ...tseslint.configs.stylisticTypeChecked,
+      jsxA11y.flatConfigs.strict,
+    ],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: globals.browser,
+      parserOptions: {
+        projectService: { allowDefaultProject: ["eslint.config.js"] },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: { "react-hooks": reactHooks, "react-refresh": reactRefresh },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      "react-refresh/only-export-components": ["error", { allowConstantExport: true }],
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: false }],
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-confusing-void-expression": ["error", { ignoreArrowShorthand: true }],
+      "no-restricted-properties": ["error", ...NO_NUMBER_MAKING],
+      "no-restricted-globals": [
+        "error",
+        { name: "Intl", message: "The frontend never formats a number or a date: the API does." },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: "Merchant text is rendered as text, never as HTML.",
+        },
+      ],
+      eqeqeq: ["error", "always"],
+      "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
+  {
+    // Plotting maps API values to positions on an axis; nothing here is shown as a number.
+    files: ["src/charts/**/*.{ts,tsx}"],
+    rules: { "no-restricted-properties": "off" },
+  },
+  {
+    files: ["**/*.test.{ts,tsx}", "src/test/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+    },
+  },
+);
