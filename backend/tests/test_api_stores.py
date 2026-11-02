@@ -4,9 +4,10 @@ lineage, the profit bridge, briefings, Ask streamed, settings; and the frozen co
 import json
 import re
 from collections.abc import Iterator
-from datetime import date
+from datetime import date, datetime, time
 from typing import Any
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
@@ -234,6 +235,15 @@ def test_briefings(client: TestClient, app_engine: Engine, golden_stockout: dict
     cited = set(re.findall(r"\{\{F(\d+)\}\}", json.dumps(one["sections"])))
     assert cited
     assert set(one["facts"]) == cited  # the facts the text cites, each with its value
+    # Sent on its day at the store's send time, in its zone; generated whenever it was.
+    settings = client.get(f"{base}/settings").json()
+    sent = datetime.combine(
+        date(2026, 9, 30),
+        time.fromisoformat(settings["weekly_report"]["at"]),
+        ZoneInfo(settings["timezone"]),
+    )
+    assert datetime.fromisoformat(one["scheduled_at"]) == sent
+    assert listed["items"][0]["scheduled_at"] == one["scheduled_at"]
     assert client.get(f"{base}/briefings/{uuid4()}").status_code == 404
 
 

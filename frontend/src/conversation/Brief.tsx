@@ -85,7 +85,7 @@ export function Brief() {
         {formatWeekday(brief.local_date)}
       </p>
       <header className="flex flex-col gap-3">
-        <p className="text-label text-ink-muted">{formatTime(brief.created_at, timezone)}</p>
+        <p className="text-label text-ink-muted">{formatTime(brief.scheduled_at, timezone)}</p>
         <h1 className="text-title font-semibold text-ink">{brief.headline}</h1>
         {brief.narrative && (
           <p className="text-body text-ink-muted">

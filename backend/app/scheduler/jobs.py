@@ -22,7 +22,7 @@ from app.agent.llm.provider import LLMProvider
 from app.agent.stages import Routing
 from app.briefings.models import BriefingKind
 from app.briefings.service import generate
-from app.briefings.store import find
+from app.briefings.store import find, send_time
 from app.db import tenant_transaction
 from app.delivery.alerts import AlertOutcome, dispatch_alerts
 from app.delivery.queue import Subject, notify_whatsapp
@@ -41,12 +41,14 @@ def due(settings: StoreSettings, now: datetime) -> tuple[date, list[BriefingKind
     today, moment = local.date(), local.time()
     kinds = []
     daily, weekly, monthly = settings.daily_brief, settings.weekly_report, settings.monthly_review
-    if daily.enabled and today.isoweekday() in daily.weekdays and moment >= daily.at:
-        kinds.append(BriefingKind.DAILY)
-    if weekly.enabled and today.isoweekday() == weekly.weekday and moment >= weekly.at:
-        kinds.append(BriefingKind.WEEKLY)
-    if monthly.enabled and today.day == monthly.day_of_month and moment >= monthly.at:
-        kinds.append(BriefingKind.MONTHLY)
+    planned = {
+        BriefingKind.DAILY: daily.enabled and today.isoweekday() in daily.weekdays,
+        BriefingKind.WEEKLY: weekly.enabled and today.isoweekday() == weekly.weekday,
+        BriefingKind.MONTHLY: monthly.enabled and today.day == monthly.day_of_month,
+    }
+    for kind, on_today in planned.items():
+        if on_today and moment >= send_time(settings, kind):
+            kinds.append(kind)
     return today, kinds
 
 

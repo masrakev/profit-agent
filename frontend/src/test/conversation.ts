@@ -42,7 +42,8 @@ export const BRIEFING = {
   period_end: "2026-09-15",
   status: "narrated",
   headline: "A critical problem needs your attention today.",
-  created_at: "2026-09-15T08:00:00Z",
+  scheduled_at: "2026-09-15T07:30:00Z", // when it is sent
+  created_at: "2026-11-02T15:16:00Z", // when it was generated (a seed run, say)
   narrative: `{{E:product:${PRODUCT}}} keeps spending while out of stock.`,
   sections: [
     {

@@ -1427,6 +1427,11 @@ export interface components {
             period_start: string;
             /** Prompt Version */
             prompt_version: string | null;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
             /** Sections */
             sections: components["schemas"]["Section"][];
             /** Status */
@@ -1463,6 +1468,11 @@ export interface components {
              * Format: date
              */
             period_start: string;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
             /** Status */
             status: string;
         };

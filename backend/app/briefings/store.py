@@ -2,15 +2,17 @@
 
 import json
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import Connection, text
 
 from app.briefings.models import BriefingContent, BriefingKind
 from app.domain.audit import append_audit
+from app.settings.models import StoreSettings
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,21 @@ class Narration:
 
 
 FACTS_ONLY = Narration(narrative=None)
+
+
+def send_time(settings: StoreSettings, kind: BriefingKind) -> time:
+    """The store-local time a briefing of this kind is sent at."""
+    return {
+        BriefingKind.DAILY: settings.daily_brief.at,
+        BriefingKind.WEEKLY: settings.weekly_report.at,
+        BriefingKind.MONTHLY: settings.monthly_review.at,
+    }[kind]
+
+
+def scheduled_at(settings: StoreSettings, kind: BriefingKind, local_date: date) -> datetime:
+    """When the briefing of `kind` for the store-local `local_date` is sent: its send time that
+    day, in the store's time zone (whenever it was actually generated)."""
+    return datetime.combine(local_date, send_time(settings, kind), ZoneInfo(settings.timezone))
 
 
 @dataclass(frozen=True)

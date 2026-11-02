@@ -54,7 +54,7 @@ from app.briefings import periods
 from app.briefings.content import build, context, open_incidents, profit_bridge
 from app.briefings.models import BriefingKind
 from app.briefings.store import get as get_briefing
-from app.briefings.store import list_briefings
+from app.briefings.store import list_briefings, scheduled_at
 from app.db import tenant_transaction
 from app.detection.repository import load_incident
 from app.facts.catalogue import describe
@@ -592,7 +592,8 @@ class BriefingSummary(BaseModel):
     period_end: date
     status: str
     headline: str
-    created_at: datetime
+    scheduled_at: datetime  # when it is sent: its day at the store's send time, in its zone
+    created_at: datetime  # when it was generated
 
 
 class BriefingOut(DocumentOut):
@@ -606,7 +607,8 @@ class BriefingOut(DocumentOut):
     model: str | None
     prompt_version: str | None
     cost_usd: str
-    created_at: datetime
+    scheduled_at: datetime  # when it is sent: its day at the store's send time, in its zone
+    created_at: datetime  # when it was generated
 
 
 @router.get("/briefings", response_model=Page[BriefingSummary], tags=["briefings"])
@@ -620,6 +622,7 @@ def get_briefings(
     """The store's briefings, newest first."""
     with tenant_transaction(engine, store_id) as conn:
         records = list_briefings(conn, store_id, kind=kind, limit=10_000)
+        settings = StoreSettingsRepository(conn).get_or_default(store_id)
     summaries = [
         BriefingSummary(
             briefing_id=r.briefing_id,
@@ -629,6 +632,7 @@ def get_briefings(
             period_end=r.content.period_end,
             status=r.status,
             headline=r.content.headline,
+            scheduled_at=scheduled_at(settings, r.kind, r.local_date),
             created_at=r.created_at,
         )
         for r in records
@@ -649,6 +653,7 @@ def get_briefing_detail(store_id: StoreDep, briefing_id: UUID, engine: EngineDep
         if record is None:
             raise _not_found("no such briefing")
         doc = document_out(conn, store_id, record.content, record.narration.narrative)
+        settings = StoreSettingsRepository(conn).get_or_default(store_id)
     return BriefingOut(
         **doc.model_dump(),
         briefing_id=record.briefing_id,
@@ -661,6 +666,7 @@ def get_briefing_detail(store_id: StoreDep, briefing_id: UUID, engine: EngineDep
         model=record.narration.model,
         prompt_version=record.narration.prompt_version,
         cost_usd=str(record.narration.cost_usd),
+        scheduled_at=scheduled_at(settings, record.kind, record.local_date),
         created_at=record.created_at,
     )
 

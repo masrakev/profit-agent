@@ -819,6 +819,11 @@
             ],
             "title": "Prompt Version"
           },
+          "scheduled_at": {
+            "format": "date-time",
+            "title": "Scheduled At",
+            "type": "string"
+          },
           "sections": {
             "items": {
               "$ref": "#/components/schemas/Section"
@@ -846,6 +851,7 @@
           "model",
           "prompt_version",
           "cost_usd",
+          "scheduled_at",
           "created_at"
         ],
         "title": "BriefingOut",
@@ -886,6 +892,11 @@
             "title": "Period Start",
             "type": "string"
           },
+          "scheduled_at": {
+            "format": "date-time",
+            "title": "Scheduled At",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -899,6 +910,7 @@
           "period_end",
           "status",
           "headline",
+          "scheduled_at",
           "created_at"
         ],
         "title": "BriefingSummary",

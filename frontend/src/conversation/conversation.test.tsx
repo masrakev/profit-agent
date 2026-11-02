@@ -126,7 +126,7 @@ describe("the morning brief", () => {
     renderApp("/", store().api);
     const brief = await screen.findByRole("article", { name: "Morning brief" });
     expect(within(brief).getByText("Tue, Sep 15")).toBeInTheDocument();
-    expect(within(brief).getByText("8:00 AM")).toBeInTheDocument();
+    expect(within(brief).getByText("7:30 AM")).toBeInTheDocument(); // sent, not generated
     expect(within(brief).getByRole("heading", { name: BRIEFING.headline })).toBeInTheDocument();
     expect(within(brief).getAllByText("Trail Jacket").length).toBeGreaterThan(0);
     const picture = within(brief).getByRole("region", { name: "Your weekly picture" });
