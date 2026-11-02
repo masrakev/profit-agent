@@ -44,7 +44,9 @@ marker, dots) keep the Figma blues: they are graphics, above 3:1.
 for the visit when storage is refused). The theme is applied before the first render, so a dark
 system never flashes light.
 
-**No number is made in the frontend.** ESLint bans `Math.round/floor/ceil/trunc`, `toFixed`,
+**No number is made in the frontend.** The API writes every text a number is shown as: `display`
+(short: whole units, a range as "low to high", a change signed) on screens, `formatted` (exact) in
+the proof sheet, and an estimate's P10, P50 and P90 in both. ESLint bans `Math.round/floor/ceil/trunc`, `toFixed`,
 `toPrecision`, `toLocaleString` and the `Intl` global. A number on screen is a fact's `formatted`
 text. Two exceptions, each confined to one module: `src/charts/` maps API values to positions on
 an axis (never shown as numbers), and `src/format/dates.ts` formats dates with `Intl` (the API
@@ -78,9 +80,10 @@ to `docs/screens/page-<n>/app/`, which sit next to the Figma frames for review.
 
 ## Consequences
 
-- A screen can only show what the API serves. Page 1 found gaps, reported before any backend change
-  (`docs/screens/page-1/README.md`): the store's name, the formatted P50 of an estimate, per-row
-  amounts and the last sync time in a fact's sources, each connection's health, decision wording
-  (entity names, option labels), and formula descriptions in plain words.
+- A screen can only show what the API serves. Page 1's review found gaps, reported before any
+  backend change and then filled by the API (`docs/screens/page-1/README.md`): the store's name,
+  short and exact texts with P10/P50/P90, decision and option labels with "do nothing", formulas in
+  plain words, a source's rows with their amounts and freshness, the simulation count, a name for
+  every fact. Each connection's health is still to come.
 - Formatting lives in one place, the API; a currency or rounding change needs no frontend change.
 - The token rules keep both themes accessible, but every new colour needs a token, not a class.

@@ -80,8 +80,17 @@ async function capture(browser, session, scheme) {
   await card.screenshot({ path: file("permission-card") });
 
   const loaded = (dialog) => dialog.locator('[aria-busy="true"]').waitFor({ state: "detached" });
+  // As in Figma, a base fact with its rows: net profit, then down its lineage to the ad spend.
+  const parent = async (label) => {
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("listitem").filter({ hasText: label }).getByRole("button").click();
+    await loaded(page.getByRole("dialog"));
+  };
   await page.locator("button[data-fact]").first().click();
   await loaded(page.getByRole("dialog"));
+  await parent("Contribution after ads");
+  await parent(/^Ad spend/);
+  await page.getByRole("dialog").getByText("Data up to", { exact: false }).waitFor();
   await settle(page);
   await page.screenshot({ path: file("exact-proof") });
   await page.keyboard.press("Escape");
