@@ -6,6 +6,7 @@
  *   make web                       # the dev server, with the API on the demo store and Mailpit up
  *   node scripts/screens.mjs       # writes docs/screens/page-1/app/<screen>-<light|dark>.png
  *   node scripts/screens.mjs 2-3   # the conversation and the approval page: page-2-3/app/
+ *   node scripts/screens.mjs 4-5-7 # Today, the Decisions page and the Journal: page-4-5-7/app/
  *
  * Pages 2 and 3 approve two of the demo store's decisions (the simulator carries them out) and ask
  * one spoken question (model calls): re-seed the demo store afterwards (`make demo-seed`). The
@@ -266,12 +267,30 @@ async function conversation(browser, session) {
   await owner.close();
 }
 
+/** Pages 4, 5 and 7: Today, Decisions and the Journal, each whole, as the demo store has them. */
+async function overviews(browser, session) {
+  const owner = await browser.newContext({ viewport: VIEWPORT, storageState: session });
+  const page = await owner.newPage();
+  for (const [path, name, heading] of [
+    ["/today", "today", "Today"],
+    ["/decisions", "decisions", "Decisions"],
+    ["/journal", "journal", "Journal"],
+  ]) {
+    await page.goto(`${BASE}${path}`);
+    await page.getByRole("heading", { name: heading, level: 1 }).waitFor();
+    await page.locator('[aria-busy="true"]').first().waitFor({ state: "detached" });
+    await settle(page);
+    await whole(page, name);
+  }
+  await owner.close();
+}
+
 await mkdir(OUT, { recursive: true });
 const browser = await chromium.launch({
   channel: process.env.SCREENS_BROWSER ?? "msedge",
   // Pages 2 and 3: the microphone is the recording of a spoken question, allowed without a prompt.
   args:
-    PAGE === "1"
+    PAGE !== "2-3"
       ? []
       : [
           "--use-fake-ui-for-media-stream",
@@ -283,8 +302,10 @@ try {
   const session = await demoSession(browser);
   if (PAGE === "1") {
     for (const scheme of ["light", "dark"]) await foundation(browser, session, scheme);
-  } else {
+  } else if (PAGE === "2-3") {
     await conversation(browser, session);
+  } else {
+    await overviews(browser, session);
   }
 } finally {
   await browser.close();
