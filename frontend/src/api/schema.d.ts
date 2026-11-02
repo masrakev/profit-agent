@@ -1495,6 +1495,7 @@ export interface components {
              * Format: uuid
              */
             decision_id: string;
+            do_nothing: components["schemas"]["DoNothing"];
             /** Entity */
             entity: string;
             /**
@@ -1508,6 +1509,8 @@ export interface components {
             horizon_days: number;
             /** Incident Id */
             incident_id: string | null;
+            /** Label */
+            label: string;
             /** Options */
             options: components["schemas"]["OptionRow"][];
             /** Recommended Option Id */
@@ -1558,6 +1561,19 @@ export interface components {
          * @enum {string}
          */
         DetailLevel: "brief" | "standard" | "expert";
+        /**
+         * DoNothing
+         * @description The baseline the options are compared with: never approved, never executed.
+         */
+        DoNothing: {
+            /** Impact Fact Id */
+            impact_fact_id: number | null;
+            /**
+             * Label
+             * @default Do nothing
+             */
+            label: string;
+        };
         /** DocumentOut */
         DocumentOut: {
             /** Facts */
@@ -2088,6 +2104,8 @@ export interface components {
             invalidated_if: string[];
             /** Kind */
             kind: string;
+            /** Label */
+            label: string;
             /** Option Id */
             option_id: string;
             /** P10 */

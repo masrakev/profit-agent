@@ -54,6 +54,10 @@ FAMILIES: dict[str, Family] = {
         "nothing, as the store twin simulates both.",
         change=True,
     ),
+    "twin.parameter.": Family(
+        "a parameter of the simulated scenario: {x}",
+        "A setting of the action the store twin simulates: its {x}.",
+    ),
     "twin.do_nothing.": Family(
         "P10/P50/P90 over Monte Carlo draws of Σ {x} over the horizon, without any action",
         "Where {x} goes over the horizon if nothing changes, as the store twin simulates it.",
@@ -225,8 +229,10 @@ METHODS: dict[str, str] = {
 
 
 def method_text(method: str | None) -> str | None:
-    """How an estimate was made, in words; a derived method (`negated:<method>`) is its base."""
+    """How an estimate was made, in words. A derived method names its operation first
+    (`negated:<method>`); a method may add its settings after a semicolon
+    (`twin_monte_carlo_v1;calibration v1`)."""
     if not method:
         return None
-    base = method.rsplit(":", 1)[-1]
+    base = method.rsplit(":", 1)[-1].split(";", 1)[0]
     return METHODS.get(base, base.removesuffix("_v1").replace("_", " "))

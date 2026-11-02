@@ -90,6 +90,13 @@ def display_value(value: Decimal, unit: Unit, currency: str | None, *, signed: b
     return f"+{text}" if signed else text
 
 
+def format_share(fraction: Decimal) -> str:
+    """The size of a relative change as a percentage: Decimal("-0.3") -> "30%"."""
+    percent = abs(fraction) * 100
+    whole = round_for_display(percent, 0)
+    return f"{whole}%" if whole == percent else f"{round_for_display(percent, 1)}%"
+
+
 def display_quantiles(fact: Fact, *, signed: bool) -> tuple[str, str, str] | None:
     """An estimate's P10, P50 and P90 as short texts."""
     if not fact.is_defined or fact.kind is not FactKind.ESTIMATE:

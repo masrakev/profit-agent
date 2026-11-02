@@ -12,6 +12,10 @@ the most recent evidence (its data's last day; at equal evidence, the later prop
 and the other is `superseded`, a terminal state, linked to the one that stood, with the reason.
 A superseded goal step makes its plan propose a revision (`app.goals.service`).
 
+Every decision and option reads as a label naming what it acts on (`app.decisions.labels`), and
+every decision shows "do nothing" next to its options: an exact zero fact, whose parent is the
+twin's do-nothing outcome. It is not an option row: it is never approved nor executed.
+
 Email approval links are HMAC-SHA256 signed, name one decision, option and verdict, expire after
 24 hours and work once (the link row is consumed atomically). A link whose option goes beyond
 the spending caps only returns a confirmation: approving it takes the web (API) channel.
@@ -32,14 +36,19 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Connection, text
 from sqlalchemy.exc import IntegrityError
 
+from app.channels.render import load_entity_names
+from app.decisions.labels import DO_NOTHING, decision_label, entity_refs, option_label
 from app.decisions.options import OptionSet
 from app.delivery.queue import Subject, notify
 from app.domain.audit import append_audit
+from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.engine import FactEngine
+from app.facts.model import Fact, FactKind, FactStatus, Lineage, ParentRef, Scope, Unit
 from app.twin import ActionKind, TwinModel
 from app.twin.facts import input_facts, simulation_facts
 
 DECISION_TTL = timedelta(hours=72)
+DO_NOTHING_FORMULA = "decision.do_nothing.net_profit"
 LINK_TTL = timedelta(hours=24)
 
 
@@ -92,6 +101,7 @@ class OptionRow(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     option_id: str
+    label: str  # what it does, naming what it acts on
     rank: int
     kind: str
     action_family: str
@@ -130,12 +140,26 @@ class DecisionView(BaseModel):
     options: list[OptionRow]
     superseded_by: UUID | None = None  # the decision that stood
     superseded_reason: str | None = None
+    label: str  # the question it asks: its recommended option
+    do_nothing: "DoNothing"
 
     def option(self, option_id: str) -> OptionRow:
         found = next((o for o in self.options if o.option_id == option_id), None)
         if found is None:
             raise DecisionError("unknown_option", f"decision has no option {option_id!r}")
         return found
+
+
+class DoNothing(BaseModel):
+    """The baseline the options are compared with: never approved, never executed."""
+
+    model_config = ConfigDict(frozen=True)
+
+    label: str = DO_NOTHING
+    impact_fact_id: int | None  # an exact zero; None on decisions proposed before it existed
+
+
+DecisionView.model_rebuild()
 
 
 # What each action acts on, to find decisions acting on the same entity.
@@ -164,16 +188,28 @@ def propose(
     incident_id: str | None = None,
     now: datetime | None = None,
 ) -> DecisionView:
-    """Persist a decision with its options and their simulated impact facts."""
+    """Persist a decision with its options and their simulated impact facts, and the zero fact
+    of doing nothing (the decision row cannot change once inserted, so it comes first)."""
     now = now or datetime.now(UTC)
     decision_id = uuid4()
+    impacts: list[Fact | None] = []
+    baseline: Fact | None = None
+    for option in options.options:
+        fact = None
+        if option.simulation is not None and option.impact is not None:
+            sim = option.simulation
+            facts = simulation_facts(engine, model, sim, input_facts(engine, model, sim))
+            fact = facts["twin.change.net_profit"]
+            baseline = baseline or facts["twin.do_nothing.net_profit"]
+        impacts.append(fact)
+    zero = do_nothing_fact(engine, baseline) if baseline and baseline.is_defined else None
     conn.execute(
         text(
             "INSERT INTO decisions (decision_id, store_id, source, incident_id, cause, entity, "
             "status, recommended_option_id, horizon_days, floor, currency, as_of, expires_at, "
-            "payload, created_at, updated_at) VALUES (:d, :s, :source, :incident, :cause, "
-            ":entity, 'proposed', :rec, :h, :floor, :cur, :as_of, :exp, CAST(:payload AS jsonb), "
-            ":now, :now)"
+            "payload, created_at, updated_at, do_nothing_fact_id) VALUES (:d, :s, :source, "
+            ":incident, :cause, :entity, 'proposed', :rec, :h, :floor, :cur, :as_of, :exp, "
+            "CAST(:payload AS jsonb), :now, :now, :zero)"
         ),
         {
             "d": decision_id,
@@ -190,19 +226,10 @@ def propose(
             "exp": now + DECISION_TTL,
             "payload": json.dumps({"reason": options.reason, "twin": model.fingerprint}),
             "now": now,
+            "zero": zero.id if zero else None,
         },
     )
-    for rank, option in enumerate(options.options):
-        fact_id = None
-        impact = option.impact
-        sim = option.simulation
-        if sim is not None and impact is not None:
-            facts = simulation_facts(engine, model, sim, input_facts(engine, model, sim))
-            fact = facts["twin.change.net_profit"]
-            fact_id = fact.id
-            p10, p50, p90 = fact.p10, fact.p50, fact.p90
-        else:
-            p10 = p50 = p90 = None
+    for rank, (option, fact) in enumerate(zip(options.options, impacts, strict=True)):
         conn.execute(
             text(
                 "INSERT INTO decision_options (store_id, decision_id, option_id, rank, kind, "
@@ -222,10 +249,10 @@ def propose(
                 "actions": json.dumps([a.model_dump(mode="json") for a in option.actions]),
                 "exe": option.executable,
                 "rev": option.reversibility.value,
-                "fact": fact_id,
-                "p10": p10,
-                "p50": p50,
-                "p90": p90,
+                "fact": fact.id if fact else None,
+                "p10": fact.p10 if fact else None,
+                "p50": fact.p50 if fact else None,
+                "p90": fact.p90 if fact else None,
                 "risks": json.dumps(list(option.risks)),
                 "invalid": json.dumps(list(option.invalidated_if)),
                 "flags": json.dumps(list(option.flags)),
@@ -263,6 +290,28 @@ def propose(
             now=now,
         )
     return get(conn, model.store_id, decision_id)
+
+
+def do_nothing_fact(engine: FactEngine, outcome: Fact) -> Fact:
+    """Doing nothing compared with itself: an exact zero over the options' horizon, with the
+    twin's do-nothing outcome as its parent, so its proof shows what "nothing" leads to."""
+    fact = Fact(
+        store_id=outcome.store_id,
+        formula_id=DO_NOTHING_FORMULA,
+        formula_version=1,
+        kind=FactKind.EXACT,
+        scope=Scope.store(),
+        period=outcome.period,
+        status=FactStatus.DEFINED,
+        value=Decimal(0),
+        unit=Unit.MONEY,
+        currency=outcome.currency,
+        inputs_hash=sha256_hex(
+            canonical_json({"formula": DO_NOTHING_FORMULA, "do_nothing": outcome.fact_hash})
+        ),
+        lineage=Lineage(parents=(ParentRef(role="do_nothing", fact_hash=outcome.fact_hash),)),
+    )
+    return engine.persist(engine.adopt(fact))
 
 
 def targets(decision: DecisionView) -> frozenset[str]:
@@ -361,9 +410,22 @@ def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = Fal
     ).first()
     if row is None:
         raise LookupError(f"decision {decision_id} does not exist or is not visible")
+    rows = list(
+        conn.execute(
+            text(
+                "SELECT * FROM decision_options WHERE store_id = :s AND decision_id = :d "
+                "ORDER BY rank"
+            ),
+            {"s": store_id, "d": decision_id},
+        )
+    )
+    currency = row.currency.strip()
+    refs = set().union(*(entity_refs(o.entity, o.actions) for o in rows))
+    names = load_entity_names(conn, store_id, refs)
     options = [
         OptionRow(
             option_id=o.option_id,
+            label=option_label(o.kind, o.entity, o.actions, names, currency),
             rank=o.rank,
             kind=o.kind,
             action_family=o.action_family,
@@ -379,14 +441,9 @@ def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = Fal
             invalidated_if=list(o.invalidated_if),
             flags=list(o.flags),
         )
-        for o in conn.execute(
-            text(
-                "SELECT * FROM decision_options WHERE store_id = :s AND decision_id = :d "
-                "ORDER BY rank"
-            ),
-            {"s": store_id, "d": decision_id},
-        )
+        for o in rows
     ]
+    recommended = next(o for o in options if o.option_id == row.recommended_option_id)
     return DecisionView(
         decision_id=row.decision_id,
         store_id=row.store_id,
@@ -399,7 +456,7 @@ def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = Fal
         approved_option_id=row.approved_option_id,
         horizon_days=row.horizon_days,
         floor=row.floor,
-        currency=row.currency.strip(),
+        currency=currency,
         as_of=row.as_of.isoformat(),
         expires_at=row.expires_at,
         created_at=row.created_at,
@@ -407,6 +464,8 @@ def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = Fal
         options=options,
         superseded_by=row.superseded_by,
         superseded_reason=row.superseded_reason,
+        label=decision_label(recommended.label),
+        do_nothing=DoNothing(impact_fact_id=row.do_nothing_fact_id),
     )
 
 

@@ -13,6 +13,7 @@ import { PermissionCard } from "@/decisions/PermissionCard";
 import { estimateOf, factKey, type Fact } from "@/facts/facts";
 import { FactValue } from "@/facts/FactValue";
 import { VerifiedSeal } from "@/facts/VerifiedSeal";
+import { formatPeriod } from "@/format/dates";
 import { humanize } from "@/format/words";
 import { Composer } from "@/shell/Composer";
 import { useStore } from "@/stores/store";
@@ -63,12 +64,14 @@ function useCatalogueFacts() {
         }),
       ),
   });
-  const decision = decisions.data?.items.find(
+  const comparable = (decisions.data?.items ?? []).filter(
     (item) => item.options.filter((option) => option.impact_fact_id != null).length > 1,
   );
-  const impactIds = (decision?.options ?? []).flatMap((option) =>
-    option.impact_fact_id == null ? [] : [option.impact_fact_id],
-  );
+  const decision = comparable.find((item) => item.status === "proposed") ?? comparable[0];
+  const impactIds = [
+    ...(decision?.options ?? []).map((option) => option.impact_fact_id),
+    decision?.do_nothing.impact_fact_id,
+  ].flatMap((id) => (id == null ? [] : [id]));
   const impacts = useQueries({
     queries: impactIds.map((factId) => ({
       queryKey: factKey(storeId, factId),
@@ -89,8 +92,8 @@ function useCatalogueFacts() {
     exact: facts.find((fact) => fact.kind === "exact" && fact.metric === "net_profit"),
     estimate: facts.find((fact) => estimateOf(fact) !== null),
     decision,
-    impact: (option: Decision["options"][number]) =>
-      option.impact_fact_id == null ? null : (byId.get(option.impact_fact_id) ?? null),
+    fact: (factId: number | null | undefined) =>
+      factId == null ? null : (byId.get(factId) ?? null),
     pending: overview.isPending || decisions.isPending,
   };
 }
@@ -200,7 +203,7 @@ export function StyleGuidePage() {
             First approval / No standing permission
           </p>
           {data.decision ? (
-            <DecisionCard decision={data.decision} impact={data.impact} />
+            <DecisionCard decision={data.decision} fact={data.fact} />
           ) : (
             <Card title="Permission card">
               <Missing pending={data.pending} />
@@ -234,24 +237,29 @@ export function StyleGuidePage() {
 
 function DecisionCard({
   decision,
-  impact,
+  fact,
 }: {
   decision: Decision;
-  impact: (option: Decision["options"][number]) => Fact | null;
+  fact: (factId: number | null | undefined) => Fact | null;
 }) {
-  const options = decision.options.filter((option) => option.impact_fact_id != null);
-  const recommended = options.find((option) => option.option_id === decision.recommended_option_id);
+  const recommended = decision.options.find(
+    (option) => option.option_id === decision.recommended_option_id,
+  );
+  const zero = fact(decision.do_nothing.impact_fact_id);
+  const period = zero && formatPeriod(zero.period_start, zero.period_end);
   return (
     <PermissionCard
-      question={`${humanize((recommended ?? options[0])?.kind ?? decision.cause)}?`}
-      comparedWith={`Compared with doing nothing over ${String(decision.horizon_days)} days`}
-      options={options.map((option) => ({
+      question={decision.label}
+      comparedWith={
+        period ? `Compared with doing nothing, ${period}` : "Compared with doing nothing"
+      }
+      options={decision.options.map((option) => ({
         id: option.option_id,
-        label: humanize(option.kind),
-        impact: impact(option),
+        label: option.label,
+        impact: fact(option.impact_fact_id),
         recommended: option.option_id === decision.recommended_option_id,
       }))}
-      baseline={{ label: "Do nothing", impact: null }}
+      baseline={{ label: decision.do_nothing.label, impact: zero }}
       safety={`Safety checks: ${humanize(recommended?.reversibility ?? "reversible")} · nothing changes without your approval.`}
       onApprove={() => undefined}
       onDecline={() => undefined}

@@ -1003,6 +1003,9 @@
             "title": "Decision Id",
             "type": "string"
           },
+          "do_nothing": {
+            "$ref": "#/components/schemas/DoNothing"
+          },
           "entity": {
             "title": "Entity",
             "type": "string"
@@ -1030,6 +1033,10 @@
               }
             ],
             "title": "Incident Id"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
           },
           "options": {
             "items": {
@@ -1100,7 +1107,9 @@
           "expires_at",
           "created_at",
           "updated_at",
-          "options"
+          "options",
+          "label",
+          "do_nothing"
         ],
         "title": "DecisionView",
         "type": "object"
@@ -1156,6 +1165,32 @@
         ],
         "title": "DetailLevel",
         "type": "string"
+      },
+      "DoNothing": {
+        "description": "The baseline the options are compared with: never approved, never executed.",
+        "properties": {
+          "impact_fact_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact Fact Id"
+          },
+          "label": {
+            "default": "Do nothing",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "impact_fact_id"
+        ],
+        "title": "DoNothing",
+        "type": "object"
       },
       "DocumentOut": {
         "properties": {
@@ -2588,6 +2623,10 @@
             "title": "Kind",
             "type": "string"
           },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
           "option_id": {
             "title": "Option Id",
             "type": "string"
@@ -2643,6 +2682,7 @@
         },
         "required": [
           "option_id",
+          "label",
           "rank",
           "kind",
           "action_family",

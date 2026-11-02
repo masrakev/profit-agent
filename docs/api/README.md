@@ -110,7 +110,7 @@ ADR 0020.
 | POST | `/api/v1/whatsapp/webhook` | Meta's notifications: signed (`X-Hub-Signature-256`), each message stored once, processed by a job |
 | GET, PUT | `/api/v1/stores/{store_id}/kill-switch` | Read or set the store's kill switch |
 | GET | `/api/v1/stores/{store_id}/decisions` | Decisions, newest first |
-| GET | `/api/v1/stores/{store_id}/decisions/{decision_id}` | A decision and its options |
+| GET | `/api/v1/stores/{store_id}/decisions/{decision_id}` | A decision and its options, each with a `label` naming what it acts on (the decision's is the question it asks), and `do_nothing`: the baseline, with an exact zero fact (never approved nor executed) |
 | POST | `/api/v1/stores/{store_id}/decisions/{decision_id}/approve` | Approve an option |
 | POST | `/api/v1/stores/{store_id}/decisions/{decision_id}/reject` | Reject the decision |
 | POST | `/api/v1/stores/{store_id}/decisions/{decision_id}/links` | A signed approval link (for email) |

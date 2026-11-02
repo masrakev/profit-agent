@@ -23,6 +23,7 @@ def test_every_registry_formula_explains_itself() -> None:
         ("twin.change.net_profit", "How much net profit changes", True),
         ("twin.do_nothing.units", "Where units sold goes", False),
         ("twin.ad_spend", "Where ad spend goes", False),
+        ("twin.parameter.horizon_days", "its horizon days", False),
         ("decision.do_nothing.net_profit", "the change in net profit is zero", True),
         ("profit_driver.unit_cost", "How much unit cost moved net profit", True),
         ("outcome.effect.contribution_after_ads", "changed in contribution after ads", True),
@@ -59,6 +60,7 @@ def test_families_are_matched_longest_prefix_first() -> None:
 def test_methods_are_told_in_words() -> None:
     assert method_text("twin_monte_carlo_v1") == "simulated by the store twin"
     assert method_text("negated:block_bootstrap_shapley_v1") == "resampled from your history"
+    assert method_text("twin_monte_carlo_v1;calibration v1") == "simulated by the store twin"
     assert method_text("brand_new_v1") == "brand new"
     assert method_text(None) is None
     assert method_text("") is None

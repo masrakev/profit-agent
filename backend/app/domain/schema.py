@@ -319,6 +319,7 @@ decisions = Table(
     _ts("updated_at"),
     Column("superseded_by", Uuid, nullable=True),
     Column("superseded_reason", Text, nullable=True),
+    Column("do_nothing_fact_id", BigInteger, nullable=True),
 )
 
 decision_options = Table(

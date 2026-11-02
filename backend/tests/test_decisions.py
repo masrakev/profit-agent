@@ -15,6 +15,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from app.db import tenant_transaction
 from app.decisions.options import build_options
 from app.decisions.store import (
+    DO_NOTHING_FORMULA,
     TRANSITIONS,
     Channel,
     DecisionError,
@@ -34,6 +35,8 @@ from app.decisions.store import (
     transition,
 )
 from app.facts.engine import FactEngine
+from app.facts.model import FactKind
+from app.facts.repository import get_facts, load_lineage
 from app.twin import fit_twin
 from app.verifier import verify
 
@@ -80,6 +83,39 @@ def test_a_proposed_decision_holds_simulated_options(
     assert decision in list_decisions(conn, golden_stockout["id"])
     with pytest.raises(DecisionError, match="no option"):
         decision.option("missing")
+
+
+def test_a_decision_reads_as_labels_and_shows_doing_nothing(
+    conn: Connection, golden_stockout: dict[str, Any]
+) -> None:
+    decision = proposed(conn, golden_stockout)
+    campaign = conn.execute(
+        text(
+            "SELECT c.name FROM ad_campaigns c JOIN ad_campaign_products p "
+            "ON p.store_id = c.store_id AND p.campaign_id = c.id "
+            "WHERE c.store_id = :s AND p.product_id = :p"
+        ),
+        {"s": golden_stockout["id"], "p": golden_stockout["product"]},
+    ).scalar_one()
+    pause = decision.option(decision.recommended_option_id)
+    assert pause.label == f"Pause ‘{campaign}’ until restock"
+    assert decision.label == f"{pause.label}?"
+    assert all(o.label for o in decision.options)
+    assert decision.do_nothing.label == "Do nothing"
+    zero_id = decision.do_nothing.impact_fact_id
+    assert zero_id is not None
+    zero = get_facts(conn, decision.store_id, [zero_id])[zero_id]
+    impact = get_facts(conn, decision.store_id, [pause.impact_fact_id or 0])[
+        pause.impact_fact_id or 0
+    ]
+    assert (zero.formula_id, zero.kind, zero.value) == (
+        DO_NOTHING_FORMULA,
+        FactKind.EXACT,
+        Decimal(0),
+    )
+    assert (zero.period, zero.currency) == (impact.period, impact.currency)
+    parents = load_lineage(conn, decision.store_id, zero_id).parents
+    assert [p.role for p in parents] == ["do_nothing"]
 
 
 def _drive(conn: Connection, d: DecisionView, path: list[DecisionStatus]) -> None:

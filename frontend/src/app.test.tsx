@@ -83,15 +83,32 @@ describe("the component catalogue (development builds)", () => {
     cause: "stockout_on_promoted",
     horizon_days: 14,
     recommended_option_id: "pause",
+    label: "Pause ‘Trail Jacket — Prospecting’ until restock?",
+    do_nothing: { label: "Do nothing", impact_fact_id: 15 },
     options: [
       {
         option_id: "pause",
+        label: "Pause ‘Trail Jacket — Prospecting’ until restock",
         kind: "pause_until_restock",
         impact_fact_id: 13,
         reversibility: "reversible",
       },
-      { option_id: "cut", kind: "reduce_budget", impact_fact_id: 14, reversibility: "reversible" },
+      {
+        option_id: "cut",
+        label: "Cut the daily budget of ‘Trail Jacket — Prospecting’ by 30%",
+        kind: "reduce_budget",
+        impact_fact_id: 14,
+        reversibility: "reversible",
+      },
     ],
+  };
+  const zero = {
+    ...exact,
+    fact_id: 15,
+    metric: "decision.do_nothing.net_profit",
+    formatted: "$0.00",
+    display: "$0",
+    change: true,
   };
   const cut = estimateFact(
     14,
@@ -112,7 +129,8 @@ describe("the component catalogue (development builds)", () => {
       })
       .on(`GET /api/v1/stores/${STORE_ID}/decisions`, { items: [decision], next_cursor: null })
       .on(`GET ${facts}/13`, { fact: estimate, formula: null, parents: [], sources: [] })
-      .on(`GET ${facts}/14`, { fact: cut, formula: null, parents: [], sources: [] });
+      .on(`GET ${facts}/14`, { fact: cut, formula: null, parents: [], sources: [] })
+      .on(`GET ${facts}/15`, { fact: zero, formula: null, parents: [], sources: [] });
     renderApp("/style-guide", fake.api, { dev: true });
     expect(
       await screen.findByRole("heading", { name: "A calm workspace for clearer decisions." }),
@@ -122,7 +140,9 @@ describe("the component catalogue (development builds)", () => {
       "dark",
     );
     expect(
-      await screen.findByRole("article", { name: "Pause until restock?" }),
+      await screen.findByRole("article", {
+        name: "Pause ‘Trail Jacket — Prospecting’ until restock?",
+      }),
     ).toBeInTheDocument();
     await waitFor(() => {
       expect(
@@ -130,6 +150,8 @@ describe("the component catalogue (development builds)", () => {
       ).toBeGreaterThan(0);
     });
     expect(screen.getByRole("button", { name: "$1,235, see the proof" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "$0, see the proof" })).toBeInTheDocument();
+    expect(screen.getByText("Compared with doing nothing, Sep 1 – Sep 7, 2026")).toBeVisible();
   });
 
   it("says when the store has nothing to show", async () => {
