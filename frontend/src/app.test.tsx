@@ -5,7 +5,7 @@ import { ApiError } from "@/api/client";
 import { createQueryClient } from "@/api/queryClient";
 import { routes } from "@/router";
 import { initials, storeLabel, storeLine, useStore } from "@/stores/store";
-import { estimate, exact } from "@/test/facts";
+import { estimate, estimateFact, exact } from "@/test/facts";
 import { mockSystemTheme } from "@/test/matchMedia";
 import { renderApp, signedInApi, STORE_ID } from "@/test/render";
 
@@ -93,7 +93,13 @@ describe("the component catalogue (development builds)", () => {
       { option_id: "cut", kind: "reduce_budget", impact_fact_id: 14, reversibility: "reversible" },
     ],
   };
-  const cut = { ...estimate, fact_id: 14, formatted: "$150.00–$205.00" };
+  const cut = estimateFact(
+    14,
+    ["150", "178", "205"],
+    ["$150.00", "$178.00", "$205.00"],
+    ["+$150", "+$178", "+$205"],
+    true,
+  );
 
   it("lays out the style guide with the store's own numbers", async () => {
     const facts = `/api/v1/stores/${STORE_ID}/facts`;
@@ -120,10 +126,10 @@ describe("the component catalogue (development builds)", () => {
     ).toBeInTheDocument();
     await waitFor(() => {
       expect(
-        screen.getAllByRole("button", { name: "$150.00–$205.00, see the proof" }).length,
+        screen.getAllByRole("button", { name: "+$150 to +$205, see the proof" }).length,
       ).toBeGreaterThan(0);
     });
-    expect(screen.getByRole("button", { name: "$1,234.50, see the proof" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "$1,235, see the proof" })).toBeInTheDocument();
   });
 
   it("says when the store has nothing to show", async () => {

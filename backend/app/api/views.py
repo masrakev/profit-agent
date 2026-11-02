@@ -13,10 +13,22 @@ from sqlalchemy import Connection
 
 from app.briefings.models import Document, Section
 from app.channels.render import load_entity_names
+from app.facts.catalogue import is_change, method_text
 from app.facts.model import Fact
 from app.facts.repository import get_facts
 from app.verifier import entity_references, fact_references
-from app.verifier.render import format_fact
+from app.verifier.render import display_fact, display_quantiles, exact_quantiles, format_fact
+
+
+class Text(BaseModel):
+    formatted: str  # exact (the proof sheet's)
+    display: str  # short (rounded, signed for a change)
+
+
+class Quantiles(BaseModel):
+    p10: Text
+    p50: Text
+    p90: Text
 
 
 class FactOut(BaseModel):
@@ -25,7 +37,10 @@ class FactOut(BaseModel):
     formula_version: int
     kind: str
     status: str
-    formatted: str  # as shown to the owner (a range for an estimate)
+    formatted: str  # exact, as cited (a range for an estimate): the proof sheet's
+    display: str  # short: whole units, a range as "low to high", a change signed ("+$613")
+    change: bool  # a difference between two states, shown with its sign
+    quantiles: Quantiles | None = None  # an estimate's P10, P50 and P90 as texts
     value: str | None
     p10: str | None = None
     p50: str | None = None
@@ -38,6 +53,7 @@ class FactOut(BaseModel):
     baseline_start: datetime | None = None
     baseline_end: datetime | None = None
     method: str | None = None
+    method_description: str | None = None  # how an estimate was made, in words
     significant: bool | None = None
     undefined_reason: str | None = None
 
@@ -53,6 +69,20 @@ def fact_out(fact: Fact) -> FactOut:
         if fact.scope.id is None
         else f"{fact.scope.kind.value}:{fact.scope.id}"
     )
+    change = is_change(fact.formula_id)
+    exact, short = exact_quantiles(fact), display_quantiles(fact, signed=change)
+    quantiles = (
+        Quantiles(
+            **{
+                name: Text(formatted=formatted, display=display)
+                for name, formatted, display in zip(
+                    ("p10", "p50", "p90"), exact, short, strict=True
+                )
+            }
+        )
+        if exact is not None and short is not None
+        else None
+    )
     return FactOut(
         fact_id=fact.id,
         metric=fact.formula_id,
@@ -60,6 +90,9 @@ def fact_out(fact: Fact) -> FactOut:
         kind=fact.kind.value,
         status=fact.status.value,
         formatted=format_fact(fact),
+        display=display_fact(fact, signed=change),
+        change=change,
+        quantiles=quantiles,
         value=_str(fact.value),
         p10=_str(fact.p10),
         p50=_str(fact.p50),
@@ -72,6 +105,7 @@ def fact_out(fact: Fact) -> FactOut:
         baseline_start=fact.baseline.start if fact.baseline else None,
         baseline_end=fact.baseline.end if fact.baseline else None,
         method=fact.method,
+        method_description=method_text(fact.method),
         significant=fact.significant,
         undefined_reason=fact.undefined_reason,
     )

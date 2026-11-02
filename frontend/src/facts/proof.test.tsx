@@ -11,14 +11,21 @@ import { renderInStore, renderWithApi, STORE_ID } from "@/test/render";
 
 const FACTS = `/api/v1/stores/${STORE_ID}/facts`;
 
-const parent = { ...exact, fact_id: 7, metric: "revenue", formatted: "$3,000.00" };
+const parent = {
+  ...exact,
+  fact_id: 7,
+  metric: "revenue",
+  formatted: "$3,000.00",
+  display: "$3,000",
+};
 
 const exactDetail = {
   fact: exact,
   formula: {
     formula_id: "net_profit",
     version: 3,
-    description: "Revenue minus every cost of the period",
+    description: "contribution_after_ads − fixed_costs",
+    explanation: "Revenue minus every cost of the period",
     inputs: ["revenue", "costs"],
   },
   parents: [{ role: "revenue", fact: parent }],
@@ -40,7 +47,7 @@ function api() {
 describe("a number on screen", () => {
   it("is the API's formatted text, and a button that opens its proof", async () => {
     renderInStore(<FactValue fact={exact} />, api().api);
-    const number = screen.getByRole("button", { name: "$1,234.50, see the proof" });
+    const number = screen.getByRole("button", { name: "$1,235, see the proof" });
     expect(number).toHaveAttribute("aria-haspopup", "dialog");
     await userEvent.click(number);
     const sheet = screen.getByRole("dialog", { name: "Net profit" });
@@ -66,15 +73,16 @@ describe("the proof sheet", () => {
     expect(within(sheet).getByText("How it’s calculated")).toBeInTheDocument();
     expect(within(sheet).getByText("Sep 1 – Sep 7, 2026")).toBeInTheDocument();
     expect(within(sheet).getByText("net_profit · version 3")).toBeInTheDocument();
+    expect(within(sheet).getByText("contribution_after_ads − fixed_costs")).toBeInTheDocument();
     expect(within(sheet).getByText("Order lines")).toBeInTheDocument();
     expect(within(sheet).getByText("12 rows")).toBeInTheDocument();
-    expect(within(sheet).getByRole("button", { name: "$3,000.00, see the proof" })).toBeVisible();
+    expect(within(sheet).getByRole("button", { name: "$3,000, see the proof" })).toBeVisible();
   });
 
   it("opens a parent's proof on top, and goes back to the first", async () => {
     renderInStore(<FactValue fact={exact} />, api().api);
     await userEvent.click(screen.getByRole("button"));
-    await userEvent.click(await screen.findByRole("button", { name: "$3,000.00, see the proof" }));
+    await userEvent.click(await screen.findByRole("button", { name: "$3,000, see the proof" }));
     const parentSheet = screen.getByRole("dialog", { name: "Revenue" });
     expect(await within(parentSheet).findByText("1 row")).toBeInTheDocument();
     await userEvent.click(within(parentSheet).getByRole("button", { name: "Back" }));
@@ -85,7 +93,8 @@ describe("the proof sheet", () => {
     renderInStore(<FactValue fact={estimate} />, api().api);
     await userEvent.click(screen.getByRole("button"));
     const sheet = screen.getByRole("dialog");
-    expect(within(sheet).getByText("Estimate · simulated outcomes")).toBeInTheDocument();
+    expect(within(sheet).getByText("Estimate · simulated by the store twin")).toBeInTheDocument();
+    expect(within(sheet).getByText("$5,742.62 · $6,100.00 · $6,469.11")).toBeInTheDocument();
     expect(within(sheet).getByText("How it’s estimated")).toBeInTheDocument();
     expect(within(sheet).getByText("$5,742.62")).toBeInTheDocument();
     expect(within(sheet).getByText("Most likely")).toBeInTheDocument();

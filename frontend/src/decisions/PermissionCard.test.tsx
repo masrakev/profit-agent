@@ -3,18 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { PermissionCard, type PermissionCardProps } from "./PermissionCard";
-import { estimate } from "@/test/facts";
+import { estimate, estimateFact } from "@/test/facts";
 import { fakeApi } from "@/test/fakeApi";
 import { renderInStore } from "@/test/render";
 
-const cut = {
-  ...estimate,
-  fact_id: 14,
-  formatted: "$150.00–$205.00",
-  p10: "150",
-  p50: "178",
-  p90: "205",
-};
+const cut = estimateFact(
+  14,
+  ["150", "178", "205"],
+  ["$150.00", "$178.00", "$205.00"],
+  ["+$150", "+$178", "+$205"],
+  true,
+);
 
 function card(overrides: Partial<PermissionCardProps> = {}) {
   const props: PermissionCardProps = {
@@ -42,7 +41,7 @@ describe("the permission card", () => {
       name: "Pause ‘Trail Jacket — Prospecting’ until restock?",
     });
     expect(within(article).getByText(/Pause until restock/)).toHaveTextContent(
-      "Pause until restock $5,742.62–$6,469.11, see the proof (recommended)",
+      "Pause until restock $5,743 to $6,469, see the proof (recommended)",
     );
     expect(within(article).getAllByText("Most likely")).toHaveLength(2);
     expect(within(article).getByText("Prepare a reorder")).toBeInTheDocument();
@@ -54,12 +53,12 @@ describe("the permission card", () => {
     card();
     await userEvent.click(screen.getByRole("button", { name: "Verified" }));
     await userEvent.click(screen.getByRole("button", { name: "See the proof" }));
-    expect(screen.getByRole("dialog")).toHaveTextContent("$5,742.62–$6,469.11");
+    expect(screen.getByRole("dialog")).toHaveTextContent("$5,742.62 · $6,100.00 · $6,469.11");
   });
 
   it("opens each option's proof from its number", async () => {
     card();
-    await userEvent.click(screen.getByRole("button", { name: "$150.00–$205.00, see the proof" }));
+    await userEvent.click(screen.getByRole("button", { name: "+$150 to +$205, see the proof" }));
     expect(screen.getByRole("dialog", { name: "Cut budget" })).toBeInTheDocument();
   });
 

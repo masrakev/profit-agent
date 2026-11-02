@@ -91,10 +91,22 @@ def test_overview_incidents_and_facts(client: TestClient, golden_stockout: dict[
     net = next(v for v in overview["facts"].values() if v["metric"] == "net_profit")
     fact = client.get(f"{base}/facts/{net['fact_id']}").json()
     assert fact["formula"]["formula_id"] == "net_profit"
-    assert fact["formula"]["description"]
+    assert fact["formula"]["description"] == "contribution_after_ads − fixed_costs"
+    assert fact["formula"]["explanation"].startswith("Profit after every cost")
     assert {p["fact"]["metric"] for p in fact["parents"]} >= {"contribution_after_ads"}
+    assert (fact["fact"]["display"], fact["fact"]["change"]) == (net["display"], False)
+    assert "." not in net["display"]  # whole units
     derived = next(v for v in overview["facts"].values() if v["metric"] == "derived.compute")
-    assert client.get(f"{base}/facts/{derived['fact_id']}").json()["formula"] is None
+    words = client.get(f"{base}/facts/{derived['fact_id']}").json()["formula"]
+    assert words["explanation"].startswith("A calculation over the numbers")
+    estimate = next(v for v in overview["facts"].values() if v["kind"] == "estimate")
+    assert estimate["display"] == (
+        f"{estimate['quantiles']['p10']['display']} to {estimate['quantiles']['p90']['display']}"
+    )
+    assert estimate["formatted"] == (
+        f"{estimate['quantiles']['p10']['formatted']}–{estimate['quantiles']['p90']['formatted']}"
+    )
+    assert estimate["method_description"]
     assert client.get(f"{base}/facts/999999999").status_code == 404
     bridge = client.get(f"{base}/profit-bridge").json()
     assert len(bridge["drivers"]) == 8

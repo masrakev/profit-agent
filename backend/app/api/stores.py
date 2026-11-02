@@ -48,8 +48,7 @@ from app.briefings.store import get as get_briefing
 from app.briefings.store import list_briefings
 from app.db import tenant_transaction
 from app.detection.repository import load_incident
-from app.facts.formulas import REGISTRY
-from app.facts.registry import UnknownFormulaError
+from app.facts.catalogue import describe
 from app.facts.repository import get_facts
 from app.policies.engine import store_switch_on
 from app.settings.models import StoreSettings
@@ -362,7 +361,8 @@ def get_events(
 class Formula(BaseModel):
     formula_id: str
     version: int
-    description: str
+    description: str  # the technical expression
+    explanation: str  # the same, in plain words
     inputs: list[str]
 
 
@@ -379,7 +379,7 @@ class Source(BaseModel):
 
 class FactDetail(BaseModel):
     fact: FactOut
-    formula: Formula | None  # None for derived facts (Shapley, twin, derived)
+    formula: Formula | None  # None for a family the catalogue does not know
     parents: list[Parent]
     sources: list[Source]
 
@@ -405,16 +405,19 @@ def get_fact(
         ).all()
         parents = get_facts(conn, store_id, [r.parent_fact_id for r in rows if r.parent_fact_id])
     fact = found[fact_id]
-    try:
-        f = REGISTRY.get(fact.formula_id)
-        formula = Formula(
-            formula_id=f.formula_id,
-            version=f.version,
-            description=f.description,
-            inputs=list(f.inputs),
+    described = describe(fact.formula_id)
+    formula = (
+        Formula(
+            formula_id=described.formula_id,
+            version=fact.formula_version,
+            description=described.expression,
+            explanation=described.explanation,
+            inputs=list(described.inputs),
         )
-    except UnknownFormulaError:
-        formula = None
+        # A registry formula's words belong to its version: none for a fact of another one.
+        if described is not None and described.version in (None, fact.formula_version)
+        else None
+    )
     return FactDetail(
         fact=fact_out(fact),
         formula=formula,

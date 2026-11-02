@@ -46,28 +46,15 @@ export function useFactDetail(storeId: string, factId: number | null) {
   });
 }
 
-/**
- * The low and high ends of an estimate's formatted range, as the API wrote them ("$570–$614": the
- * API joins P10 and P90 with an en dash). Null when the text is not such a range.
- */
-export function rangeEnds(formatted: string): { low: string; high: string } | null {
-  const [low, high, ...rest] = formatted.split("–");
-  return low && high && rest.length === 0 ? { low, high } : null;
-}
+export type Precision = "display" | "exact";
 
-/** How an estimate was made, in words, from the API's method identifier. */
-const METHODS: Record<string, string> = {
-  twin_monte_carlo_v1: "simulated outcomes",
-  synthetic_control_v2: "compared with a synthetic control",
-  block_bootstrap_shapley_v1: "resampled from your history",
-  goal_trend_block_bootstrap_v1: "resampled from your trend",
-  ols_daily_normal_v1: "fitted to your daily trend",
-  sum_of_quantiles_v1: "summed from the ranges below",
-};
-
-export function methodText(method: string | null | undefined): string | null {
-  // A derived estimate names its operation first ("negated:block_bootstrap_shapley_v1").
-  const base = method?.split(":").at(-1);
-  if (!base) return null;
-  return METHODS[base] ?? base.replace(/_v[0-9]+$/, "").replaceAll("_", " ");
+/** An estimate's P10, P50 and P90 as the API wrote them: short on screens, exact in proofs. */
+export function quantileTexts(
+  fact: Fact,
+  precision: Precision = "display",
+): { p10: string; p50: string; p90: string } | null {
+  const q = fact.quantiles;
+  if (!q) return null;
+  const text = precision === "exact" ? "formatted" : "display";
+  return { p10: q.p10[text], p50: q.p50[text], p90: q.p90[text] };
 }

@@ -16,6 +16,7 @@ from app.verifier import (
     render,
     verify,
 )
+from app.verifier.render import display_fact, display_quantiles, exact_quantiles
 
 PERIOD = Period.days(date(2026, 1, 1), date(2026, 2, 1))
 
@@ -71,6 +72,39 @@ def test_render_formats_each_unit() -> None:
     )
     assert render("Revenue was {{F6}}.", facts) == "Revenue was 1,234."
     assert format_fact(fact("-12.5")) == "-$12.50"
+
+
+def test_display_texts_are_short_and_signed_for_changes() -> None:
+    minus = "−"
+    assert display_fact(fact("17571.78")) == "$17,572"
+    assert display_fact(fact("-40.40")) == f"{minus}$40"
+    assert display_fact(fact("613.18"), signed=True) == "+$613"
+    assert display_fact(fact("0"), signed=True) == "$0"
+    assert display_fact(fact("0.40")) == "$0.40"  # under one unit: the cents
+    assert display_fact(fact("-0.004"), signed=True) == "$0"
+    assert display_fact(fact("1250.4", currency="JPY")) == "¥1,250"
+    assert display_fact(fact("99.5", currency="CHF")) == "100 CHF"
+    assert display_fact(fact("1234", Unit.COUNT), signed=True) == "+1,234"
+    assert display_fact(fact("2.345", Unit.RATIO)) == "2.34×"
+    assert display_fact(fact("196.04", Unit.DAYS)) == "196.0 days"
+    assert display_fact(fact(None)) == "n/a"
+    estimate = fact(
+        "634.40",
+        kind=FactKind.ESTIMATE,
+        p10=Decimal("613.18"),
+        p50=Decimal("634.40"),
+        p90=Decimal("654.33"),
+        method="twin_monte_carlo_v1",
+    )
+    assert display_fact(estimate, signed=True) == "+$613 to +$654"
+    assert display_fact(estimate) == "$613 to $654"
+    assert display_quantiles(estimate, signed=True) == ("+$613", "+$634", "+$654")
+    assert exact_quantiles(estimate) == ("$613.18", "$634.40", "$654.33")
+    narrow = estimate.model_copy(update={"p10": Decimal("634.1"), "p90": Decimal("634.4")})
+    assert display_fact(narrow) == "$634"
+    assert display_quantiles(fact("1"), signed=False) is None
+    assert exact_quantiles(fact(None)) is None
+    assert format_fact(estimate) == "$613.18–$654.33"  # the exact text is unchanged
 
 
 def test_render_rejects_unknown_reference() -> None:

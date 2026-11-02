@@ -1,7 +1,7 @@
 import { waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { estimateOf, isDefined, methodText, rangeEnds, useFactDetail } from "./facts";
+import { estimateOf, isDefined, quantileTexts, useFactDetail } from "./facts";
 import { estimate, exact } from "@/test/facts";
 import { fakeApi } from "@/test/fakeApi";
 import { renderHookWithApi } from "@/test/render";
@@ -19,20 +19,14 @@ describe("facts", () => {
     expect(estimateOf({ ...estimate, p50: null })).toBeNull();
   });
 
-  it("reads the ends of a range as the API formatted them", () => {
-    expect(rangeEnds("$5,742.62–$6,469.11")).toEqual({ low: "$5,742.62", high: "$6,469.11" });
-    expect(rangeEnds("-$20.00–$14.00")).toEqual({ low: "-$20.00", high: "$14.00" });
-    expect(rangeEnds("$1,234.50")).toBeNull();
-    expect(rangeEnds("a–b–c")).toBeNull();
-    expect(rangeEnds("–$3")).toBeNull();
-  });
-
-  it("says how an estimate was made, in words", () => {
-    expect(methodText("twin_monte_carlo_v1")).toBe("simulated outcomes");
-    expect(methodText("negated:block_bootstrap_shapley_v1")).toBe("resampled from your history");
-    expect(methodText("brand_new_method_v3")).toBe("brand new method");
-    expect(methodText(null)).toBeNull();
-    expect(methodText("")).toBeNull();
+  it("gives an estimate's quantiles as the API wrote them, short or exact", () => {
+    expect(quantileTexts(estimate)).toEqual({ p10: "$5,743", p50: "$6,100", p90: "$6,469" });
+    expect(quantileTexts(estimate, "exact")).toEqual({
+      p10: "$5,742.62",
+      p50: "$6,100.00",
+      p90: "$6,469.11",
+    });
+    expect(quantileTexts(exact)).toBeNull();
   });
 
   it("asks for a fact's proof only once one is opened", async () => {

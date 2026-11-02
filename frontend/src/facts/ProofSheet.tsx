@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, type RefObject } from "react";
 import {
   estimateOf,
   isDefined,
-  methodText,
+  quantileTexts,
   useFactDetail,
   type Fact,
   type FactDetail,
@@ -68,13 +68,13 @@ export function ProofSheet({ storeId, fact, title, onClose, onBack }: ProofSheet
           <h2 id={titleId} className="text-title font-semibold text-ink">
             {heading}
           </h2>
-          <p className="text-proof font-semibold text-ink">{fact.formatted}</p>
+          <p className="text-proof font-semibold text-ink">{exactText(fact)}</p>
           <Precision fact={fact} />
         </section>
 
         <hr className="border-line" />
 
-        {estimate && <RangeBar fact={fact} interactive={false} />}
+        {estimate && <RangeBar fact={fact} interactive={false} precision="exact" />}
 
         <section className="flex flex-col gap-2.5 text-body text-ink">
           <h3 className="font-semibold">
@@ -93,6 +93,14 @@ export function ProofSheet({ storeId, fact, title, onClose, onBack }: ProofSheet
               {detail.data?.formula?.formula_id ?? fact.metric} · version{" "}
               {String(fact.formula_version)}
             </dd>
+            {detail.data?.formula && (
+              <>
+                <dt className="text-ink-muted">Expression</dt>
+                <dd className="font-mono text-label leading-[1.45] break-words text-ink-muted">
+                  {detail.data.formula.description}
+                </dd>
+              </>
+            )}
           </dl>
         </section>
 
@@ -148,6 +156,12 @@ export function ProofSheet({ storeId, fact, title, onClose, onBack }: ProofSheet
   );
 }
 
+/** The exact value: an estimate as its P10 · P50 · P90, as the API wrote them. */
+function exactText(fact: Fact): string {
+  const q = quantileTexts(fact, "exact");
+  return q ? `${q.p10} · ${q.p50} · ${q.p90}` : fact.formatted;
+}
+
 function Precision({ fact }: { fact: Fact }) {
   if (!isDefined(fact)) {
     return (
@@ -156,7 +170,7 @@ function Precision({ fact }: { fact: Fact }) {
       </p>
     );
   }
-  const method = methodText(fact.method);
+  const method = fact.method_description;
   return (
     <p className="flex items-center gap-[7px] text-small text-ink">
       <Icon
@@ -182,7 +196,7 @@ function Calculation({ detail, pending, failed }: CalculationProps) {
     return <p aria-busy="true" className="h-5 w-3/4 animate-pulse rounded-bar bg-subtle" />;
   }
   if (failed || !detail) return <p className="text-ink-muted">The proof could not be loaded.</p>;
-  if (detail.formula) return <p>{detail.formula.description}</p>;
+  if (detail.formula) return <p>{detail.formula.explanation}</p>;
   return (
     <p>
       {detail.parents.length > 0

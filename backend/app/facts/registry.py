@@ -49,8 +49,10 @@ class Formula:
     unit: Unit
     scopes: frozenset[ScopeKind]
     inputs: tuple[str, ...]
-    description: str
+    description: str  # the technical expression
     compute: ComputeFn
+    # In plain words, for the owner. Part of the version: a new version brings its own.
+    explanation: str = ""
 
 
 class UnknownFormulaError(KeyError):

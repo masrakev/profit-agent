@@ -8,10 +8,11 @@ import { fakeApi } from "@/test/fakeApi";
 import { renderInStore } from "@/test/render";
 
 describe("the range bar", () => {
-  it("shows the ends as the API formatted them and marks the most likely value", () => {
+  it("shows the API's low, most likely and high values, and marks the most likely", () => {
     const { container } = renderInStore(<RangeBar fact={estimate} />, fakeApi().api);
-    expect(screen.getByText("$5,742.62")).toBeInTheDocument();
-    expect(screen.getByText("$6,469.11")).toBeInTheDocument();
+    expect(screen.getByText("$5,743")).toBeInTheDocument();
+    expect(screen.getByText("$6,100")).toHaveClass("text-accent-ink");
+    expect(screen.getByText("$6,469")).toBeInTheDocument();
     expect(screen.getByText("Low")).toBeInTheDocument();
     expect(screen.getByText("Most likely")).toBeInTheDocument();
     expect(screen.getByText("High")).toBeInTheDocument();
@@ -27,22 +28,27 @@ describe("the range bar", () => {
   it("opens the estimate's proof", async () => {
     renderInStore(<RangeBar fact={estimate} title="Money at stake" />, fakeApi().api);
     await userEvent.click(
-      screen.getByRole("button", { name: "$5,742.62 to $6,469.11, see the proof" }),
+      screen.getByRole("button", {
+        name: "$5,743 to $6,469, most likely $6,100, see the proof",
+      }),
     );
     expect(screen.getByRole("dialog", { name: "Money at stake" })).toBeInTheDocument();
   });
 
-  it("is a plain picture where it is the proof itself", () => {
-    renderInStore(<RangeBar fact={estimate} interactive={false} />, fakeApi().api);
+  it("is a plain picture with exact texts where it is the proof itself", () => {
+    renderInStore(
+      <RangeBar fact={estimate} interactive={false} precision="exact" />,
+      fakeApi().api,
+    );
     expect(screen.queryByRole("button")).toBeNull();
-    expect(screen.getByText("Most likely")).toBeInTheDocument();
+    expect(screen.getByText("$6,100.00")).toBeInTheDocument();
   });
 
-  it("falls back to the formatted text when there is no usable range", () => {
+  it("falls back to the short text when there is no usable range", () => {
     renderInStore(<RangeBar fact={exact} />, fakeApi().api);
-    expect(screen.getByText("$1,234.50")).toBeInTheDocument();
+    expect(screen.getByText("$1,235")).toBeInTheDocument();
     expect(screen.queryByText("Most likely")).toBeNull();
     renderInStore(<RangeBar fact={{ ...estimate, p50: "not a number" }} />, fakeApi().api);
-    expect(screen.getByText("$5,742.62–$6,469.11")).toBeInTheDocument();
+    expect(screen.getByText("$5,743 to $6,469")).toBeInTheDocument();
   });
 });

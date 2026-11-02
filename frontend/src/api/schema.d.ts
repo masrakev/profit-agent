@@ -1616,8 +1616,12 @@ export interface components {
             baseline_end?: string | null;
             /** Baseline Start */
             baseline_start?: string | null;
+            /** Change */
+            change: boolean;
             /** Currency */
             currency: string | null;
+            /** Display */
+            display: string;
             /** Fact Id */
             fact_id: number;
             /** Formatted */
@@ -1628,6 +1632,8 @@ export interface components {
             kind: string;
             /** Method */
             method?: string | null;
+            /** Method Description */
+            method_description?: string | null;
             /** Metric */
             metric: string;
             /** P10 */
@@ -1646,6 +1652,7 @@ export interface components {
              * Format: date-time
              */
             period_start: string;
+            quantiles?: components["schemas"]["Quantiles"] | null;
             /** Scope */
             scope: string;
             /** Significant */
@@ -1716,6 +1723,8 @@ export interface components {
         Formula: {
             /** Description */
             description: string;
+            /** Explanation */
+            explanation: string;
             /** Formula Id */
             formula_id: string;
             /** Inputs */
@@ -2269,6 +2278,12 @@ export interface components {
             /** Verdict */
             verdict: string | null;
         };
+        /** Quantiles */
+        Quantiles: {
+            p10: components["schemas"]["Text"];
+            p50: components["schemas"]["Text"];
+            p90: components["schemas"]["Text"];
+        };
         /** Question */
         Question: {
             /** Question */
@@ -2688,6 +2703,13 @@ export interface components {
             columns: string[];
             /** Rows */
             rows: string[][];
+        };
+        /** Text */
+        Text: {
+            /** Display */
+            display: string;
+            /** Formatted */
+            formatted: string;
         };
         /** TokenOut */
         TokenOut: {

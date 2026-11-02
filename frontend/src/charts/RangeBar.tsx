@@ -1,5 +1,5 @@
 import { rangeGeometry } from "./range";
-import { estimateOf, rangeEnds, type Fact } from "@/facts/facts";
+import { estimateOf, quantileTexts, type Fact, type Precision } from "@/facts/facts";
 import { useProof } from "@/facts/proofContext";
 import { cx } from "@/ui/cx";
 
@@ -9,30 +9,38 @@ interface RangeBarProps {
   title?: string;
   /** False inside the proof sheet, where the bar is the proof itself. */
   interactive?: boolean;
+  /** Short texts on screens; exact ones in the proof sheet. */
+  precision?: Precision;
 }
 
 const pct = (fraction: number) => `${String(fraction * 100)}%`;
 
 /**
- * An estimate as its range: the low and high ends (P10, P90) as the API formatted them, at the two
- * ends of the track, and the most likely value (P50) as a mark between them. Nothing here is
+ * An estimate as its range: the low (P10), most likely (P50) and high (P90) values as the API
+ * wrote them, and the track with the most likely value marked where it falls. Nothing here is
  * computed for display: positions only place marks. An estimate without a usable range shows its
- * formatted text alone.
+ * text alone.
  */
-export function RangeBar({ fact, title, interactive = true }: RangeBarProps) {
+export function RangeBar({
+  fact,
+  title,
+  interactive = true,
+  precision = "display",
+}: RangeBarProps) {
   const proof = useProof();
   const estimate = estimateOf(fact);
-  const ends = rangeEnds(fact.formatted);
+  const texts = quantileTexts(fact, precision);
   const geometry = estimate && rangeGeometry(estimate.p10, estimate.p50, estimate.p90);
-  if (!estimate || !ends || !geometry) {
-    return <p className="text-label text-ink-muted">{fact.formatted}</p>;
+  if (!estimate || !texts || !geometry) {
+    return <p className="text-label text-ink-muted">{fact.display}</p>;
   }
 
   const content = (
     <>
       <span className="flex w-full items-start justify-between text-label whitespace-nowrap">
-        <span className="text-ink-muted">{ends.low}</span>
-        <span className="text-ink-muted">{ends.high}</span>
+        <span className="text-ink-muted">{texts.p10}</span>
+        <span className="font-semibold text-accent-ink">{texts.p50}</span>
+        <span className="text-ink-muted">{texts.p90}</span>
       </span>
       <span
         aria-hidden="true"
@@ -62,7 +70,7 @@ export function RangeBar({ fact, title, interactive = true }: RangeBarProps) {
     <button
       type="button"
       aria-haspopup="dialog"
-      aria-label={`${ends.low} to ${ends.high}, see the proof`}
+      aria-label={`${fact.display}, most likely ${texts.p50}, see the proof`}
       data-fact={fact.fact_id}
       className={cx(layout, "cursor-pointer rounded-[6px]")}
       onClick={() => {

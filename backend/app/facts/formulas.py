@@ -330,6 +330,8 @@ def build_registry() -> FormulaRegistry:
         compute: ComputeFn,
         description: str,
         inputs: tuple[str, ...] = (),
+        *,
+        explanation: str,
     ) -> None:
         registry.register(
             Formula(
@@ -341,14 +343,19 @@ def build_registry() -> FormulaRegistry:
                 inputs=inputs,
                 description=description,
                 compute=compute,
+                explanation=explanation,
             )
         )
 
     sales = "order lines of non-cancelled orders, by order date (UTC)"
     promoted = "over all sales of the products the campaign promotes (not only ad-attributed)"
-    for prefix, scopes, suffix in (
-        ("", STORE_PRODUCT, ""),
-        ("promoted_", CAMPAIGN, f" {promoted}"),
+    plain_promoted = (
+        " For a campaign: from every sale of the products it promotes, not only the ones its ads "
+        "brought."
+    )
+    for prefix, scopes, suffix, plain in (
+        ("", STORE_PRODUCT, "", ""),
+        ("promoted_", CAMPAIGN, f" {promoted}", plain_promoted),
     ):
         add(
             f"{prefix}revenue",
@@ -357,8 +364,18 @@ def build_registry() -> FormulaRegistry:
             REVENUE,
             f"Σ line net amount (unit price × quantity − discount; excludes tax and shipping) of "
             f"{sales}{suffix}",
+            explanation="What customers paid for the products, after discounts and without tax "
+            "or shipping, in orders placed in the period (cancelled orders left out)." + plain,
         )
-        add(f"{prefix}cogs", Unit.MONEY, scopes, COGS, f"Σ quantity × unit_cost_at_sale{suffix}")
+        add(
+            f"{prefix}cogs",
+            Unit.MONEY,
+            scopes,
+            COGS,
+            f"Σ quantity × unit_cost_at_sale{suffix}",
+            explanation="What the products sold cost you: each line's quantity times the "
+            "product's unit cost when it sold." + plain,
+        )
         add(
             f"{prefix}fees",
             Unit.MONEY,
@@ -366,6 +383,8 @@ def build_registry() -> FormulaRegistry:
             FEES,
             "Σ quantity × unit_fee_at_sale + payment fee allocated to the line "
             f"(pro rata to line net amount){suffix}",
+            explanation="The fees on the sales: each product's per-unit fee, plus the payment "
+            "fee of the order shared across its lines." + plain,
         )
         add(
             f"{prefix}refunds",
@@ -373,6 +392,8 @@ def build_registry() -> FormulaRegistry:
             scopes,
             _refunds,
             f"Σ merchandise refund amounts (excl. tax and shipping), by refund date (UTC){suffix}",
+            explanation="Money refunded to customers for products (not tax or shipping), "
+            "counted on the day of the refund." + plain,
         )
         add(
             f"{prefix}contribution_margin",
@@ -381,8 +402,17 @@ def build_registry() -> FormulaRegistry:
             _contribution(prefix),
             f"revenue − cogs − fees − refunds{suffix}",
             inputs=tuple(f"{prefix}{n}" for n in ("revenue", "cogs", "fees", "refunds")),
+            explanation="What sales leave once the products, the fees and the refunds are paid "
+            "for: revenue minus cost of goods, fees and refunds." + plain,
         )
-    add("units", Unit.COUNT, STORE_PRODUCT, UNITS, f"Σ quantity of {sales}")
+    add(
+        "units",
+        Unit.COUNT,
+        STORE_PRODUCT,
+        UNITS,
+        f"Σ quantity of {sales}",
+        explanation="Units sold, in orders placed in the period (cancelled orders left out).",
+    )
     add(
         "gross_margin",
         Unit.MONEY,
@@ -390,6 +420,7 @@ def build_registry() -> FormulaRegistry:
         _gross_margin,
         "revenue − cogs",
         inputs=("revenue", "cogs"),
+        explanation="Revenue minus what the products sold cost you.",
     )
     add(
         "ad_spend",
@@ -397,6 +428,7 @@ def build_registry() -> FormulaRegistry:
         STORE_CAMPAIGN,
         _ad_metric("spend", money=True),
         "Σ daily ad spend; a day counts when its UTC midnight is in the period",
+        explanation="What the ads cost, day by day, as the ad platform reports it.",
     )
     add(
         "attributed_revenue",
@@ -404,6 +436,8 @@ def build_registry() -> FormulaRegistry:
         STORE_CAMPAIGN,
         _ad_metric("attributed_revenue", money=True),
         "Σ revenue attributed by the ad platform (platform-reported, not reconciled to orders)",
+        explanation="Revenue the ad platform credits to the ads: its own count, not checked "
+        "against your orders.",
     )
     add(
         "attributed_purchases",
@@ -411,6 +445,7 @@ def build_registry() -> FormulaRegistry:
         STORE_CAMPAIGN,
         _ad_metric("attributed_purchases", money=False),
         "Σ purchases attributed by the ad platform",
+        explanation="Purchases the ad platform credits to the ads.",
     )
     add(
         "orders",
@@ -418,6 +453,8 @@ def build_registry() -> FormulaRegistry:
         STORE | PRODUCT | CAMPAIGN,
         _orders,
         f"non-cancelled orders with a line in scope ({sales}); campaign: a promoted product",
+        explanation="Orders placed in the period, cancelled ones left out; for a product or a "
+        "campaign, the orders with one of its products.",
     )
     add(
         "clicks",
@@ -425,6 +462,7 @@ def build_registry() -> FormulaRegistry:
         STORE_CAMPAIGN,
         _ad_metric("clicks", money=False),
         "Σ ad clicks reported by the platform",
+        explanation="Clicks on the ads, as the ad platform reports them.",
     )
     add(
         "impressions",
@@ -432,6 +470,7 @@ def build_registry() -> FormulaRegistry:
         STORE_CAMPAIGN,
         _ad_metric("impressions", money=False),
         "Σ ad impressions reported by the platform",
+        explanation="How many times the ads were shown, as the ad platform reports it.",
     )
     add(
         "attributed_contribution",
@@ -441,6 +480,9 @@ def build_registry() -> FormulaRegistry:
         "campaign: attributed_revenue × promoted_contribution_margin ÷ promoted_revenue "
         "(0 when attributed_revenue is 0); store: Σ over campaigns",
         inputs=("attributed_revenue", "promoted_revenue", "promoted_contribution_margin"),
+        explanation="The part of the products' contribution margin the ads brought in, in "
+        "proportion to the revenue the platform credits to them; for the store, added up over "
+        "the campaigns.",
     )
     add(
         "roas",
@@ -449,6 +491,8 @@ def build_registry() -> FormulaRegistry:
         _ratio_of("attributed_revenue", "ad_spend", money=False),
         "attributed_revenue ÷ ad_spend",
         inputs=("attributed_revenue", "ad_spend"),
+        explanation="Revenue the platform credits to the ads, for each unit of currency spent on "
+        "them.",
     )
     add(
         "poas",
@@ -457,6 +501,8 @@ def build_registry() -> FormulaRegistry:
         _ratio_of("attributed_contribution", "ad_spend", money=False),
         "attributed_contribution ÷ ad_spend",
         inputs=("attributed_contribution", "ad_spend"),
+        explanation="Contribution margin the ads brought in, for each unit of currency spent on "
+        "them: above 1, the ads pay for themselves.",
     )
     add(
         "cpa",
@@ -465,6 +511,7 @@ def build_registry() -> FormulaRegistry:
         _ratio_of("ad_spend", "attributed_purchases", money=True),
         "ad_spend ÷ attributed_purchases",
         inputs=("ad_spend", "attributed_purchases"),
+        explanation="What the ads cost for each purchase they brought.",
     )
     add(
         "contribution_after_ads",
@@ -473,6 +520,8 @@ def build_registry() -> FormulaRegistry:
         _contribution_after_ads,
         "contribution_margin − ad_spend",
         inputs=("contribution_margin", "ad_spend"),
+        explanation="What sales leave once the products, the fees, the refunds and the ads are "
+        "paid for.",
     )
     add(
         "fixed_costs",
@@ -480,6 +529,8 @@ def build_registry() -> FormulaRegistry:
         STORE,
         _fixed_costs,
         "Σ fixed cost item amount × (overlap of item span with period ÷ item span)",
+        explanation="Your fixed costs (rent, software, salaries…), each counted for the share of "
+        "its own period that falls in this one.",
     )
     add(
         "net_profit",
@@ -488,6 +539,8 @@ def build_registry() -> FormulaRegistry:
         _net_profit,
         "contribution_after_ads − fixed_costs",
         inputs=("contribution_after_ads", "fixed_costs"),
+        explanation="Profit after every cost: what sales leave after products, fees, refunds and "
+        "ads, minus your fixed costs.",
     )
     add(
         "units_on_hand",
@@ -495,6 +548,7 @@ def build_registry() -> FormulaRegistry:
         PRODUCT,
         _units_on_hand,
         "units on hand in the latest end-of-day snapshot whose day ended by the period end",
+        explanation="Units in stock at the end of the last day counted before the period ends.",
     )
     add(
         "inventory_cover_days",
@@ -504,6 +558,8 @@ def build_registry() -> FormulaRegistry:
         f"units_on_hand ÷ (units sold in [end − {INVENTORY_TRAILING_DAYS}d, end) ÷ "
         f"{INVENTORY_TRAILING_DAYS})",
         inputs=("units_on_hand", "units"),
+        explanation=f"How many days the stock lasts at the pace of the last "
+        f"{INVENTORY_TRAILING_DAYS} days of sales.",
     )
     add(
         "supplier_lead_time_days",
@@ -511,6 +567,7 @@ def build_registry() -> FormulaRegistry:
         PRODUCT,
         _supplier_lead_time,
         "the product's supplier lead time (a product attribute; the period does not matter)",
+        explanation="How long the supplier takes to deliver this product.",
     )
     add(
         "campaign_profit",
@@ -519,6 +576,8 @@ def build_registry() -> FormulaRegistry:
         _campaign_profit,
         "attributed_contribution − ad_spend",
         inputs=("attributed_contribution", "ad_spend"),
+        explanation="What the campaign earns after paying for itself: the contribution its ads "
+        "brought in, minus what they cost.",
     )
     add(
         "mer",
@@ -527,6 +586,8 @@ def build_registry() -> FormulaRegistry:
         _ratio_of("revenue", "ad_spend", money=False),
         "revenue ÷ ad_spend (marketing efficiency ratio)",
         inputs=("revenue", "ad_spend"),
+        explanation="All revenue, for each unit of currency spent on ads (marketing efficiency "
+        "ratio).",
     )
     add(
         "attribution_ratio",
@@ -535,6 +596,8 @@ def build_registry() -> FormulaRegistry:
         _attribution_ratio,
         "campaign: attributed_revenue ÷ promoted_revenue; store: attributed_revenue ÷ revenue",
         inputs=("attributed_revenue", "promoted_revenue", "revenue"),
+        explanation="The share of revenue the ad platform credits to the ads: for a campaign, of "
+        "its products' revenue; for the store, of all revenue.",
     )
     add(
         "refund_rate",
@@ -543,6 +606,8 @@ def build_registry() -> FormulaRegistry:
         _ratio_of("refunds", "revenue", money=False),
         "refunds (by refund date) ÷ revenue (by order date)",
         inputs=("refunds", "revenue"),
+        explanation="Refunds as a share of revenue (refunds counted on their day, revenue on the "
+        "order's).",
     )
     return registry
 

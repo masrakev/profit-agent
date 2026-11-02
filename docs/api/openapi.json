@@ -1373,6 +1373,10 @@
             ],
             "title": "Baseline Start"
           },
+          "change": {
+            "title": "Change",
+            "type": "boolean"
+          },
           "currency": {
             "anyOf": [
               {
@@ -1383,6 +1387,10 @@
               }
             ],
             "title": "Currency"
+          },
+          "display": {
+            "title": "Display",
+            "type": "string"
           },
           "fact_id": {
             "title": "Fact Id",
@@ -1410,6 +1418,17 @@
               }
             ],
             "title": "Method"
+          },
+          "method_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method Description"
           },
           "metric": {
             "title": "Metric",
@@ -1457,6 +1476,16 @@
             "format": "date-time",
             "title": "Period Start",
             "type": "string"
+          },
+          "quantiles": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantiles"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "scope": {
             "title": "Scope",
@@ -1511,6 +1540,8 @@
           "kind",
           "status",
           "formatted",
+          "display",
+          "change",
           "value",
           "unit",
           "currency",
@@ -1676,6 +1707,10 @@
             "title": "Description",
             "type": "string"
           },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
           "formula_id": {
             "title": "Formula Id",
             "type": "string"
@@ -1696,6 +1731,7 @@
           "formula_id",
           "version",
           "description",
+          "explanation",
           "inputs"
         ],
         "title": "Formula",
@@ -3149,6 +3185,26 @@
         "title": "ProgressOut",
         "type": "object"
       },
+      "Quantiles": {
+        "properties": {
+          "p10": {
+            "$ref": "#/components/schemas/Text"
+          },
+          "p50": {
+            "$ref": "#/components/schemas/Text"
+          },
+          "p90": {
+            "$ref": "#/components/schemas/Text"
+          }
+        },
+        "required": [
+          "p10",
+          "p50",
+          "p90"
+        ],
+        "title": "Quantiles",
+        "type": "object"
+      },
       "Question": {
         "properties": {
           "question": {
@@ -4026,6 +4082,24 @@
           "rows"
         ],
         "title": "Table",
+        "type": "object"
+      },
+      "Text": {
+        "properties": {
+          "display": {
+            "title": "Display",
+            "type": "string"
+          },
+          "formatted": {
+            "title": "Formatted",
+            "type": "string"
+          }
+        },
+        "required": [
+          "formatted",
+          "display"
+        ],
+        "title": "Text",
         "type": "object"
       },
       "TokenOut": {

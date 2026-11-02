@@ -9,7 +9,7 @@ interface FactValueProps {
   className?: string;
 }
 
-/** A number on screen: the API's formatted text, and a button that opens its proof. */
+/** A number on screen: the API's short text, and a button that opens its proof (exact). */
 export function FactValue({ fact, title, className }: FactValueProps) {
   const proof = useProof();
   return (
@@ -27,7 +27,7 @@ export function FactValue({ fact, title, className }: FactValueProps) {
         className,
       )}
     >
-      {fact.formatted}
+      {fact.display}
       <span className="sr-only">, see the proof</span>
     </button>
   );
