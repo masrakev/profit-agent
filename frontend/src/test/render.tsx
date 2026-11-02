@@ -51,10 +51,19 @@ export const SESSION = {
   expires_at: "2026-12-02T00:00:00Z",
 };
 
-/** A signed-in store's fake API: the session and a ready platform; tests add their routes. */
+export const STORE = {
+  store_id: STORE_ID,
+  name: "Northwind Outdoor",
+  currency: "USD",
+  timezone: "UTC",
+  synthetic: true,
+};
+
+/** A signed-in store's fake API: the session, the store and a ready platform. */
 export function signedInApi(): FakeApi {
   return fakeApi()
     .on("GET /api/v1/auth/session", SESSION)
+    .on(`GET /api/v1/stores/${STORE_ID}`, STORE)
     .on("GET /api/v1/ready", { status: "ready", database: "ok", schema_revision: null });
 }
 
@@ -73,7 +82,7 @@ export function renderApp(path: string, api: Api, { dev = false }: { dev?: boole
 /** A component that uses the store and the proof sheet, as the signed-in pages do. */
 export function renderInStore(ui: ReactElement, api: Api) {
   return renderWithApi(
-    <StoreContext.Provider value={{ storeId: STORE_ID, name: null }}>
+    <StoreContext.Provider value={{ storeId: STORE_ID, name: STORE.name, synthetic: true }}>
       <ProofProvider storeId={STORE_ID}>{ui}</ProofProvider>
     </StoreContext.Provider>,
     api,

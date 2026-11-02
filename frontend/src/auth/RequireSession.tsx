@@ -1,9 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, type ReactNode } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 
 import { useSession } from "./session";
+import { useApi } from "@/api/context";
 import { ProofProvider } from "@/facts/ProofProvider";
-import { StoreContext, type StoreRef } from "@/stores/store";
+import { fetchStore, StoreContext, storeKey, type StoreRef } from "@/stores/store";
 import { Button } from "@/ui/Button";
 
 /**
@@ -13,13 +15,26 @@ import { Button } from "@/ui/Button";
 export function RequireSession() {
   const session = useSession();
   const location = useLocation();
+  const api = useApi();
   const storeId = session.data?.store_ids[0];
+  const info = useQuery({
+    queryKey: storeKey(storeId ?? ""),
+    queryFn: () => fetchStore(api, storeId ?? ""),
+    enabled: storeId !== undefined,
+    staleTime: 5 * 60_000,
+  });
   const store = useMemo<StoreRef | null>(
-    () => (storeId ? { storeId, name: null } : null),
-    [storeId],
+    () =>
+      storeId
+        ? { storeId, name: info.data?.name ?? null, synthetic: info.data?.synthetic ?? false }
+        : null,
+    [storeId, info.data],
   );
 
-  if (session.isPending) return <Notice busy>Opening your store…</Notice>;
+  // The store's name is waited for (no flash of "Your store"), but never blocks the pages.
+  if (session.isPending || (storeId && info.isPending)) {
+    return <Notice busy>Opening your store…</Notice>;
+  }
   if (session.isError) {
     return (
       <Notice>

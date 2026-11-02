@@ -72,6 +72,7 @@ ADR 0020.
 | DELETE | `/api/v1/auth/session` | Sign out |
 | POST, GET | `/api/v1/stores/{store_id}/api-tokens` | Create (once shown) or list API tokens |
 | DELETE | `/api/v1/stores/{store_id}/api-tokens/{token_id}` | Revoke a token |
+| GET | `/api/v1/stores/{store_id}` | The store: name (data, escape it), currency, time zone, `synthetic` for a generated demo or benchmark store |
 | GET | `/api/v1/stores/{store_id}/overview` | Health line, money at stake, top items, pending decisions |
 | GET | `/api/v1/stores/{store_id}/incidents` | Incidents of the latest detection run, most urgent first |
 | GET | `/api/v1/stores/{store_id}/incidents/{incident_id}` | An incident, its facts, investigations and decisions |

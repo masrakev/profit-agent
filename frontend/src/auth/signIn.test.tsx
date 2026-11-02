@@ -6,7 +6,7 @@ import { demoSignIn } from "./demoSignIn";
 import { SESSION_KEY } from "./session";
 import { fakeApi, json, problem } from "@/test/fakeApi";
 import { mockSystemTheme } from "@/test/matchMedia";
-import { renderApp, SESSION, signedInApi } from "@/test/render";
+import { renderApp, SESSION, signedInApi, STORE_ID } from "@/test/render";
 
 vi.mock("./demoSignIn", () => ({ DEMO_OWNER: "owner@example.com", demoSignIn: vi.fn() }));
 
@@ -169,6 +169,12 @@ describe("the gate of signed-in pages", () => {
     up = true;
     await userEvent.click(retry);
     expect(await screen.findByRole("navigation", { name: "Main" })).toBeInTheDocument();
+  });
+
+  it("opens the store even when its name cannot be read", async () => {
+    const fake = signedInApi().on(`GET /api/v1/stores/${STORE_ID}`, () => problem(503, "down"));
+    renderApp("/", fake.api);
+    expect(await screen.findByRole("banner")).toHaveTextContent("Your store");
   });
 
   it("says so when the account has no store", async () => {

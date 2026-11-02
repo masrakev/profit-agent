@@ -51,7 +51,7 @@ describe("the app shell", () => {
   it("shows the store and the brand in the header, and a skip link", async () => {
     renderApp("/", signedInApi().api);
     const header = await screen.findByRole("banner");
-    expect(within(header).getByText("Your store")).toBeInTheDocument();
+    expect(within(header).getByText("Northwind Outdoor · Demo store")).toBeInTheDocument();
     expect(within(header).getByText("Profit Agent")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");
   });
@@ -81,10 +81,10 @@ describe("the app shell", () => {
       () => new Response(null, { status: 204 }),
     );
     const { router } = renderApp("/", fake.api);
-    const store = await screen.findByRole("button", { name: /Your store/ });
-    expect(store).toHaveTextContent("YS");
+    const store = await screen.findByRole("button", { name: /Northwind Outdoor/ });
+    expect(store).toHaveTextContent("NO");
     await userEvent.click(store);
-    const menu = screen.getByRole("menu", { name: "Your store" });
+    const menu = screen.getByRole("menu", { name: "Northwind Outdoor" });
     const signOut = within(menu).getByRole("menuitem", { name: "Sign out" });
     expect(signOut).toHaveFocus();
     await userEvent.keyboard("{Escape}");

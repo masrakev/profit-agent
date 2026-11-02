@@ -58,6 +58,18 @@ def test_the_contract_is_frozen() -> None:
     )
 
 
+def test_the_store_is_named(client: TestClient, golden_stockout: dict[str, Any]) -> None:
+    store = client.get(f"/api/v1/stores/{golden_stockout['id']}").json()
+    assert store == {
+        "store_id": str(golden_stockout["id"]),
+        "name": "Bench store 70400",
+        "currency": "USD",
+        "timezone": "UTC",
+        "synthetic": True,
+    }
+    assert client.get(f"/api/v1/stores/{uuid4()}").status_code == 404
+
+
 def test_overview_incidents_and_facts(client: TestClient, golden_stockout: dict[str, Any]) -> None:
     base = f"/api/v1/stores/{golden_stockout['id']}"
     overview = client.get(f"{base}/overview").json()

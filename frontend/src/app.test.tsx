@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/api/client";
 import { createQueryClient } from "@/api/queryClient";
 import { routes } from "@/router";
-import { initials, storeLabel, useStore } from "@/stores/store";
+import { initials, storeLabel, storeLine, useStore } from "@/stores/store";
 import { estimate, exact } from "@/test/facts";
 import { mockSystemTheme } from "@/test/matchMedia";
 import { renderApp, signedInApi, STORE_ID } from "@/test/render";
@@ -60,8 +60,12 @@ describe("an expired session", () => {
 
 describe("the store", () => {
   it("is named, or called your store until the API names it", () => {
-    expect(storeLabel({ storeId: STORE_ID, name: "Northwind Outdoor" })).toBe("Northwind Outdoor");
-    expect(storeLabel({ storeId: STORE_ID, name: null })).toBe("Your store");
+    expect(storeLabel({ name: "Northwind Outdoor" })).toBe("Northwind Outdoor");
+    expect(storeLabel({ name: null })).toBe("Your store");
+    expect(storeLine({ storeId: STORE_ID, name: "Acme", synthetic: false })).toBe("Acme");
+    expect(storeLine({ storeId: STORE_ID, name: "Acme", synthetic: true })).toBe(
+      "Acme · Demo store",
+    );
     expect(initials("Northwind Outdoor")).toBe("NO");
     expect(initials("  acme  ")).toBe("A");
   });
