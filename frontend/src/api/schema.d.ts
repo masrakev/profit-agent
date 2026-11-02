@@ -806,7 +806,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Investigation */
+        /**
+         * Get Investigation
+         * @description The investigation's report, when it started and finished, and what it cites.
+         */
         get: operations["get_investigation_api_v1_stores__store_id__investigations__investigation_id__get"];
         put?: never;
         post?: never;
@@ -1982,8 +1985,13 @@ export interface components {
          * @enum {string}
          */
         IntentAction: "change_budget" | "pause_campaign" | "change_all_ad_spend" | "change_price" | "launch_campaign";
-        /** Investigation */
-        Investigation: {
+        /**
+         * InvestigationOut
+         * @description An investigation with when it ran, and the facts and names its report cites: a client
+         *     renders every `{{F<id>}}` as a clickable number and every `{{E:...}}` as a name (merchant
+         *     data: escape it).
+         */
+        InvestigationOut: {
             /** Adjustments */
             adjustments: string[];
             /** Cache Hit */
@@ -1995,6 +2003,19 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Duration */
+            duration: string | null;
+            /** Duration Seconds */
+            duration_seconds: number | null;
+            /** Facts */
+            facts: {
+                [key: string]: components["schemas"]["FactOut"];
+            };
+            /**
+             * Finished At
+             * Format: date-time
+             */
+            finished_at: string;
             /** Incident Id */
             incident_id: string;
             /**
@@ -2004,6 +2025,10 @@ export interface components {
             investigation_id: string;
             /** Memo Hits */
             memo_hits: number;
+            /** Names */
+            names: {
+                [key: string]: string;
+            };
             /** Prompt Version */
             prompt_version: string;
             /** Refused Tools */
@@ -2015,6 +2040,8 @@ export interface components {
             routing: components["schemas"]["RoutingInfo"];
             /** Stages Version */
             stages_version: string;
+            /** Started At */
+            started_at?: string | null;
             /**
              * Status
              * @enum {string}
@@ -6370,7 +6397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Investigation"];
+                    "application/json": components["schemas"]["InvestigationOut"];
                 };
             };
             /** @description Not signed in, or the token is not valid */
@@ -6518,7 +6545,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Investigation"];
+                    "application/json": components["schemas"]["InvestigationOut"];
                 };
             };
             /** @description Not signed in, or the token is not valid */

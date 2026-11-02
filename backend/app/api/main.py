@@ -14,7 +14,8 @@ from fastapi import APIRouter, FastAPI, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.agent.ask import ask
-from app.agent.investigator import Investigation, investigate, load_investigation
+from app.agent.investigator import investigate, load_investigation
+from app.agent.trace import steps_after
 from app.api import problems
 from app.api.auth import StoreDep
 from app.api.auth import router as auth_router
@@ -26,7 +27,7 @@ from app.api.middleware import ApiMiddleware, RateLimiter
 from app.api.privacy import router as privacy_router
 from app.api.problems import RESPONSES
 from app.api.stores import router as stores_router
-from app.api.views import AskOut, ask_out
+from app.api.views import AskOut, InvestigationOut, ask_out, investigation_out
 from app.api.whatsapp import router as whatsapp_router
 from app.api.whatsapp import webhook_router
 from app.db import tenant_transaction
@@ -59,7 +60,7 @@ def post_ask(
 
 @router.post(
     "/stores/{store_id}/incidents/{incident_id}/investigate",
-    response_model=Investigation,
+    response_model=InvestigationOut,
     tags=["investigations"],
 )
 def post_investigate(
@@ -68,28 +69,32 @@ def post_investigate(
     engine: EngineDep,
     provider: ProviderDep,
     refresh: bool = False,
-) -> Investigation:
+) -> InvestigationOut:
     """Investigate an incident; an identical investigation is served from the cache unless
     `refresh` is set."""
     try:
-        return investigate(engine, store_id, incident_id, provider, use_cache=not refresh)
+        done = investigate(engine, store_id, incident_id, provider, use_cache=not refresh)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    with tenant_transaction(engine, store_id) as conn:
+        return investigation_out(conn, done)
 
 
 @router.get(
     "/stores/{store_id}/investigations/{investigation_id}",
-    response_model=Investigation,
+    response_model=InvestigationOut,
     tags=["investigations"],
 )
 def get_investigation(
     investigation_id: UUID, store_id: StoreDep, engine: EngineDep
-) -> Investigation:
+) -> InvestigationOut:
+    """The investigation's report, when it started and finished, and what it cites."""
     with tenant_transaction(engine, store_id) as conn:
         found = load_investigation(conn, store_id, investigation_id)
-    if found is None:
-        raise HTTPException(status_code=404, detail=f"no investigation {investigation_id}")
-    return found
+        if found is None:
+            raise HTTPException(status_code=404, detail=f"no investigation {investigation_id}")
+        first = steps_after(conn, store_id, investigation_id)[:1]
+        return investigation_out(conn, found, first[0].created_at if first else None)
 
 
 def create_app(limiter: RateLimiter | None = None) -> FastAPI:

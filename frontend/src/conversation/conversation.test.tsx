@@ -343,11 +343,14 @@ describe("what was checked about a problem", () => {
           counter_evidence: [],
         },
       ],
-      narrative: "Spend kept going as in {{F12}}.",
+      narrative: "Spend kept going as in {{F12}}, then {{F14}}.",
       flags: [],
       open_questions: [],
       audit_findings: [],
     },
+    duration: "41 s",
+    facts: { "14": { ...exact, fact_id: 14, display: "$140" } }, // cited by the report only
+    names: {},
   };
   function incident(extra: Record<string, unknown> = {}) {
     return {
@@ -383,10 +386,13 @@ describe("what was checked about a problem", () => {
       within(checked).getByText("Ads keep spending on a product that is out of stock."),
     ).toBeVisible();
     expect(within(checked).getByText("Checked stock against lead time")).toBeVisible();
-    await userEvent.click(within(checked).getByRole("button", { name: "My steps" }));
+    const mySteps = within(checked).getByRole("button", { name: /^My steps/ });
+    expect(mySteps).toHaveTextContent("My steps· took 41 s");
+    await userEvent.click(mySteps);
     expect(within(checked).getByText("Checked the stock of Trail Jacket")).toBeVisible();
     await userEvent.click(within(checked).getByRole("button", { name: "Full report" }));
     expect(within(checked).getByText(/Spend kept going/)).toBeVisible();
+    expect(within(checked).getByRole("button", { name: "$140, see the proof" })).toBeVisible();
     await userEvent.click(within(checked).getByRole("button", { name: "See options" }));
     expect(
       await screen.findByRole("article", { name: decision("proposed").label }),

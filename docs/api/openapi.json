@@ -2312,8 +2312,9 @@
         "title": "IntentAction",
         "type": "string"
       },
-      "Investigation": {
+      "InvestigationOut": {
         "additionalProperties": false,
+        "description": "An investigation with when it ran, and the facts and names its report cites: a client\nrenders every `{{F<id>}}` as a clickable number and every `{{E:...}}` as a name (merchant\ndata: escape it).",
         "properties": {
           "adjustments": {
             "items": {
@@ -2335,6 +2336,40 @@
             "title": "Created At",
             "type": "string"
           },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "facts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FactOut"
+            },
+            "title": "Facts",
+            "type": "object"
+          },
+          "finished_at": {
+            "format": "date-time",
+            "title": "Finished At",
+            "type": "string"
+          },
           "incident_id": {
             "title": "Incident Id",
             "type": "string"
@@ -2347,6 +2382,13 @@
           "memo_hits": {
             "title": "Memo Hits",
             "type": "integer"
+          },
+          "names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Names",
+            "type": "object"
           },
           "prompt_version": {
             "title": "Prompt Version",
@@ -2375,6 +2417,18 @@
           "stages_version": {
             "title": "Stages Version",
             "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
           },
           "status": {
             "enum": [
@@ -2434,9 +2488,14 @@
           "verifier_violations",
           "refused_tools",
           "stop_reason",
-          "created_at"
+          "created_at",
+          "finished_at",
+          "duration_seconds",
+          "duration",
+          "facts",
+          "names"
         ],
-        "title": "Investigation",
+        "title": "InvestigationOut",
         "type": "object"
       },
       "InvestigationReport": {
@@ -9312,7 +9371,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Investigation"
+                  "$ref": "#/components/schemas/InvestigationOut"
                 }
               }
             },
@@ -9491,6 +9550,7 @@
     },
     "/api/v1/stores/{store_id}/investigations/{investigation_id}": {
       "get": {
+        "description": "The investigation's report, when it started and finished, and what it cites.",
         "operationId": "get_investigation_api_v1_stores__store_id__investigations__investigation_id__get",
         "parameters": [
           {
@@ -9519,7 +9579,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Investigation"
+                  "$ref": "#/components/schemas/InvestigationOut"
                 }
               }
             },

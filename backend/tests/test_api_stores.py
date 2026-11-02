@@ -10,13 +10,14 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 
 from app.agent.llm import fake as f
 from app.agent.steps import Step, emit, recording
 from app.api.deps import get_engine, get_provider
 from app.api.main import app
 from app.api.openapi import OPENAPI_FILE, document, main
+from app.api.views import duration_text
 from app.briefings.models import BriefingKind
 from app.briefings.service import generate
 from app.detection.config import default_config
@@ -154,7 +155,7 @@ def scripted_investigation(harness: Harness) -> None:
 
 
 def test_an_investigation_is_streamed(
-    client: TestClient, harness: Harness, golden_stockout: dict[str, Any]
+    client: TestClient, harness: Harness, golden_stockout: dict[str, Any], owner_engine: Engine
 ) -> None:
     base = f"/api/v1/stores/{golden_stockout['id']}"
     scripted_investigation(harness)
@@ -176,6 +177,9 @@ def test_an_investigation_is_streamed(
     assert [s["kind"] for s in steps] == kinds
     result = client.get(run["result"]).json()
     assert result["investigation_id"] == run["investigation_id"]
+    # Its start is its first step ("started", just before the investigation itself).
+    assert result["started_at"] <= steps[0]["created_at"] <= result["finished_at"]
+    assert result["duration"] == duration_text(result["duration_seconds"])
     resumed = events(client.get(run["events"], headers={"Last-Event-ID": str(len(steps) - 1)}).text)
     assert [k for k, _ in resumed] == ["done"]
     # The same investigation again: served from the cache, at once.
@@ -186,6 +190,30 @@ def test_an_investigation_is_streamed(
     assert client.get(f"{base}/investigations/{uuid4()}/events").status_code == 404
     missing = client.post(f"{base}/incidents/inc-000000000000/investigations")
     assert missing.status_code == 404
+    # One investigated before its start was kept: timed from its first step, or not at all
+    # (investigations are append-only for the app: the owner edits this one).
+    with owner_engine.begin() as conn:
+        conn.execute(
+            text(
+                "UPDATE investigations SET payload = payload - 'started_at' "
+                "WHERE investigation_id = :i"
+            ),
+            {"i": run["investigation_id"]},
+        )
+    older = client.get(run["result"]).json()
+    assert older["started_at"] == steps[0]["created_at"]
+    assert older["duration"] == duration_text(older["duration_seconds"])
+    with owner_engine.begin() as conn:
+        conn.execute(
+            text("DELETE FROM investigation_steps WHERE investigation_id = :i"),
+            {"i": run["investigation_id"]},
+        )
+    untimed = client.get(run["result"]).json()
+    assert (untimed["started_at"], untimed["duration_seconds"], untimed["duration"]) == (
+        None,
+        None,
+        None,
+    )
 
 
 def test_briefings(client: TestClient, app_engine: Engine, golden_stockout: dict[str, Any]) -> None:

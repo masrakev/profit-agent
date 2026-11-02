@@ -13,13 +13,21 @@ interface WorkingProps {
   live: boolean;
   /** The heading once done ("What I checked"). */
   title?: string;
+  /** How long the work took, as the API says it ("41 s"), once done. */
+  duration?: string | null;
 }
 
 /**
  * The agent's work, step by step, as it happens: what it read and checked, in plain words. While
  * it works the block is open and live; once the answer is there it folds into one line.
  */
-export function Working({ steps, names, live, title = "What I checked" }: WorkingProps) {
+export function Working({
+  steps,
+  names,
+  live,
+  title = "What I checked",
+  duration = null,
+}: WorkingProps) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const shown = visibleSteps(steps);
@@ -51,6 +59,9 @@ export function Working({ steps, names, live, title = "What I checked" }: Workin
             <Icon name="circle-check" size={16} className="text-accent-ink" />
           )}
           {live ? "Working…" : title}
+          {!live && duration && (
+            <span className="font-normal text-ink-muted">· took {duration}</span>
+          )}
         </span>
         {!live && (
           <Icon

@@ -13,6 +13,7 @@ from sqlalchemy import Connection
 
 from app.agent.ask import AskResult
 from app.agent.contracts import Answer
+from app.agent.investigator import Investigation, InvestigationReport
 from app.briefings.models import Document, Section
 from app.channels.render import load_entity_names
 from app.facts.catalogue import fact_name, is_change, method_text
@@ -158,6 +159,66 @@ def ask_out(conn: Connection, result: AskResult) -> AskOut:
     evidence = [f"{{{{F{i}}}}}" for i in result.answer.evidence]
     refs = cited(conn, result.store_id, [*answer_texts(result.answer), *evidence])
     return AskOut(**result.model_dump(), facts=refs.facts, names=refs.names)
+
+
+class InvestigationOut(Investigation):
+    """An investigation with when it ran, and the facts and names its report cites: a client
+    renders every `{{F<id>}}` as a clickable number and every `{{E:...}}` as a name (merchant
+    data: escape it)."""
+
+    finished_at: datetime
+    duration_seconds: int | None  # None when its start was not kept
+    duration: str | None  # the same as a client shows it: "41 s", "1 min 5 s"
+    facts: dict[str, FactOut]
+    names: dict[str, str]
+
+
+def duration_text(seconds: int) -> str:
+    if seconds < 1:
+        return "under a second"
+    minutes, rest = divmod(seconds, 60)
+    if not minutes:
+        return f"{rest} s"
+    return f"{minutes} min {rest} s" if rest else f"{minutes} min"
+
+
+def report_texts(report: InvestigationReport) -> list[str]:
+    """Every text of a report that may cite facts or entities, and its evidence as references."""
+    evidence = [
+        *(i for h in report.hypotheses for i in h.evidence),
+        *(i for a in report.audit_findings for i in a.evidence),
+    ]
+    return [
+        report.narrative,
+        *report.open_questions,
+        *(e for h in report.hypotheses for e in h.entities),
+        *(t for h in report.hypotheses for t in (*h.tests_performed, *h.counter_evidence)),
+        *(t for a in report.audit_findings for t in (a.effect, a.next_check)),
+        *(f"{{{{F{i}}}}}" for i in evidence),
+    ]
+
+
+def investigation_out(
+    conn: Connection, investigation: Investigation, first_step: datetime | None = None
+) -> InvestigationOut:
+    """`first_step`: when its first step was recorded (a streamed investigation's "started",
+    just before the investigation itself starts), its start if earlier or the only one known."""
+    known = [t for t in (investigation.started_at, first_step) if t is not None]
+    started = min(known) if known else None
+    seconds = (
+        None
+        if started is None
+        else max(0, int((investigation.created_at - started).total_seconds()))
+    )
+    refs = cited(conn, investigation.store_id, report_texts(investigation.report))
+    return InvestigationOut(
+        **{**investigation.model_dump(), "started_at": started},
+        finished_at=investigation.created_at,
+        duration_seconds=seconds,
+        duration=None if seconds is None else duration_text(seconds),
+        facts=refs.facts,
+        names=refs.names,
+    )
 
 
 class DocumentOut(Cited):

@@ -124,7 +124,8 @@ class Investigation(_Out):
     verifier_violations: int  # literal numbers found in rejected outputs
     refused_tools: list[str]
     stop_reason: str | None
-    created_at: datetime
+    started_at: datetime | None = None  # None: investigated before the start was kept
+    created_at: datetime  # when it finished
 
 
 # --- routing -------------------------------------------------------------------------------
@@ -350,6 +351,7 @@ def investigate(
     run_id: str | None = None,
     investigation_id: UUID | None = None,
 ) -> Investigation:
+    started_at = datetime.now(UTC)
     stages = stages or load_stages()
     prompt = load_prompt("investigator")
     log = get_logger(__name__)
@@ -461,6 +463,7 @@ def investigate(
             verifier_violations=run.violations,
             refused_tools=[c.name for c in registry.refused],
             stop_reason=run.stop_reason,
+            started_at=started_at,
             created_at=datetime.now(UTC),
         )
         conn.execute(

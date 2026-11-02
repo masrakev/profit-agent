@@ -107,7 +107,10 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
   if (incident.isError) {
     return <p className="text-body text-ink-muted">This problem could not be loaded.</p>;
   }
-  const { facts, names, decision_ids: decisions } = incident.data;
+  // What the report cites, with what the incident already named.
+  const facts = { ...incident.data.facts, ...report.data?.facts };
+  const names = { ...incident.data.names, ...report.data?.names };
+  const decisions = incident.data.decision_ids;
   const findings = report.data?.report;
   const top = findings?.hypotheses[0];
   const narrative = findings?.narrative ?? "";
@@ -123,6 +126,7 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
           names={names}
           live={false}
           title="My steps"
+          duration={report.data?.duration}
         />
       )}
       {problem && (
