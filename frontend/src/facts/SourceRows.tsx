@@ -57,7 +57,10 @@ export function SourceRows({
               key={row.id}
               className="flex items-baseline justify-between gap-4 border-b border-line py-3 text-ink"
             >
-              <span className="text-small">{row.day ? formatDay(row.day) : "—"}</span>
+              <span className="flex min-w-0 flex-col text-small">
+                <span>{row.day ? formatDay(row.day) : "—"}</span>
+                {row.label && <span className="truncate text-ink-muted">{row.label}</span>}
+              </span>
               <span className="text-body">{row.amount.formatted}</span>
             </li>
           ))}

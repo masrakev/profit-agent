@@ -88,7 +88,7 @@ ADR 0020.
 | GET | `/api/v1/stores/{store_id}/investigations/{investigation_id}` | The verified investigation |
 | POST | `/api/v1/stores/{store_id}/incidents/{incident_id}/investigate` | Investigate and wait for the result |
 | GET | `/api/v1/stores/{store_id}/facts/{fact_id}` | A number: its formula (technical `description`, plain `explanation`, in the fact's version), parent facts, source rows |
-| GET | `/api/v1/stores/{store_id}/facts/{fact_id}/rows` | A base fact's rows, by date, each with its amount (exact and short; they add up to the fact), paginated; `?table=` picks a source. Each source in the fact's detail names where it comes from (`source`) and how recent its data is (`data_up_to`) |
+| GET | `/api/v1/stores/{store_id}/facts/{fact_id}/rows` | A base fact's rows, by date, each with what it is about (its campaign, product or cost: data) and its amount (exact and short; they add up to the fact), paginated; `?table=` picks a source. Each source in the fact's detail names where it comes from (`source`) and how recent its data is (`data_up_to`) |
 | GET | `/api/v1/stores/{store_id}/profit-bridge` | The change in net profit by driver (`?period=week` or `month`) |
 | GET | `/api/v1/stores/{store_id}/briefings` | Briefings, newest first (`?kind=`) |
 | GET | `/api/v1/stores/{store_id}/briefings/{briefing_id}` | A briefing as sent |

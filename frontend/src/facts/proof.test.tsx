@@ -83,6 +83,7 @@ describe("the proof sheet", () => {
     const spend = { ...exact, fact_id: 21, metric: "ad_spend", formatted: "$412.40" };
     const row = (id: string, day: string, amount: string) => ({
       id,
+      label: "Trail Jacket — Prospecting",
       day,
       amount: { formatted: amount, display: amount },
     });
@@ -118,6 +119,7 @@ describe("the proof sheet", () => {
     expect(await within(sheet).findByText("Sep 23, 2026")).toBeInTheDocument();
     expect(within(sheet).getByText("Meta Ads · Daily spend")).toBeInTheDocument();
     expect(within(sheet).getByText("$83.10")).toBeInTheDocument();
+    expect(within(sheet).getAllByText("Trail Jacket — Prospecting")).toHaveLength(2);
     expect(within(sheet).getByText("Data up to Sep 14, 2026")).toBeInTheDocument();
     expect(within(sheet).queryByText("Total")).toBeNull();
     await userEvent.click(within(sheet).getByRole("button", { name: "Show more rows" }));

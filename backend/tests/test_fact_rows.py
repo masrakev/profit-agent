@@ -64,6 +64,8 @@ def test_the_rows_add_up_to_the_fact(
     days = [r.day for r in rows if r.day is not None]
     assert days == sorted(days)
     assert len({r.id for r in rows}) == len(rows)  # pages neither repeat nor skip a row
+    if formula_id != "orders":  # an order is about several products: it names none
+        assert all(r.label for r in rows)
 
 
 def test_sources_say_how_recent_their_data_is(
@@ -113,6 +115,7 @@ def test_the_api_pages_through_a_facts_rows(
     first = client.get(f"{base}/facts/{spend_id}/rows", params={"limit": 3}).json()
     assert len(first["items"]) == 3
     assert first["items"][0]["amount"]["formatted"].startswith("$")
+    assert first["items"][0]["label"].startswith("Campaign ")  # the golden store's names
     assert first["next_cursor"]
     second = client.get(
         f"{base}/facts/{spend_id}/rows", params={"limit": 3, "cursor": first["next_cursor"]}

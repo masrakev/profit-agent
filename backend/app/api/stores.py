@@ -447,6 +447,7 @@ def get_fact(
 
 class SourceRowOut(BaseModel):
     id: UUID
+    label: str | None  # what the row is about: its campaign, product or cost (data: escape it)
     day: date | None  # the row's date (UTC); none for an attribute (a lead time)
     amount: Text  # the row's part of the fact, exact and short
 
@@ -501,6 +502,7 @@ def get_fact_rows(
         items=[
             SourceRowOut(
                 id=r.id,
+                label=r.label,
                 day=r.day,
                 amount=Text(
                     formatted=format_value(r.amount, r.unit, fact.currency),

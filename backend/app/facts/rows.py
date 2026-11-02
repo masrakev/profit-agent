@@ -36,15 +36,33 @@ class RowView:
     amount: str  # each row's part of the fact (:start and :end are the fact's period)
     day: str  # each row's date
     unit: Unit
+    label: str = "NULL::text"  # what the row is about: its campaign, product or cost (data)
+
+
+_LINE_PRODUCT = (
+    "(SELECT p.name FROM products p WHERE p.store_id = ol.store_id AND p.id = ol.product_id)"
+)
+_METRIC_CAMPAIGN = (
+    "(SELECT c.name FROM ad_campaigns c WHERE c.store_id = m.store_id AND c.id = m.campaign_id)"
+)
 
 
 def _lines(amount: str, what: str, unit: Unit = Unit.MONEY) -> RowView:
-    return RowView("order_lines", f"{SHOPIFY} · {what}", "ol", _LINES, amount, _LINE_DAY, unit)
+    return RowView(
+        "order_lines", f"{SHOPIFY} · {what}", "ol", _LINES, amount, _LINE_DAY, unit, _LINE_PRODUCT
+    )
 
 
 def _metric(column: str, what: str, unit: Unit) -> RowView:
     return RowView(
-        "ad_metrics_daily", f"{META} · {what}", "m", _METRICS, f"m.{column}", "m.metric_date", unit
+        "ad_metrics_daily",
+        f"{META} · {what}",
+        "m",
+        _METRICS,
+        f"m.{column}",
+        "m.metric_date",
+        unit,
+        _METRIC_CAMPAIGN,
     )
 
 
@@ -52,7 +70,15 @@ REVENUE = _lines("ol.net_amount", "Order lines, net amount")
 COGS = _lines("ol.quantity * ol.unit_cost_at_sale", "Order lines, cost of goods")
 FEES = _lines("ol.quantity * ol.unit_fee_at_sale + ol.payment_fee_alloc", "Order lines, fees")
 REFUNDS = RowView(
-    "refunds", f"{SHOPIFY} · Refunds", "r", _REFUNDS, "r.amount", _REFUND_DAY, Unit.MONEY
+    "refunds",
+    f"{SHOPIFY} · Refunds",
+    "r",
+    _REFUNDS,
+    "r.amount",
+    _REFUND_DAY,
+    Unit.MONEY,
+    "(SELECT p.name FROM order_lines ol JOIN products p ON p.store_id = ol.store_id "
+    "AND p.id = ol.product_id WHERE ol.store_id = r.store_id AND ol.id = r.order_line_id)",
 )
 
 VIEWS: dict[str, RowView] = {
@@ -83,7 +109,7 @@ VIEWS: dict[str, RowView] = {
         "cost_items",
         "Your fixed costs",
         "c",
-        "FROM (SELECT id, store_id, amount, period_start, "
+        "FROM (SELECT id, store_id, name, amount, period_start, "
         "(period_start::timestamp AT TIME ZONE 'UTC') AS cs, "
         "(period_end::timestamp AT TIME ZONE 'UTC') AS ce FROM cost_items "
         "WHERE store_id = :s AND id = ANY(:ids)) c WHERE TRUE",
@@ -91,6 +117,7 @@ VIEWS: dict[str, RowView] = {
         "/ EXTRACT(EPOCH FROM (c.ce - c.cs))",
         "c.period_start",
         Unit.MONEY,
+        "c.name",
     ),
     "units_on_hand": RowView(
         "inventory_snapshots",
@@ -100,6 +127,7 @@ VIEWS: dict[str, RowView] = {
         "s.units_on_hand",
         "s.snapshot_date",
         Unit.COUNT,
+        "(SELECT p.name FROM products p WHERE p.store_id = s.store_id AND p.id = s.product_id)",
     ),
     "supplier_lead_time_days": RowView(
         "products",
@@ -109,6 +137,7 @@ VIEWS: dict[str, RowView] = {
         "p.supplier_lead_time_days",
         "NULL::date",
         Unit.DAYS,
+        "p.name",
     ),
 }
 
@@ -128,6 +157,7 @@ FRESHNESS: dict[str, str] = {
 @dataclass(frozen=True)
 class SourceRow:
     id: UUID
+    label: str | None
     day: date | None
     amount: Decimal
     unit: Unit
@@ -154,7 +184,8 @@ def source_rows(
     a = view.alias
     order = f"COALESCE({view.day}, DATE '0001-01-01'), {a}.id"
     sql = (
-        f"SELECT {a}.id AS id, {view.day} AS day, {view.amount} AS amount {view.from_where}"
+        f"SELECT {a}.id AS id, {view.label} AS label, {view.day} AS day, "
+        f"{view.amount} AS amount {view.from_where}"
         + (
             f" AND ({order}) > (COALESCE(CAST(:day AS date), DATE '0001-01-01'), CAST(:id AS uuid))"
             if after
@@ -168,7 +199,7 @@ def source_rows(
     if after:
         params |= {"day": after[0], "id": after[1]}
     return [
-        SourceRow(id=r.id, day=r.day, amount=Decimal(r.amount), unit=view.unit)
+        SourceRow(id=r.id, label=r.label, day=r.day, amount=Decimal(r.amount), unit=view.unit)
         for r in conn.execute(text(sql), params)
     ]
 

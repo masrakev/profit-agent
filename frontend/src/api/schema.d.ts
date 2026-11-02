@@ -2500,6 +2500,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Label */
+            label: string | null;
         };
         /** SpendingCaps */
         "SpendingCaps-Input": {

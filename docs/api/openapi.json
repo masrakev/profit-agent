@@ -3750,10 +3750,22 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
           }
         },
         "required": [
           "id",
+          "label",
           "day",
           "amount"
         ],
