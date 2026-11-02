@@ -63,7 +63,7 @@ SAMPLE_RATES = frozenset({16_000, 24_000})
 API_MAX_BYTES = 32 * 1024 * 1024  # larger bodies get HTTP 413
 API_MAX_MS = 10 * 60 * 1000  # longer audio gets HTTP 400
 MAX_KEYWORDS = 50
-MAX_KEYWORD_CHARS = 40
+MAX_KEYWORD_CHARS = 30  # characters; a longer keyword gets HTTP 400
 
 
 @dataclass(frozen=True)

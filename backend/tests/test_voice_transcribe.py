@@ -105,7 +105,7 @@ def test_a_clip_is_transcribed_and_billed_in_whole_seconds() -> None:
         "model": "muse-voice-transcribe-1.0",
         "audioEncoding": "WAV",
         "mode": "PUSH_TO_TALK",
-        "keywords": ["Blue mug", "x" * 40],  # blank dropped, long ones cut
+        "keywords": ["Blue mug", "x" * 30],  # blank dropped, long ones cut
     }
     assert sent["audio"] == {
         "sha256": hashlib.sha256(audio).hexdigest(),
