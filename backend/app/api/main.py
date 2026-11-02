@@ -13,7 +13,7 @@ from uuid import UUID
 from fastapi import APIRouter, FastAPI, HTTPException, Path
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.agent.ask import AskResult, ask
+from app.agent.ask import ask
 from app.agent.investigator import Investigation, investigate, load_investigation
 from app.api import problems
 from app.api.auth import StoreDep
@@ -26,6 +26,7 @@ from app.api.middleware import ApiMiddleware, RateLimiter
 from app.api.privacy import router as privacy_router
 from app.api.problems import RESPONSES
 from app.api.stores import router as stores_router
+from app.api.views import AskOut, ask_out
 from app.api.whatsapp import router as whatsapp_router
 from app.api.whatsapp import webhook_router
 from app.db import tenant_transaction
@@ -42,15 +43,18 @@ class AskRequest(BaseModel):
 router = APIRouter(prefix=f"/api/{API_VERSION}")
 
 
-@router.post("/stores/{store_id}/ask", response_model=AskResult, tags=["ask"])
+@router.post("/stores/{store_id}/ask", response_model=AskOut, tags=["ask"])
 def post_ask(
     store_id: StoreDep, body: AskRequest, engine: EngineDep, provider: ProviderDep
-) -> AskResult:
-    """Answer a question about the store with the answer contract (SPEC section 8)."""
+) -> AskOut:
+    """Answer a question about the store with the answer contract (SPEC section 8), with the
+    facts and names the answer cites."""
     try:
-        return ask(engine, store_id, body.question, provider)
+        result = ask(engine, store_id, body.question, provider)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    with tenant_transaction(engine, store_id) as conn:
+        return ask_out(conn, result)
 
 
 @router.post(

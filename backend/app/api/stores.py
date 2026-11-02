@@ -40,7 +40,16 @@ from app.api.auth import PrincipalDep, StoreDep
 from app.api.deps import ConverterDep, EngineDep, ProviderDep, TranscriberDep
 from app.api.pagination import Cursor, Limit, Page, decode_cursor, encode_cursor, paginate
 from app.api.problems import PROBLEM_JSON, Problem
-from app.api.views import Cited, DocumentOut, FactOut, Text, cited, document_out, fact_out
+from app.api.views import (
+    Cited,
+    DocumentOut,
+    FactOut,
+    Text,
+    ask_out,
+    cited,
+    document_out,
+    fact_out,
+)
 from app.briefings import periods
 from app.briefings.content import build, context, open_incidents, profit_bridge
 from app.briefings.models import BriefingKind
@@ -699,7 +708,8 @@ def post_ask_stream(
     store_id: StoreDep, body: Question, engine: EngineDep, provider: ProviderDep
 ) -> StreamingResponse:
     """Ask, with the agent's steps as server-sent events while it works, then
-    `event: answer` (the answer contract) and `event: done`."""
+    `event: answer` (the answer contract, with the facts and names it cites) and
+    `event: done`."""
     if not 1 <= len(body.question) <= 2000:
         raise HTTPException(
             status_code=422,
@@ -713,10 +723,15 @@ def post_ask_stream(
             except Exception as exc:  # the stream must end, whatever happened
                 events.put(("failed", {"error": type(exc).__name__}))
                 return
-        events.put(("answer", result.model_dump(mode="json")))
+        events.put(("answer", _answer(engine, result)))
         events.put(("done", {}))
 
     return _streamed(work)
+
+
+def _answer(engine: Engine, result: AskResult) -> dict[str, Any]:
+    with tenant_transaction(engine, result.store_id) as conn:
+        return ask_out(conn, result).model_dump(mode="json")
 
 
 # --- Ask by voice, streamed ------------------------------------------------------------------
@@ -793,7 +808,7 @@ def post_ask_voice(
         if done.result is None:
             events.put(("no_speech", {"message": NO_SPEECH}))
         else:
-            events.put(("answer", done.result.model_dump(mode="json")))
+            events.put(("answer", _answer(engine, done.result)))
         events.put(("done", {}))
 
     return _streamed(work)

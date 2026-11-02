@@ -247,7 +247,8 @@ export interface paths {
         put?: never;
         /**
          * Post Ask
-         * @description Answer a question about the store with the answer contract (SPEC section 8).
+         * @description Answer a question about the store with the answer contract (SPEC section 8), with the
+         *     facts and names the answer cites.
          */
         post: operations["post_ask_api_v1_stores__store_id__ask_post"];
         delete?: never;
@@ -268,7 +269,8 @@ export interface paths {
         /**
          * Post Ask Stream
          * @description Ask, with the agent's steps as server-sent events while it works, then
-         *     `event: answer` (the answer contract) and `event: done`.
+         *     `event: answer` (the answer contract, with the facts and names it cites) and
+         *     `event: done`.
          */
         post: operations["post_ask_stream_api_v1_stores__store_id__ask_stream_post"];
         delete?: never;
@@ -1183,6 +1185,73 @@ export interface components {
         Approve: {
             /** Option Id */
             option_id: string;
+        };
+        /**
+         * AskOut
+         * @description An answer with the facts and the names it cites: a client renders every `{{F<id>}}` as
+         *     a clickable number and every `{{E:...}}` as a name (merchant data: escape it).
+         */
+        AskOut: {
+            answer: components["schemas"]["Answer"];
+            /**
+             * Ask Id
+             * Format: uuid
+             */
+            ask_id: string;
+            /**
+             * Citations Attached
+             * @default 0
+             */
+            citations_attached: number;
+            /** Classification Model */
+            classification_model: string;
+            classification_usage: components["schemas"]["UsageSummary"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            evaluation?: components["schemas"]["Evaluation"] | null;
+            /** Facts */
+            facts: {
+                [key: string]: components["schemas"]["FactOut"];
+            };
+            /** Goal Id */
+            goal_id?: string | null;
+            /** Memo Hits */
+            memo_hits: number;
+            /** Model */
+            model: string | null;
+            /** Names */
+            names: {
+                [key: string]: string;
+            };
+            /** Prompt Version */
+            prompt_version: string;
+            /** Question */
+            question: string;
+            question_type: components["schemas"]["QuestionType"] | null;
+            /** Refused Tools */
+            refused_tools: string[];
+            /** Regenerations */
+            regenerations: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "answered" | "fallback" | "partial" | "not_available_yet" | "out_of_scope" | "clarification" | "abstained" | "confirmation";
+            /** Stop Reason */
+            stop_reason: string | null;
+            /**
+             * Store Id
+             * Format: uuid
+             */
+            store_id: string;
+            /** Tool Calls */
+            tool_calls: number;
+            usage: components["schemas"]["UsageSummary"];
+            /** Verifier Violations */
+            verifier_violations: number;
         };
         /** AskRequest */
         AskRequest: {
@@ -4107,7 +4176,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AskResult"];
+                    "application/json": components["schemas"]["AskOut"];
                 };
             };
             /** @description Not signed in, or the token is not valid */

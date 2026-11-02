@@ -48,6 +48,11 @@ def test_ask_route(client: TestClient, harness: Harness, golden_stockout: dict[s
     assert response.status_code == 200
     body = response.json()
     assert (body["status"], body["answer"]["flags"]) == ("out_of_scope", ["out_of_scope"])
+    # The answer carries every fact it cites (its evidence and its references) and its names.
+    evidence = {str(i) for i in body["answer"]["evidence"]}
+    assert evidence
+    assert evidence <= set(body["facts"])
+    assert body["names"]["store"] == "Bench store 70400"
     assert (
         client.post(
             f"/api/v1/stores/{golden_stockout['id']}/ask", json={"question": ""}

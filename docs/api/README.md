@@ -33,7 +33,8 @@ ADR 0020.
   estimate was made, in words, and `simulations` how many simulated or resampled draws its range
   rests on (null for an estimate made without draws).
 - Streams are server-sent events (`text/event-stream`): `event: step` per agent step, then
-  `answer` (Ask), `done` or `failed`. A reconnecting client sends `Last-Event-ID`. Ask by voice
+  `answer` (Ask: the answer contract with the `facts` and `names` it cites, like POST `/ask`),
+  `done` or `failed`. A reconnecting client sends `Last-Event-ID`. Ask by voice
   starts with `event: transcript`, and ends with `no_speech` then `done` when nothing was heard.
 
 ## Problem codes

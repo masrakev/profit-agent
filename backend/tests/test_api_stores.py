@@ -218,6 +218,9 @@ def test_ask_is_streamed(
     streamed = events(body)
     assert [k for k, _ in streamed][-2:] == ["answer", "done"]
     assert streamed[-2][1]["status"] == "out_of_scope"
+    answer = streamed[-2][1]
+    assert {str(i) for i in answer["answer"]["evidence"]} <= set(answer["facts"])
+    assert "store" in answer["names"]
     assert client.post(f"{base}/ask/stream", json={"question": ""}).status_code == 422
 
 

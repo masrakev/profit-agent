@@ -11,6 +11,8 @@ from uuid import UUID
 from pydantic import BaseModel
 from sqlalchemy import Connection
 
+from app.agent.ask import AskResult
+from app.agent.contracts import Answer
 from app.briefings.models import Document, Section
 from app.channels.render import load_entity_names
 from app.facts.catalogue import fact_name, is_change, method_text
@@ -129,6 +131,33 @@ def cited(conn: Connection, store_id: UUID, texts: Iterable[str]) -> Cited:
         facts={str(i): fact_out(f) for i, f in sorted(found.items())},
         names=load_entity_names(conn, store_id, refs),
     )
+
+
+class AskOut(AskResult):
+    """An answer with the facts and the names it cites: a client renders every `{{F<id>}}` as
+    a clickable number and every `{{E:...}}` as a name (merchant data: escape it)."""
+
+    facts: dict[str, FactOut]  # by fact id: the evidence and every cited fact
+    names: dict[str, str]  # entity reference -> raw merchant name
+
+
+def answer_texts(answer: Answer) -> list[str]:
+    """Every text of an answer that may cite facts or entities."""
+    return [
+        answer.answer,
+        answer.reasoning or "",
+        *answer.alternatives,
+        answer.uncertainty,
+        answer.recommendation or "",
+        answer.would_change_my_mind or "",
+        *(entity for cause in answer.ranked_causes for entity in cause.entities),
+    ]
+
+
+def ask_out(conn: Connection, result: AskResult) -> AskOut:
+    evidence = [f"{{{{F{i}}}}}" for i in result.answer.evidence]
+    refs = cited(conn, result.store_id, [*answer_texts(result.answer), *evidence])
+    return AskOut(**result.model_dump(), facts=refs.facts, names=refs.names)
 
 
 class DocumentOut(Cited):

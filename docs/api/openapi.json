@@ -249,6 +249,182 @@
         "title": "Approve",
         "type": "object"
       },
+      "AskOut": {
+        "additionalProperties": false,
+        "description": "An answer with the facts and the names it cites: a client renders every `{{F<id>}}` as\na clickable number and every `{{E:...}}` as a name (merchant data: escape it).",
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/Answer"
+          },
+          "ask_id": {
+            "format": "uuid",
+            "title": "Ask Id",
+            "type": "string"
+          },
+          "citations_attached": {
+            "default": 0,
+            "title": "Citations Attached",
+            "type": "integer"
+          },
+          "classification_model": {
+            "title": "Classification Model",
+            "type": "string"
+          },
+          "classification_usage": {
+            "$ref": "#/components/schemas/UsageSummary"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Evaluation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "facts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FactOut"
+            },
+            "title": "Facts",
+            "type": "object"
+          },
+          "goal_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal Id"
+          },
+          "memo_hits": {
+            "title": "Memo Hits",
+            "type": "integer"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Names",
+            "type": "object"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "question_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestionType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "refused_tools": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Refused Tools",
+            "type": "array"
+          },
+          "regenerations": {
+            "title": "Regenerations",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "answered",
+              "fallback",
+              "partial",
+              "not_available_yet",
+              "out_of_scope",
+              "clarification",
+              "abstained",
+              "confirmation"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "stop_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Reason"
+          },
+          "store_id": {
+            "format": "uuid",
+            "title": "Store Id",
+            "type": "string"
+          },
+          "tool_calls": {
+            "title": "Tool Calls",
+            "type": "integer"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/UsageSummary"
+          },
+          "verifier_violations": {
+            "title": "Verifier Violations",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ask_id",
+          "store_id",
+          "question",
+          "question_type",
+          "status",
+          "answer",
+          "model",
+          "classification_model",
+          "prompt_version",
+          "usage",
+          "classification_usage",
+          "tool_calls",
+          "memo_hits",
+          "regenerations",
+          "verifier_violations",
+          "refused_tools",
+          "stop_reason",
+          "created_at",
+          "facts",
+          "names"
+        ],
+        "title": "AskOut",
+        "type": "object"
+      },
       "AskRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6038,7 +6214,7 @@
     },
     "/api/v1/stores/{store_id}/ask": {
       "post": {
-        "description": "Answer a question about the store with the answer contract (SPEC section 8).",
+        "description": "Answer a question about the store with the answer contract (SPEC section 8), with the\nfacts and names the answer cites.",
         "operationId": "post_ask_api_v1_stores__store_id__ask_post",
         "parameters": [
           {
@@ -6067,7 +6243,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AskResult"
+                  "$ref": "#/components/schemas/AskOut"
                 }
               }
             },
@@ -6137,7 +6313,7 @@
     },
     "/api/v1/stores/{store_id}/ask/stream": {
       "post": {
-        "description": "Ask, with the agent's steps as server-sent events while it works, then\n`event: answer` (the answer contract) and `event: done`.",
+        "description": "Ask, with the agent's steps as server-sent events while it works, then\n`event: answer` (the answer contract, with the facts and names it cites) and\n`event: done`.",
         "operationId": "post_ask_stream_api_v1_stores__store_id__ask_stream_post",
         "parameters": [
           {
