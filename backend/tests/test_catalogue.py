@@ -2,7 +2,16 @@
 
 import pytest
 
-from app.facts.catalogue import EXACT, FAMILIES, describe, fact_name, is_change, method_text
+from app.facts.catalogue import (
+    EXACT,
+    FAMILIES,
+    describe,
+    fact_name,
+    is_change,
+    method_text,
+    plain_metric_names,
+    raw_metric_names,
+)
 from app.facts.formulas import REGISTRY
 
 
@@ -86,3 +95,28 @@ def test_methods_are_told_in_words() -> None:
     assert method_text("synthetic_control_v2", 500) == "measured against a synthetic control"
     assert method_text(None) is None
     assert method_text("") is None
+
+
+def test_metric_identifiers_read_as_plain_words() -> None:
+    text = (
+        "Your net_profit {{F12}} for {{E:store}}: ad_spend {{F3}} against attributed_revenue "
+        "{{F4}}, roas {{F5}}. roas fell; ROAS stays, as do nonsense_id and e.g. this. "
+        "twin.change.net_profit too."
+    )
+    assert raw_metric_names(text) == [
+        "net_profit",
+        "ad_spend",
+        "attributed_revenue",
+        "twin.change.net_profit",
+        "roas",
+        "roas",
+    ]
+    assert plain_metric_names(text) == (
+        "Your net profit {{F12}} for {{E:store}}: ad spend {{F3}} against attributed revenue "
+        "{{F4}}, return on ad spend {{F5}}. Return on ad spend fell; ROAS stays, as do "
+        "nonsense_id and e.g. this. Change in net profit too."
+    )
+    assert raw_metric_names(plain_metric_names(text)) == []
+    assert plain_metric_names("{{E:campaign:6433a313-4edd-55d2-a5f8-baf1fc04ed95}}") == (
+        "{{E:campaign:6433a313-4edd-55d2-a5f8-baf1fc04ed95}}"
+    )

@@ -12,7 +12,7 @@ import re
 from collections.abc import Callable, Iterable, Mapping
 from functools import cache
 
-from app.agent.contracts import Answer
+from app.agent.contracts import Answer, plain_answer
 from app.agent.guard import OutputViolation
 from app.facts.formulas import REGISTRY
 from app.facts.model import Fact
@@ -154,11 +154,13 @@ def resolve(
 def citation_repair(
     seen: Callable[[], set[int]], facts: FactLookup
 ) -> Callable[[Answer], tuple[Answer, list[int]]]:
-    """Attach to the evidence the fact of each named metric that is not cited, when the
-    entity and period make it unambiguous (no model call); the rest is left to the check
-    (`citation_check`), which asks the model to regenerate."""
+    """Name metrics in plain words (code's ids the model copied, `plain_answer`), then attach
+    to the evidence the fact of each named metric that is not cited, when the entity and period
+    make it unambiguous (no model call); the rest is left to the check (`citation_check`), which
+    asks the model to regenerate."""
 
     def repair(answer: Answer) -> tuple[Answer, list[int]]:
+        answer = plain_answer(answer)  # before the checks: "net_profit" names net profit too
         texts = answer_texts(answer)
         named = named_metrics(texts)
         if not named:

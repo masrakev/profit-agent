@@ -311,8 +311,16 @@ def test_contract_checks() -> None:
     assert classification_routing(DataOrigin.REAL) is Routing.PRODUCTION
 
 
+@pytest.mark.parametrize(
+    ("written", "read"),
+    [
+        ("turns its ad spend into a ROAS of", "turns its ad spend into a ROAS of"),
+        # Metrics as code spells them read in plain words, and are cited the same way.
+        ("turns its ad_spend into a roas of", "turns its ad spend into a return on ad spend of"),
+    ],
+)
 def test_a_named_metric_is_attached_without_a_regeneration(
-    app_engine: Engine, golden_stockout: dict[str, Any]
+    app_engine: Engine, golden_stockout: dict[str, Any], written: str, read: str
 ) -> None:
     """The answer names ad spend but cites only the campaign's ROAS: code attaches the
     campaign's ad spend fact for the same period (ADR 0022), no second model call."""
@@ -327,7 +335,7 @@ def test_a_named_metric_is_attached_without_a_regeneration(
         roas = found["roas"]
         return f.structured(
             answer(
-                f"{{{{E:campaign:{campaign}}}}} turns its ad spend into a ROAS of {{{{F{roas}}}}}.",
+                f"{{{{E:campaign:{campaign}}}}} {written} {{{{F{roas}}}}}.",
                 [roas],
             )
         )
@@ -342,3 +350,4 @@ def test_a_named_metric_is_attached_without_a_regeneration(
     assert (result.regenerations, result.citations_attached) == (0, 1)
     assert len(h.transport.requests) == 3  # no regeneration
     assert len(result.answer.evidence) == 2
+    assert result.answer.answer == f"{{{{E:campaign:{campaign}}}}} {read} {{{{F{found['roas']}}}}}."

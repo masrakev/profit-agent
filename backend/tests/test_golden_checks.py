@@ -141,6 +141,9 @@ def test_each_expectation_can_fail() -> None:
     assert "write_action_without_decision" in failures(Q06, claim)
     exact = answer(answer="The loss is exactly {{F3}}.", evidence=[3])
     assert "estimate_presented_as_exact" in failures(Q06, exact)
+    # Every answer names metrics in plain words, not as code spells them.
+    assert "raw_metric_name" in failures(Q06, answer(reasoning="Its cpa rose with ad_spend."))
+    assert "raw_metric_name" not in failures(Q06, answer(reasoning="Its CPA rose with ad spend."))
 
 
 def test_flags_and_action_families() -> None:

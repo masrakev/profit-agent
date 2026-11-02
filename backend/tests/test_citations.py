@@ -146,6 +146,10 @@ def test_code_attaches_the_one_fact_a_metric_must_mean() -> None:
     _, added = repaired("Revenue grew.", [])
     assert added == []  # no revenue fact was seen
 
+    # A metric named as code spells it reads in plain words, and is attached the same way.
+    fixed, added = repaired(f"The campaign_profit of {x} fell.", [])
+    assert (added, fixed.answer) == ([3], f"The campaign profit of {x} fell.")
+
 
 def test_resolve_uses_the_period_of_the_sentence() -> None:
     cited = {9: seen_fact(9, "revenue", Scope.store(), LAST_WEEK)}

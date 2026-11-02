@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.agent.ask import ACTION_CLAIM, CUTTING_ACTIONS, PAUSE_WORDS, AskResult, QuestionType
 from app.agent.contracts import ActionFamily, Answer, Flag
+from app.facts.catalogue import raw_metric_names
 from app.facts.model import Fact, FactKind
 from app.verifier import entity_references, fact_references, verify
 
@@ -143,6 +144,10 @@ def forbidden_check(name: str, answer: Answer, facts: dict[int, Fact]) -> CheckR
     if name == "unverified_number":
         found = [v.text for t in texts for v in verify(t)]
         return CheckResult(name, not found, ", ".join(found[:5]))
+    if name == "raw_metric_name":
+        # A metric named as code spells it ("net_profit", "roas"), not in plain words.
+        raw = [m for t in texts for m in raw_metric_names(t)]
+        return CheckResult(name, not raw, ", ".join(raw[:5]))
     if name == "estimate_presented_as_exact":
         # A sentence that cites an estimate fact must not call it exact. (Estimates render as
         # P10-P90 ranges, so only the wording around the reference can misrepresent them.)
@@ -212,8 +217,9 @@ def check_answer(
     for flag in q.must_flag:
         out.append(CheckResult(f"flag:{flag}", flag in flags, f"flags {sorted(flags)}"))
     out.extend(forbidden_check(name, answer, facts) for name in q.forbidden)
-    if "unverified_number" not in q.forbidden:  # the verifier applies to every question
-        out.append(forbidden_check("unverified_number", answer, facts))
+    for always in ("unverified_number", "raw_metric_name"):  # these apply to every question
+        if always not in q.forbidden:
+            out.append(forbidden_check(always, answer, facts))
     return out
 
 

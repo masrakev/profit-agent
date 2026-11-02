@@ -10,6 +10,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.detection.models import FaultFamily
+from app.facts.catalogue import plain_metric_names
 
 ENTITY_PATTERN = r"^\{\{E:(store|(product|campaign):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\}\}$"  # noqa: E501
 EntityReference = Annotated[str, Field(pattern=ENTITY_PATTERN)]
@@ -70,6 +71,25 @@ class Answer(BaseModel):
     )
     action_family: ActionFamily | None = Field(
         default=None, description="family of the recommendation, when there is one"
+    )
+
+
+def plain_answer(answer: Answer) -> Answer:
+    """The answer's texts with each metric identifier in plain words ("net_profit" -> "net
+    profit", "roas" -> "return on ad spend"): the model sometimes copies code's names."""
+
+    def plain(text: str | None) -> str | None:
+        return None if text is None else plain_metric_names(text)
+
+    return answer.model_copy(
+        update={
+            "answer": plain_metric_names(answer.answer),
+            "reasoning": plain(answer.reasoning),
+            "alternatives": [plain_metric_names(a) for a in answer.alternatives],
+            "uncertainty": plain_metric_names(answer.uncertainty),
+            "recommendation": plain(answer.recommendation),
+            "would_change_my_mind": plain(answer.would_change_my_mind),
+        }
     )
 
 

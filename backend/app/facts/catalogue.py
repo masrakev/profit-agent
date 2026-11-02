@@ -6,6 +6,7 @@ outside the registry (the store twin, goals, profit drivers, the agent's derived
 named by family, `<family>.<metric or part>`; their words are here, one entry per family.
 """
 
+import re
 from dataclasses import dataclass
 
 from app.facts.formulas import REGISTRY
@@ -273,6 +274,36 @@ def fact_name(formula_id: str) -> str:
     if found is not None:
         return found.name
     return _capitalized(formula_id.rsplit(".", 1)[-1].replace("_", " "))
+
+
+# A metric as code names it, in text a model wrote: an id with an underscore or a dot
+# ("net_profit", "twin.change.net_profit"), or one of the abbreviations named above ("roas"),
+# spelled as the id is (lowercase): "ROAS", as owners write it, stays.
+IDENTIFIER = re.compile(r"(?<![\w.{:-])[a-z][a-z0-9]*(?:[._][a-z0-9]+)+(?![\w-])")
+ABBREVIATION = re.compile(
+    r"(?<![\w.{:-])(?:" + "|".join(k for k in NAMES if "_" not in k) + r")(?![\w-])"
+)
+
+
+def raw_metric_names(text: str) -> list[str]:
+    """The metric identifiers in `text`: ids of facts this catalogue names, as code spells them."""
+    found = [m.group(0) for m in IDENTIFIER.finditer(text) if describe(m.group(0)) is not None]
+    return found + [m.group(0) for m in ABBREVIATION.finditer(text)]
+
+
+def plain_metric_names(text: str) -> str:
+    """`text` with each metric identifier replaced by the metric's plain name ("net_profit" ->
+    "net profit", "roas" -> "return on ad spend"); capitalized where a sentence starts."""
+
+    def plain(match: re.Match[str]) -> str:
+        found = describe(match.group(0))
+        if found is None:
+            return match.group(0)
+        before = text[: match.start()].rstrip()
+        starts = not before or before.endswith((".", "!", "?"))
+        return found.name if starts else found.name[:1].lower() + found.name[1:]
+
+    return ABBREVIATION.sub(plain, IDENTIFIER.sub(plain, text))
 
 
 def is_change(formula_id: str) -> bool:
