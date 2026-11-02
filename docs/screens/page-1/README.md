@@ -39,7 +39,12 @@ session (the sign-in frame, the estimate sheet, the header and the composer).
    address). The sign-in page drops "By continuing, you agree to our Terms and Privacy
    Policy" and the footer's "Privacy" and "Help": those pages do not exist yet. The footer shows the
    product name.
-6. **Development build only:** "Use the demo store" under the sign-in form, and the `/style-guide`
+6. **The sidebar (the owner's request after page 1).** Figma's 88 px rail, with labels under the
+   icons, is replaced by a sidebar that works like ChatGPT's: expanded (260 px) each destination is
+   an icon and its label in a 36 px row; collapsed (52 px) only the icons, naming themselves on
+   hover; a button at the top switches, and the choice is remembered. The theme and the store are
+   rows at its foot.
+7. **Development build only:** "Use the demo store" under the sign-in form, and the `/style-guide`
    catalogue itself (absent from a production build).
 
 ### Filled by the API (the backend task after page 1)
@@ -58,33 +63,33 @@ The first review found gaps in the API; they are filled, and the screens refresh
 
 ### Still different
 
-7. **Connection health.** The header pill says "Connected" from the API's readiness check; Figma's
+8. **Connection health.** The header pill says "Connected" from the API's readiness check; Figma's
    "All systems connected" needs each connection's state (Shopify, Meta Ads), which the API does
    not serve (not part of the backend task).
-8. **The proof of a campaign's number.** Figma's exact proof is the ad spend of one campaign over
+9. **The proof of a campaign's number.** Figma's exact proof is the ad spend of one campaign over
    5 days ("Ad spend, Trail Jacket — Prospecting", 5 rows); the screenshot walks the store's
    lineage to the store-wide ad spend (28 rows, each naming its campaign, 10 at a time). The title
    names the metric; the fact's campaign is not in it. Figma's "Open source in Meta ↗" has no
    counterpart: the API has no link to the platform.
-9. **Formatting.** The API writes "+$613 to +$654" where Figma writes "+$570 to +$614" (other
+10. **Formatting.** The API writes "+$613 to +$654" where Figma writes "+$570 to +$614" (other
    numbers, same form), and exact texts keep their cents ("$1,489.82"). Exact texts are unsigned;
    short texts carry the sign of a change.
-10. **The permission card's options.** The demo decision has three options and "Do nothing": the
+11. **The permission card's options.** The demo decision has three options and "Do nothing": the
     third, "Prepare a reorder of Trail Jacket", has no range (it prepares, it does not act). Figma
     shows two options with ranges.
 
 ### Not built yet (later pages)
 
-11. The conversation is empty: the morning brief, the date line and answers come with page 2. The
+12. The conversation is empty: the morning brief, the date line and answers come with page 2. The
     proof screenshots open over the `/style-guide` catalogue instead of the conversation.
-12. The safety-check line of the catalogue's permission card is written from the option's
+13. The safety-check line of the catalogue's permission card is written from the option's
     reversibility; page 3 shows the policy's real checks (`POST /policy/preview`).
-13. The estimate sheet's caveat is generic ("This is a range, not a promise. Most outcomes land
+14. The estimate sheet's caveat is generic ("This is a range, not a promise. Most outcomes land
     between the low and high ends."); Figma's "I'll measure the result after the ad resumes" and
     "Back to options" belong to a decision's estimate (page 3).
-14. Narrow screens (390 px) are page 9's responsive pass; the shell is laid out for desktop.
+15. Narrow screens (390 px) are page 9's responsive pass; the shell is laid out for desktop.
 
 ### Small visual differences
 
-15. Status dots and range dots are CSS circles; Figma exports them as 5 px SVG dots.
-16. Number buttons get a hover colour and a focus ring; Figma has no states for them.
+16. Status dots and range dots are CSS circles; Figma exports them as 5 px SVG dots.
+17. Number buttons get a hover colour and a focus ring; Figma has no states for them.
