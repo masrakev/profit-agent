@@ -2,6 +2,7 @@
 
 import json
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -20,8 +21,14 @@ from app.agent.investigator import investigate
 from app.agent.llm import DataOrigin
 from app.agent.llm import fake as f
 from app.agent.stages import Routing
+from app.briefings.content import open_incidents
 from app.db import tenant_transaction
+from app.decisions.proposals import propose_for_incident
+from app.detection import pipeline
+from app.detection.models import AlertLevel
 from bench.scenarios.build import INJECTION_TEXT
+from bench.scenarios.manifest import load_suite
+from bench.simulator import register
 from tests import test_investigator as investigation_steps
 from tests.builders import Scenario
 from tests.conftest import create_store
@@ -158,6 +165,55 @@ def test_a_diagnosis_needs_causes_and_alternatives(
     assert "rank the causes" in feedback
     assert "list the alternatives" in feedback
     assert result.answer.ranked_causes[0].cause_family.value == "stockout_on_promoted"
+
+
+def test_asking_while_a_decision_is_pending_leaves_it_pending(
+    app_engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A store of its own: the decision proposed here must not reach other tests' stores.
+    manifest = next(m for m in load_suite("dev") if m.scenario_id == "dev-stockout_on_promoted-11")
+    store = register(app_engine, manifest, 107)
+    pipeline.run_pipeline(app_engine, store)
+    with tenant_transaction(app_engine, store) as conn:
+        [incident] = [i for i in open_incidents(conn, store) if i.alert is AlertLevel.CRITICAL]
+        pending = propose_for_incident(conn, store, incident, now=datetime.now(UTC))
+    assert pending is not None
+
+    # The diagnosis investigates the most urgent incidents for real (a scripted model).
+    scripted = Harness([investigation_steps.call_sensitivity, investigation_steps.answer] * 2)
+    investigated: list[str] = []
+
+    def real(engine: Engine, store_id: Any, incident_id: str, _: Any, **kwargs: Any) -> Any:
+        investigated.append(incident_id)
+        kwargs["use_cache"] = False
+        return investigate(engine, store_id, incident_id, scripted.provider, **kwargs)
+
+    monkeypatch.setattr(ask_module, "investigate", real)
+
+    def diagnosis(body: dict[str, Any]) -> f.Reply:
+        fid = fact_ids(body)[0]
+        return f.structured(
+            answer(
+                f"A promoted product ran out of stock, see {{{{F{fid}}}}}.",
+                [fid],
+                alternatives=["A drift in the campaign's efficiency was considered."],
+                ranked_causes=[
+                    {
+                        "cause_family": "stockout_on_promoted",
+                        "entities": ["{{E:store}}"],
+                        "confidence": "medium",
+                    }
+                ],
+            )
+        )
+
+    steps = [classify("diagnose"), f.ok([f.function_call("list_incidents", {})]), diagnosis]
+    result, _ = run(app_engine, store, "Why is profit down?", steps)
+    assert result.status == "answered"
+    assert incident.incident_id in investigated
+    with tenant_transaction(app_engine, store) as conn:
+        decisions = conn.execute(text("SELECT decision_id, status FROM decisions")).all()
+    assert [(d.decision_id, d.status) for d in decisions] == [(pending.decision_id, "proposed")]
 
 
 def test_classification_failure_and_unverifiable_answers(
