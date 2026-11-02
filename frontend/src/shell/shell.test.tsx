@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Composer, COMPOSER_PROMISE } from "./Composer";
+import { readCollapsed, SIDEBAR_STORAGE_KEY, writeCollapsed } from "./sidebar";
 import { problem } from "@/test/fakeApi";
 import { mockSystemTheme } from "@/test/matchMedia";
 import { renderApp, signedInApi } from "@/test/render";
@@ -20,7 +21,7 @@ describe("the app shell", () => {
   it("has the rail's six destinations, the current one marked", async () => {
     renderApp("/", signedInApi().api);
     const rail = await screen.findByRole("navigation", { name: "Main" });
-    const links = within(rail).getAllByRole("link");
+    const links = within(within(rail).getByRole("list")).getAllByRole("link");
     expect(links.map((link) => link.textContent)).toEqual([
       "Chat",
       "Today",
@@ -103,6 +104,53 @@ describe("the app shell", () => {
       { timeout: 3000 }, // the sign-out request, then the navigation: slow under load
     );
     expect(fake.requests.some((request) => request.method === "DELETE")).toBe(true);
+  });
+});
+
+describe("the sidebar", () => {
+  it("is expanded by default: each destination is an icon and its label", async () => {
+    renderApp("/", signedInApi().api);
+    const rail = await screen.findByRole("navigation", { name: "Main" });
+    expect(rail).toHaveAttribute("data-collapsed", "false");
+    expect(within(rail).getByText("Decisions")).not.toHaveClass("sr-only");
+    expect(within(rail).getByText("Dark theme")).toBeVisible();
+    expect(rail.querySelector("[aria-hidden=true].pointer-events-none")).toBeNull(); // no tips
+  });
+
+  it("collapses to icons, which name themselves on hover, and expands again", async () => {
+    renderApp("/", signedInApi().api);
+    await userEvent.click(await screen.findByRole("button", { name: "Close sidebar" }));
+    const rail = screen.getByRole("navigation", { name: "Main" });
+    expect(rail).toHaveAttribute("data-collapsed", "true");
+    const decisions = within(rail).getByRole("link", { name: "Decisions" }); // still named
+    expect(within(decisions).getByText("Decisions")).toHaveClass("sr-only");
+    expect(within(rail).getAllByText("Decisions")).toHaveLength(2); // its label, and its tip
+    expect(window.localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe("collapsed");
+    await userEvent.click(within(rail).getByRole("button", { name: "Open sidebar" }));
+    expect(rail).toHaveAttribute("data-collapsed", "false");
+    expect(window.localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe("expanded");
+  });
+
+  it("remembers the owner's choice", async () => {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, "collapsed");
+    renderApp("/", signedInApi().api);
+    expect(await screen.findByRole("button", { name: "Open sidebar" })).toBeInTheDocument();
+  });
+
+  it("still works when storage is refused", () => {
+    const refusing = {
+      getItem: () => {
+        throw new Error("denied");
+      },
+      setItem: () => {
+        throw new Error("denied");
+      },
+    };
+    expect(readCollapsed(refusing)).toBe(false);
+    expect(readCollapsed(null)).toBe(false);
+    expect(() => {
+      writeCollapsed(refusing, true);
+    }).not.toThrow();
   });
 });
 

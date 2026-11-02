@@ -2,10 +2,13 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { useSignOut } from "@/auth/session";
+import { ROW } from "./sidebar";
+import { Tip } from "./Tip";
 import { initials, storeLabel, useStore } from "@/stores/store";
+import { cx } from "@/ui/cx";
 
-/** The store at the foot of the rail; its menu names the store and signs out. */
-export function StoreMenu() {
+/** The store at the foot of the sidebar, as a row; its menu signs out. */
+export function StoreMenu({ collapsed = false }: { collapsed?: boolean }) {
   const store = useStore();
   const label = storeLabel(store);
   const [open, setOpen] = useState(false);
@@ -36,7 +39,7 @@ export function StoreMenu() {
   }, [open]);
 
   return (
-    <div ref={root} className="relative flex w-16 flex-col items-center">
+    <div ref={root} className="group/tip relative">
       <button
         ref={trigger}
         type="button"
@@ -46,25 +49,26 @@ export function StoreMenu() {
         onClick={() => {
           setOpen((shown) => !shown);
         }}
-        className="flex w-16 cursor-pointer flex-col items-center gap-[5px] rounded-destination py-1 hover:bg-subtle"
+        className={cx(ROW, "h-11 hover:bg-subtle", open && "bg-subtle")}
       >
         <span
           aria-hidden="true"
-          className="inline-flex size-8 items-center justify-center rounded-avatar bg-subtle text-label font-semibold text-ink"
+          className="-mx-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-subtle text-caption font-semibold text-ink"
         >
           {initials(label)}
         </span>
-        <span className="w-16 text-center text-tiny text-ink-muted">
-          {label}
-          <span aria-hidden="true">&#x2304;</span>
-        </span>
+        <span className={cx("min-w-0 flex-1 truncate", collapsed && "sr-only")}>{label}</span>
       </button>
+      <Tip show={collapsed && !open}>{label}</Tip>
       <div
         id={menuId}
         role="menu"
         aria-label={label}
         hidden={!open}
-        className="absolute bottom-0 left-full z-40 ml-3 w-56 flex-col gap-1 rounded-box border border-line bg-surface p-2 shadow-float [&:not([hidden])]:flex"
+        className={cx(
+          "absolute z-40 flex-col gap-1 rounded-box border border-line bg-surface p-2 shadow-float [&:not([hidden])]:flex",
+          collapsed ? "bottom-0 left-full ml-2 w-56" : "bottom-full left-0 mb-1 w-full",
+        )}
       >
         <button
           ref={firstItem}

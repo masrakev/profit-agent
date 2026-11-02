@@ -12,6 +12,7 @@ import lockKeyhole from "@/assets/icons/lock-keyhole.svg";
 import messageCircle from "@/assets/icons/message-circle.svg";
 import mic from "@/assets/icons/mic.svg";
 import moon from "@/assets/icons/moon.svg";
+import panelLeft from "@/assets/icons/panel-left.svg";
 import pause from "@/assets/icons/pause.svg";
 import plus from "@/assets/icons/plus.svg";
 import settings from "@/assets/icons/settings.svg";
@@ -30,6 +31,7 @@ export const ICONS = {
   "message-circle": { url: messageCircle, size: 20 },
   mic: { url: mic, size: 20 },
   moon: { url: moon, size: 20 },
+  "panel-left": { url: panelLeft, size: 20 }, // the sidebar toggle: not in Figma, same line style
   pause: { url: pause, size: 20 },
   plus: { url: plus, size: 20 },
   settings: { url: settings, size: 20 },

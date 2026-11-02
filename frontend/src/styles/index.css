@@ -100,6 +100,8 @@
   --text-card--line-height: 1.45;
   --text-brand: 17px;
   --text-brand--line-height: normal;
+  --text-nav: 14px; /* the sidebar's rows */
+  --text-nav--line-height: 20px;
   --text-body: 15px;
   --text-body--line-height: 1.45;
   --text-small: 13px;
