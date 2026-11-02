@@ -3,12 +3,13 @@ Alembic as the owner role and exercised as the non-superuser application role.""
 
 import os
 from collections.abc import Iterator
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 import httpx2
 import pytest
+import time_machine
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import Engine, create_engine, make_url, text
@@ -24,6 +25,12 @@ from bench.scenarios.manifest import load_suite
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DB = os.environ.get("TEST_DATABASE_NAME", "profit_test")
+
+# The suite passes on any day. `TEST_CLOCK=2026-12-15T12:00:00+00:00` runs it with Python's clock
+# moved there (ticking); point DATABASE_URL at a database whose clock is moved too (libfaketime),
+# since the schema stamps rows with the database's now().
+if os.environ.get("TEST_CLOCK"):
+    time_machine.travel(datetime.fromisoformat(os.environ["TEST_CLOCK"]), tick=True).start()
 
 
 def _with_db(url: str, database: str) -> str:
