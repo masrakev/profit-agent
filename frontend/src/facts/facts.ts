@@ -19,13 +19,13 @@ export interface Estimate {
 
 /** An estimate with its range (the bar), or null for an exact or undefined fact. */
 export function estimateOf(fact: Fact): Estimate | null {
-  if (fact.kind !== "estimate" || fact.status !== "ok") return null;
+  if (fact.kind !== "estimate" || !isDefined(fact)) return null;
   const { p10, p50, p90 } = fact;
   return p10 != null && p50 != null && p90 != null ? { p10, p50, p90 } : null;
 }
 
-export function isUndefined(fact: Fact): boolean {
-  return fact.status !== "ok";
+export function isDefined(fact: Fact): boolean {
+  return fact.status === "defined";
 }
 
 export const factKey = (storeId: string, factId: number) => ["fact", storeId, factId] as const;
@@ -44,4 +44,30 @@ export function useFactDetail(storeId: string, factId: number | null) {
         }),
       ),
   });
+}
+
+/**
+ * The low and high ends of an estimate's formatted range, as the API wrote them ("$570–$614": the
+ * API joins P10 and P90 with an en dash). Null when the text is not such a range.
+ */
+export function rangeEnds(formatted: string): { low: string; high: string } | null {
+  const [low, high, ...rest] = formatted.split("–");
+  return low && high && rest.length === 0 ? { low, high } : null;
+}
+
+/** How an estimate was made, in words, from the API's method identifier. */
+const METHODS: Record<string, string> = {
+  twin_monte_carlo_v1: "simulated outcomes",
+  synthetic_control_v2: "compared with a synthetic control",
+  block_bootstrap_shapley_v1: "resampled from your history",
+  goal_trend_block_bootstrap_v1: "resampled from your trend",
+  ols_daily_normal_v1: "fitted to your daily trend",
+  sum_of_quantiles_v1: "summed from the ranges below",
+};
+
+export function methodText(method: string | null | undefined): string | null {
+  // A derived estimate names its operation first ("negated:block_bootstrap_shapley_v1").
+  const base = method?.split(":").at(-1);
+  if (!base) return null;
+  return METHODS[base] ?? base.replace(/_v[0-9]+$/, "").replaceAll("_", " ");
 }

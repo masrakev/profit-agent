@@ -4,6 +4,8 @@ import type { ReactElement, ReactNode } from "react";
 
 import type { Api } from "@/api/client";
 import { ApiProvider } from "@/api/ApiProvider";
+import { ProofProvider } from "@/facts/ProofProvider";
+import { StoreContext } from "@/stores/store";
 
 export function testQueryClient(): QueryClient {
   return new QueryClient({
@@ -32,4 +34,16 @@ export function renderWithApi(
 
 export function renderHookWithApi<T>(hook: () => T, api: Api, queries = testQueryClient()) {
   return { queries, ...renderHook(hook, { wrapper: wrapper(api, queries) }) };
+}
+
+export const STORE_ID = "ed68bb6d-1d14-5b04-af2b-e272de12e862";
+
+/** A component that uses the store and the proof sheet, as the signed-in pages do. */
+export function renderInStore(ui: ReactElement, api: Api) {
+  return renderWithApi(
+    <StoreContext.Provider value={{ storeId: STORE_ID, name: null }}>
+      <ProofProvider storeId={STORE_ID}>{ui}</ProofProvider>
+    </StoreContext.Provider>,
+    api,
+  );
 }
