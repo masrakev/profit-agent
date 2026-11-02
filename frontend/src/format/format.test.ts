@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { formatDay, formatPeriod } from "./dates";
-import { counted, humanize, metricName } from "./words";
+import { counted, humanize } from "./words";
 
 describe("a fact's period", () => {
   it("ends on the last day it covers (the API's end is excluded)", () => {
@@ -42,11 +42,6 @@ describe("words", () => {
     expect(humanize("order_lines")).toBe("Order lines");
     expect(humanize("pause_until_restock")).toBe("Pause until restock");
     expect(humanize("")).toBe("");
-  });
-
-  it("names metrics without their namespace", () => {
-    expect(metricName("net_profit")).toBe("Net profit");
-    expect(metricName("briefing.monthly_loss")).toBe("Monthly loss");
   });
 
   it("counts with the right noun", () => {

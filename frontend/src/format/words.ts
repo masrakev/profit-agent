@@ -8,8 +8,3 @@ export function humanize(identifier: string): string {
 export function counted(count: number, singular: string, plural = `${singular}s`): string {
   return `${String(count)} ${count === 1 ? singular : plural}`;
 }
-
-/** A metric's name: "net_profit" → "Net profit", "briefing.monthly_loss" → "Monthly loss". */
-export function metricName(metric: string): string {
-  return humanize(metric.split(".").at(-1) ?? metric);
-}

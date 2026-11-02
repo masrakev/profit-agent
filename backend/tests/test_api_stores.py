@@ -101,6 +101,7 @@ def test_overview_incidents_and_facts(client: TestClient, golden_stockout: dict[
     assert fact["formula"]["explanation"].startswith("Profit after every cost")
     assert {p["fact"]["metric"] for p in fact["parents"]} >= {"contribution_after_ads"}
     assert (fact["fact"]["display"], fact["fact"]["change"]) == (net["display"], False)
+    assert net["name"] == "Net profit"
     assert "." not in net["display"]  # whole units
     derived = next(v for v in overview["facts"].values() if v["metric"] == "derived.compute")
     words = client.get(f"{base}/facts/{derived['fact_id']}").json()["formula"]

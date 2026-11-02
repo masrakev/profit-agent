@@ -5,6 +5,7 @@ import type { Fact } from "@/facts/facts";
 export const exact: Fact = {
   fact_id: 12,
   metric: "net_profit",
+  name: "Net profit",
   formula_version: 3,
   kind: "exact",
   status: "defined",

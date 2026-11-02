@@ -13,7 +13,7 @@ from sqlalchemy import Connection
 
 from app.briefings.models import Document, Section
 from app.channels.render import load_entity_names
-from app.facts.catalogue import is_change, method_text
+from app.facts.catalogue import fact_name, is_change, method_text
 from app.facts.model import Fact
 from app.facts.repository import get_facts
 from app.verifier import entity_references, fact_references
@@ -34,6 +34,7 @@ class Quantiles(BaseModel):
 class FactOut(BaseModel):
     fact_id: int
     metric: str
+    name: str  # what the number is, in a few words ("Change in net profit")
     formula_version: int
     kind: str
     status: str
@@ -87,6 +88,7 @@ def fact_out(fact: Fact) -> FactOut:
     return FactOut(
         fact_id=fact.id,
         metric=fact.formula_id,
+        name=fact_name(fact.formula_id),
         formula_version=fact.formula_version,
         kind=fact.kind.value,
         status=fact.status.value,

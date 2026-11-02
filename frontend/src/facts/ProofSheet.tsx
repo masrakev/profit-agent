@@ -12,7 +12,7 @@ import { FactValue } from "./FactValue";
 import { SourceRows } from "./SourceRows";
 import { RangeBar } from "@/charts/RangeBar";
 import { formatPeriod } from "@/format/dates";
-import { humanize, metricName } from "@/format/words";
+import { humanize } from "@/format/words";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 
@@ -41,7 +41,7 @@ export function ProofSheet({ storeId, fact, title, onClose, onBack }: ProofSheet
 
   const estimate = estimateOf(fact);
   const period = formatPeriod(fact.period_start, fact.period_end);
-  const heading = title ?? metricName(fact.metric);
+  const heading = title ?? fact.name;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-scrim">

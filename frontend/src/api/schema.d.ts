@@ -1673,6 +1673,8 @@ export interface components {
             method_description?: string | null;
             /** Metric */
             metric: string;
+            /** Name */
+            name: string;
             /** P10 */
             p10?: string | null;
             /** P50 */

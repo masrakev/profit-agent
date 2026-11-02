@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.facts.catalogue import EXACT, FAMILIES, describe, is_change, method_text
+from app.facts.catalogue import EXACT, FAMILIES, describe, fact_name, is_change, method_text
 from app.facts.formulas import REGISTRY
 
 
@@ -43,6 +43,24 @@ def test_derived_families_are_described(formula_id: str, words: str, change: boo
     assert words in described.explanation
     assert described.version is None
     assert is_change(formula_id) is change
+
+
+@pytest.mark.parametrize(
+    ("formula_id", "name"),
+    [
+        ("net_profit", "Net profit"),
+        ("cogs", "Cost of goods"),
+        ("twin.change.net_profit", "Change in net profit"),
+        ("twin.do_nothing.units", "Projected units sold if nothing changes"),
+        ("decision.do_nothing.net_profit", "Change in net profit from doing nothing"),
+        ("profit_driver.unit_cost", "Effect of unit cost on net profit"),
+        ("expected_monthly_impact", "Monthly impact"),
+        ("derived.sum", "Sum"),
+        ("nobody.knows_this", "Knows this"),
+    ],
+)
+def test_every_fact_has_a_name(formula_id: str, name: str) -> None:
+    assert fact_name(formula_id) == name
 
 
 def test_unknown_families_say_nothing() -> None:

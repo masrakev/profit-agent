@@ -1469,6 +1469,10 @@
             "title": "Metric",
             "type": "string"
           },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
           "p10": {
             "anyOf": [
               {
@@ -1582,6 +1586,7 @@
         "required": [
           "fact_id",
           "metric",
+          "name",
           "formula_version",
           "kind",
           "status",
