@@ -1,5 +1,6 @@
 import type { RouteObject } from "react-router";
 
+import { ApprovalPage } from "@/approval/ApprovalPage";
 import { RequireSession } from "@/auth/RequireSession";
 import { SignInPage } from "@/auth/SignInPage";
 import { ChatPage } from "@/pages/ChatPage";
@@ -28,6 +29,7 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
   }
   return [
     { path: "/sign-in", element: <SignInPage /> },
+    { path: "/approve", element: <ApprovalPage /> },
     { element: <RequireSession />, children: gated },
     { path: "*", element: <NotFoundPage /> },
   ];
