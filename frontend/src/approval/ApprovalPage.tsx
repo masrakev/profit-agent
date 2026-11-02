@@ -18,8 +18,7 @@ interface Problem {
   text: string;
 }
 
-function problemOf(error: unknown): Problem {
-  const code = error instanceof ApiError ? error.code : undefined;
+function problemOf(code: string | undefined): Problem {
   switch (code) {
     case "expired_link":
       return {
@@ -54,10 +53,17 @@ function problemOf(error: unknown): Problem {
   }
 }
 
+/** Why a link to a decision that is no longer waiting cannot decide it (its preview says so). */
+function closedCode(status: string): string | null {
+  if (status === "proposed") return null;
+  return status === "superseded" || status === "expired" ? status : "already_decided";
+}
+
 /**
  * The page an email's Approve or Decline link opens. Opening it only shows what it would decide
  * (mail scanners open links): the owner confirms with a button, which decides. Beyond the
- * spending caps, the link only points to the app. Expired, used and replaced links say so.
+ * spending caps, the link only points to the app. Expired, used and replaced links say so, and so
+ * does a link to a decision no longer waiting (replaced, expired or decided elsewhere).
  */
 export function ApprovalPage() {
   const api = useApi();
@@ -79,14 +85,17 @@ export function ApprovalPage() {
   });
 
   const error = token === null ? new ApiError(403, undefined) : (confirm.error ?? preview.error);
+  const closed = preview.data && !confirm.data ? closedCode(preview.data.decision.status) : null;
   return (
     <div className="flex min-h-dvh flex-col items-center gap-[100px] bg-canvas px-6 pt-14 pb-12 sm:px-16">
       <BrandMark named />
       <main className="flex w-full max-w-[460px] flex-col gap-6">
         {error ? (
-          <Message {...problemOf(error)} />
+          <Message {...problemOf(error instanceof ApiError ? error.code : undefined)} />
         ) : confirm.data ? (
           <Done result={confirm.data} />
+        ) : closed ? (
+          <Message {...problemOf(closed)} />
         ) : preview.data ? (
           <Confirm
             result={preview.data}

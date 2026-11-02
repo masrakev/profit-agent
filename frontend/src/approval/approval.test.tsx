@@ -104,6 +104,16 @@ describe("the email approval page", () => {
     expect(screen.getByRole("link", { name: "Open the app" })).toBeVisible();
   });
 
+  it.each([
+    ["superseded", "Replaced by a newer decision"],
+    ["expired", "This decision has expired"],
+    ["executed", "This decision was already decided"],
+  ])("says so, without offering to decide, when the decision is %s", async (status, title) => {
+    open(fakeApi().on(`GET ${LINK}`, result({ decision: decision(status) })));
+    expect(await screen.findByRole("heading", { name: title })).toBeVisible();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
   it("says when the link was used meanwhile", async () => {
     const fake = fakeApi()
       .on(`GET ${LINK}`, result())
