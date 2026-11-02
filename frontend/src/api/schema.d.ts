@@ -522,6 +522,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/stores/{store_id}/facts/{fact_id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Fact Rows
+         * @description The rows a base fact adds up, by date, each with its amount; they sum to the fact.
+         *     `table` picks one of the fact's sources (its first by default).
+         */
+        get: operations["get_fact_rows_api_v1_stores__store_id__facts__fact_id__rows_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/stores/{store_id}/goals": {
         parameters: {
             query?: never;
@@ -2149,6 +2170,13 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /** Page[SourceRowOut] */
+        Page_SourceRowOut_: {
+            /** Items */
+            items: components["schemas"]["SourceRowOut"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** Parent */
         Parent: {
             fact: components["schemas"]["FactOut"];
@@ -2449,10 +2477,25 @@ export interface components {
         Source: {
             /** Count */
             count: number;
+            /** Data Up To */
+            data_up_to: string | null;
             /** Ids */
             ids: string[];
+            /** Source */
+            source: string | null;
             /** Table */
             table: string;
+        };
+        /** SourceRowOut */
+        SourceRowOut: {
+            amount: components["schemas"]["Text"];
+            /** Day */
+            day: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
         };
         /** SpendingCaps */
         "SpendingCaps-Input": {
@@ -5134,6 +5177,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FactDetail"];
+                };
+            };
+            /** @description Not signed in, or the token is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not allowed (CSRF, a token where a session is needed) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not found, or not one of the caller's stores */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description The request is not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+        };
+    };
+    get_fact_rows_api_v1_stores__store_id__facts__fact_id__rows_get: {
+        parameters: {
+            query?: {
+                /** @description a source table */
+                table?: string | null;
+                /** @description items per page */
+                limit?: number;
+                /** @description next_cursor of the previous page */
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                fact_id: number;
+                store_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_SourceRowOut_"];
                 };
             };
             /** @description Not signed in, or the token is not valid */

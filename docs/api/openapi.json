@@ -2809,6 +2809,33 @@
         "title": "Page[JournalEntry]",
         "type": "object"
       },
+      "Page_SourceRowOut_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRowOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[SourceRowOut]",
+        "type": "object"
+      },
       "Parent": {
         "properties": {
           "fact": {
@@ -3640,6 +3667,18 @@
             "title": "Count",
             "type": "integer"
           },
+          "data_up_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Up To"
+          },
           "ids": {
             "items": {
               "format": "uuid",
@@ -3648,6 +3687,17 @@
             "title": "Ids",
             "type": "array"
           },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
           "table": {
             "title": "Table",
             "type": "string"
@@ -3655,10 +3705,43 @@
         },
         "required": [
           "table",
+          "source",
+          "data_up_to",
           "count",
           "ids"
         ],
         "title": "Source",
+        "type": "object"
+      },
+      "SourceRowOut": {
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Text"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "day",
+          "amount"
+        ],
+        "title": "SourceRowOut",
         "type": "object"
       },
       "SpendingCaps-Input": {
@@ -7496,6 +7579,157 @@
           }
         },
         "summary": "Get Fact",
+        "tags": [
+          "facts"
+        ]
+      }
+    },
+    "/api/v1/stores/{store_id}/facts/{fact_id}/rows": {
+      "get": {
+        "description": "The rows a base fact adds up, by date, each with its amount; they sum to the fact.\n`table` picks one of the fact's sources (its first by default).",
+        "operationId": "get_fact_rows_api_v1_stores__store_id__facts__fact_id__rows_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fact_id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "title": "Fact Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "store_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Store Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "a source table",
+            "in": "query",
+            "name": "table",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "a source table",
+              "title": "Table"
+            }
+          },
+          {
+            "description": "items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "items per page",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "next_cursor of the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "next_cursor of the previous page",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_SourceRowOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not signed in, or the token is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not allowed (CSRF, a token where a session is needed)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not found, or not one of the caller's stores"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "The request is not valid"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Too many requests"
+          }
+        },
+        "summary": "Get Fact Rows",
         "tags": [
           "facts"
         ]

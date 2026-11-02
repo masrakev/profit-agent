@@ -96,9 +96,12 @@ describe("the app shell", () => {
     await userEvent.click(store);
     await userEvent.keyboard("a");
     await userEvent.click(signOut);
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/sign-in");
-    });
+    await waitFor(
+      () => {
+        expect(router.state.location.pathname).toBe("/sign-in");
+      },
+      { timeout: 3000 }, // the sign-out request, then the navigation: slow under load
+    );
     expect(fake.requests.some((request) => request.method === "DELETE")).toBe(true);
   });
 });

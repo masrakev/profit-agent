@@ -38,9 +38,9 @@ from app.agent.steps import Step, recording
 from app.agent.trace import FINAL, recorder, steps_after
 from app.api.auth import PrincipalDep, StoreDep
 from app.api.deps import ConverterDep, EngineDep, ProviderDep, TranscriberDep
-from app.api.pagination import Cursor, Limit, Page, paginate
+from app.api.pagination import Cursor, Limit, Page, decode_cursor, encode_cursor, paginate
 from app.api.problems import PROBLEM_JSON, Problem
-from app.api.views import Cited, DocumentOut, FactOut, cited, document_out, fact_out
+from app.api.views import Cited, DocumentOut, FactOut, Text, cited, document_out, fact_out
 from app.briefings import periods
 from app.briefings.content import build, context, open_incidents, profit_bridge
 from app.briefings.models import BriefingKind
@@ -50,9 +50,11 @@ from app.db import tenant_transaction
 from app.detection.repository import load_incident
 from app.facts.catalogue import describe
 from app.facts.repository import get_facts
+from app.facts.rows import data_up_to, source_rows, view_for
 from app.policies.engine import store_switch_on
 from app.settings.models import StoreSettings
 from app.settings.repository import StoreSettingsRepository
+from app.verifier.render import display_value, format_value
 from app.voice.audio import MAX_BYTES, MAX_SECONDS, ClipRejected
 from app.voice.convert import prepare_clip
 from app.voice.service import ask_by_voice
@@ -373,8 +375,10 @@ class Parent(BaseModel):
 
 class Source(BaseModel):
     table: str
+    source: str | None  # where the rows come from, in words ("Meta Ads · Daily spend")
+    data_up_to: date | None  # the last day this source has data for, in the store
     count: int
-    ids: list[UUID]  # the first ones
+    ids: list[UUID]  # the first ones; every row, with its date and amount: /rows
 
 
 class FactDetail(BaseModel):
@@ -404,7 +408,18 @@ def get_fact(
             {"s": store_id, "f": fact_id},
         ).all()
         parents = get_facts(conn, store_id, [r.parent_fact_id for r in rows if r.parent_fact_id])
-    fact = found[fact_id]
+        fact = found[fact_id]
+        sources = [
+            Source(
+                table=r.source_table,
+                source=view.source if (view := view_for(fact, r.source_table)) else None,
+                data_up_to=data_up_to(conn, store_id, r.source_table),
+                count=len(r.source_ids or []),
+                ids=list(r.source_ids or [])[:MAX_SOURCE_IDS],
+            )
+            for r in rows
+            if r.source_table is not None
+        ]
     described = describe(fact.formula_id)
     formula = (
         Formula(
@@ -426,15 +441,79 @@ def get_fact(
             for r in rows
             if r.parent_fact_id in parents
         ],
-        sources=[
-            Source(
-                table=r.source_table,
-                count=len(r.source_ids or []),
-                ids=list(r.source_ids or [])[:MAX_SOURCE_IDS],
+        sources=sources,
+    )
+
+
+class SourceRowOut(BaseModel):
+    id: UUID
+    day: date | None  # the row's date (UTC); none for an attribute (a lead time)
+    amount: Text  # the row's part of the fact, exact and short
+
+
+@router.get("/facts/{fact_id}/rows", response_model=Page[SourceRowOut], tags=["facts"])
+def get_fact_rows(
+    store_id: StoreDep,
+    fact_id: Annotated[int, Path(ge=1)],
+    engine: EngineDep,
+    table: Annotated[str | None, Query(max_length=64, description="a source table")] = None,
+    limit: Limit = 50,
+    cursor: Cursor = None,
+) -> Page[SourceRowOut]:
+    """The rows a base fact adds up, by date, each with its amount; they sum to the fact.
+    `table` picks one of the fact's sources (its first by default)."""
+    after = None
+    if cursor is not None:
+        key = decode_cursor(cursor)
+        try:
+            after = (date.fromisoformat(key[0]) if key[0] else None, UUID(key[1]))
+        except (IndexError, ValueError) as exc:
+            raise HTTPException(
+                status_code=422, detail={"code": "invalid_cursor", "message": "invalid cursor"}
+            ) from exc
+    with tenant_transaction(engine, store_id) as conn:
+        found = get_facts(conn, store_id, [fact_id])
+        if fact_id not in found:
+            raise _not_found("no such fact")
+        fact = found[fact_id]
+        lineage = conn.execute(
+            text(
+                "SELECT source_table, source_ids FROM fact_lineage WHERE store_id = :s "
+                "AND fact_id = :f AND source_table IS NOT NULL ORDER BY id"
+            ),
+            {"s": store_id, "f": fact_id},
+        ).all()
+        chosen = next((r for r in lineage if table is None or r.source_table == table), None)
+        if chosen is None:
+            if table is None:
+                return Page[SourceRowOut](items=[])
+            raise _not_found("the fact has no such source")
+        rows = source_rows(
+            conn,
+            fact,
+            chosen.source_table,
+            list(chosen.source_ids or []),
+            after=after,
+            limit=limit + 1,
+        )
+    page = rows[:limit]
+    return Page[SourceRowOut](
+        items=[
+            SourceRowOut(
+                id=r.id,
+                day=r.day,
+                amount=Text(
+                    formatted=format_value(r.amount, r.unit, fact.currency),
+                    display=display_value(r.amount, r.unit, fact.currency),
+                ),
             )
-            for r in rows
-            if r.source_table is not None
+            for r in page
         ],
+        next_cursor=(
+            encode_cursor([page[-1].day.isoformat() if page[-1].day else "", str(page[-1].id)])
+            if len(rows) > limit
+            else None
+        ),
     )
 
 

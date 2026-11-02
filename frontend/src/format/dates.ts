@@ -29,3 +29,9 @@ export function formatPeriod(start: string, endExclusive: string): string | null
   const sameYear = from.getUTCFullYear() === last.getUTCFullYear();
   return `${sameYear ? DAY.format(from) : DAY_YEAR.format(from)} – ${lastDay}`;
 }
+
+/** A calendar day the API names ("2026-09-23"): "Sep 23, 2026". */
+export function formatDay(day: string): string {
+  const date = instant(`${day}T00:00:00Z`);
+  return date ? DAY_YEAR.format(date) : day;
+}

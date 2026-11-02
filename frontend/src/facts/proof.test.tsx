@@ -6,7 +6,7 @@ import { FactValue } from "./FactValue";
 import { useProof } from "./proofContext";
 import { SEAL_TEXT, VerifiedSeal } from "./VerifiedSeal";
 import { estimate, exact } from "@/test/facts";
-import { fakeApi, problem } from "@/test/fakeApi";
+import { fakeApi, json, problem } from "@/test/fakeApi";
 import { renderInStore, renderWithApi, STORE_ID } from "@/test/render";
 
 const FACTS = `/api/v1/stores/${STORE_ID}/facts`;
@@ -77,6 +77,53 @@ describe("the proof sheet", () => {
     expect(within(sheet).getByText("Order lines")).toBeInTheDocument();
     expect(within(sheet).getByText("12 rows")).toBeInTheDocument();
     expect(within(sheet).getByRole("button", { name: "$3,000, see the proof" })).toBeVisible();
+  });
+
+  it("lists a source's rows by date, a page at a time, with their total", async () => {
+    const spend = { ...exact, fact_id: 21, metric: "ad_spend", formatted: "$412.40" };
+    const row = (id: string, day: string, amount: string) => ({
+      id,
+      day,
+      amount: { formatted: amount, display: amount },
+    });
+    const fake = fakeApi()
+      .on(`GET ${FACTS}/21`, {
+        fact: spend,
+        formula: null,
+        parents: [],
+        sources: [
+          {
+            table: "ad_metrics_daily",
+            source: "Meta Ads · Daily spend",
+            data_up_to: "2026-09-14",
+            count: 3,
+            ids: [],
+          },
+        ],
+      })
+      .on(`GET ${FACTS}/21/rows`, (request: Request) => {
+        const cursor = new URL(request.url).searchParams.get("cursor");
+        return json(
+          cursor
+            ? { items: [row("c", "2026-09-25", "$79.85")], next_cursor: null }
+            : {
+                items: [row("a", "2026-09-23", "$76.20"), row("b", "2026-09-24", "$83.10")],
+                next_cursor: "page-2",
+              },
+        );
+      });
+    renderInStore(<FactValue fact={spend} />, fake.api);
+    await userEvent.click(screen.getByRole("button"));
+    const sheet = screen.getByRole("dialog");
+    expect(await within(sheet).findByText("Sep 23, 2026")).toBeInTheDocument();
+    expect(within(sheet).getByText("Meta Ads · Daily spend")).toBeInTheDocument();
+    expect(within(sheet).getByText("$83.10")).toBeInTheDocument();
+    expect(within(sheet).getByText("Data up to Sep 14, 2026")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Total")).toBeNull();
+    await userEvent.click(within(sheet).getByRole("button", { name: "Show more rows" }));
+    expect(await within(sheet).findByText("$79.85")).toBeInTheDocument();
+    expect(within(sheet).getByText("Total").parentElement).toHaveTextContent("$412.40");
+    expect(fake.requests.at(-1)?.url).toContain("cursor=page-2");
   });
 
   it("opens a parent's proof on top, and goes back to the first", async () => {

@@ -42,6 +42,16 @@ def _decode(cursor: str) -> list[str]:
     return key
 
 
+def encode_cursor(key: Sequence[str]) -> str:
+    """A cursor for a page that ends at `key` (for pages sorted in the database)."""
+    return _encode(key)
+
+
+def decode_cursor(cursor: str) -> list[str]:
+    """The sort key a cursor names; a malformed cursor is a 422."""
+    return _decode(cursor)
+
+
 def paginate[T](
     items: Sequence[T],
     *,

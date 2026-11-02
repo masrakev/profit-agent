@@ -9,9 +9,10 @@ import {
   type FactDetail,
 } from "./facts";
 import { FactValue } from "./FactValue";
+import { SourceRows } from "./SourceRows";
 import { RangeBar } from "@/charts/RangeBar";
 import { formatPeriod } from "@/format/dates";
-import { counted, humanize, metricName } from "@/format/words";
+import { humanize, metricName } from "@/format/words";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 
@@ -128,17 +129,9 @@ export function ProofSheet({ storeId, fact, title, onClose, onBack }: ProofSheet
         {detail.data && detail.data.sources.length > 0 && (
           <section className="flex flex-col gap-3.5">
             <h3 className="text-body font-semibold text-ink">Where it comes from</h3>
-            <ul className="flex flex-col gap-3">
-              {detail.data.sources.map((source) => (
-                <li
-                  key={source.table}
-                  className="flex items-start justify-between gap-4 border-b border-line pb-3 text-small text-ink"
-                >
-                  <span>{humanize(source.table)}</span>
-                  <span className="text-ink-muted">{counted(source.count, "row")}</span>
-                </li>
-              ))}
-            </ul>
+            {detail.data.sources.map((source) => (
+              <SourceRows key={source.table} storeId={storeId} fact={fact} source={source} />
+            ))}
           </section>
         )}
 

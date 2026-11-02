@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatPeriod } from "./dates";
+import { formatDay, formatPeriod } from "./dates";
 import { counted, humanize, metricName } from "./words";
 
 describe("a fact's period", () => {
@@ -24,6 +24,11 @@ describe("a fact's period", () => {
     expect(formatPeriod("2026-09-01T00:00:00Z", "2026-09-08T00:00:00Z")).toBe(
       "Sep 1 – Sep 7, 2026",
     );
+  });
+
+  it("names one day of the API's", () => {
+    expect(formatDay("2026-09-23")).toBe("Sep 23, 2026");
+    expect(formatDay("not a day")).toBe("not a day");
   });
 
   it("is nothing when unreadable or empty", () => {
