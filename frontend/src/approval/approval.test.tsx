@@ -125,6 +125,32 @@ describe("the email approval page", () => {
     ).toBeVisible();
   });
 
+  it("follows another link opened in the same tab, and reads a link again", async () => {
+    const other = `${TOKEN}-other`;
+    let used = false;
+    const fake = fakeApi()
+      .on(`GET ${LINK}`, () => (used ? problem(409, "used_link") : json(result())))
+      .on(`POST ${LINK}`, () => {
+        used = true;
+        return json(result({ decided: true, decision: decision("approved") }));
+      })
+      .on(`GET /api/v1/approval-links/${other}`, result({ decision: decision("superseded") }));
+    open(fake);
+    await userEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    expect(await screen.findByRole("heading", { name: "Approved" })).toBeVisible();
+    window.location.hash = `token=${other}`; // the page is at /approve: only the fragment changes
+    expect(
+      await screen.findByRole("heading", { name: "Replaced by a newer decision" }),
+    ).toBeVisible();
+    expect(window.location.hash).toBe("");
+    window.location.hash = `token=${TOKEN}`;
+    expect(
+      await screen.findByRole("heading", { name: "This link was already used" }),
+    ).toBeVisible();
+    window.location.hash = ""; // a fragment cleared is not a link
+    expect(screen.getByRole("heading", { name: "This link was already used" })).toBeVisible();
+  });
+
   it("says when there is no token", async () => {
     window.history.replaceState(null, "", "/approve");
     open(fakeApi());

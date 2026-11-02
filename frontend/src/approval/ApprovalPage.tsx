@@ -66,6 +66,21 @@ function closedCode(status: string): string | null {
  * does a link to a decision no longer waiting (replaced, expired or decided elsewhere).
  */
 export function ApprovalPage() {
+  // Another email link opened in this tab changes only the fragment: the page reads it afresh.
+  const [opened, setOpened] = useState(0);
+  useEffect(() => {
+    const follow = () => {
+      if (window.location.hash) setOpened((count) => count + 1);
+    };
+    window.addEventListener("hashchange", follow);
+    return () => {
+      window.removeEventListener("hashchange", follow);
+    };
+  }, []);
+  return <ApprovalLink key={opened} />;
+}
+
+function ApprovalLink() {
   const api = useApi();
   const [token] = useState(() => approvalToken(window.location.hash));
   useEffect(() => {
@@ -78,6 +93,7 @@ export function ApprovalPage() {
     enabled: token !== null,
     retry: false,
     staleTime: Infinity,
+    gcTime: 0, // opened again, a link is read again (it may have been used since)
     queryFn: () => unwrap(api.GET("/api/v1/approval-links/{token}", path)),
   });
   const confirm = useMutation({
