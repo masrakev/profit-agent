@@ -9,6 +9,7 @@ import { formatPeriod } from "@/format/dates";
 import { useStore } from "@/stores/store";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
+import { STATUS } from "@/decisions/status";
 import { StatusPill, type Tone } from "@/ui/StatusPill";
 
 type Decision = Schemas["DecisionView"];
@@ -18,17 +19,6 @@ type Policy = Schemas["PolicyResult"];
 
 const WAITING = new Set(["approved", "executing"]);
 const PREVIEWED = new Set(["pause_campaign", "resume_campaign", "change_budget"]);
-
-const STATUS: Record<string, { tone: Tone; text: string }> = {
-  approved: { tone: "info", text: "Approved: starting" },
-  executing: { tone: "info", text: "Carrying it out" },
-  executed: { tone: "good", text: "Done" },
-  measured: { tone: "good", text: "Done and measured" },
-  failed: { tone: "critical", text: "Could not be carried out" },
-  rejected: { tone: "neutral", text: "Not now" },
-  expired: { tone: "neutral", text: "Expired" },
-  superseded: { tone: "neutral", text: "Replaced" },
-};
 
 /** The policy checks an option's actions would meet now (a preview: nothing is done). */
 function previews(option: Option | undefined): Preview[] {

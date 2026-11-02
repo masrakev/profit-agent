@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, renderHook, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router";
 
 import { fakeApi, type FakeApi } from "./fakeApi";
 import type { Api } from "@/api/client";
@@ -79,13 +79,15 @@ export function renderApp(path: string, api: Api, { dev = false }: { dev?: boole
   return { router, ...result };
 }
 
-/** A component that uses the store and the proof sheet, as the signed-in pages do. */
+/** A component that uses the store, the proof sheet and the router, as the signed-in pages do. */
 export function renderInStore(ui: ReactElement, api: Api) {
   return renderWithApi(
     <StoreContext.Provider
       value={{ storeId: STORE_ID, name: STORE.name, synthetic: true, timezone: "UTC" }}
     >
-      <ProofProvider storeId={STORE_ID}>{ui}</ProofProvider>
+      <ProofProvider storeId={STORE_ID}>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </ProofProvider>
     </StoreContext.Provider>,
     api,
   );

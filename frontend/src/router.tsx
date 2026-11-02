@@ -4,7 +4,10 @@ import { ApprovalPage } from "@/approval/ApprovalPage";
 import { RequireSession } from "@/auth/RequireSession";
 import { SignInPage } from "@/auth/SignInPage";
 import { ChatPage } from "@/pages/ChatPage";
+import { DecisionsPage } from "@/pages/DecisionsPage";
+import { JournalPage } from "@/pages/JournalPage";
 import { NotFoundPage, PendingPage } from "@/pages/placeholders";
+import { TodayPage } from "@/pages/TodayPage";
 import { AppShell, type RouteHandle } from "@/shell/AppShell";
 
 const conversation: RouteHandle = { composer: true };
@@ -13,10 +16,10 @@ const conversation: RouteHandle = { composer: true };
 export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
   const signedIn: RouteObject[] = [
     { index: true, element: <ChatPage />, handle: conversation },
-    { path: "today", element: <PendingPage title="Today" /> },
-    { path: "decisions", element: <PendingPage title="Decisions" /> },
+    { path: "today", element: <TodayPage /> },
+    { path: "decisions", element: <DecisionsPage /> },
     { path: "goals", element: <PendingPage title="Goals" /> },
-    { path: "journal", element: <PendingPage title="Journal" /> },
+    { path: "journal", element: <JournalPage /> },
     { path: "settings", element: <PendingPage title="Settings" /> },
   ];
   const gated: RouteObject[] = [{ element: <AppShell />, children: signedIn }];

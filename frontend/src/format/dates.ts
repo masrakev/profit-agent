@@ -68,3 +68,22 @@ export function formatTime(at: string, timeZone: string): string {
     return TIME_UTC.format(date); // an unknown time zone: UTC, rather than nothing
   }
 }
+
+/** An instant's calendar day in the store's time zone: a key to group by, and "Mon, Nov 2". */
+export function localDay(at: string, timeZone: string): { key: string; label: string } {
+  const date = instant(at);
+  if (!date) return { key: at, label: at };
+  const zoned = (options: Intl.DateTimeFormatOptions) => {
+    try {
+      return new Intl.DateTimeFormat("en-US", { ...options, timeZone }).formatToParts(date);
+    } catch {
+      return new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" }).formatToParts(date);
+    }
+  };
+  const parts = zoned({ year: "numeric", month: "2-digit", day: "2-digit" });
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const label = zoned({ weekday: "short", month: "short", day: "numeric" })
+    .map((p) => p.value)
+    .join("");
+  return { key: `${part("year")}-${part("month")}-${part("day")}`, label };
+}
