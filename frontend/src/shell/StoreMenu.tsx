@@ -66,7 +66,6 @@ export function StoreMenu() {
         hidden={!open}
         className="absolute bottom-0 left-full z-40 ml-3 w-56 flex-col gap-1 rounded-box border border-line bg-surface p-2 shadow-float [&:not([hidden])]:flex"
       >
-        <p className="px-3 py-2 text-label text-ink-muted">{label}</p>
         <button
           ref={firstItem}
           type="button"

@@ -151,7 +151,6 @@ function LinkForm({ notice, onSignedIn }: LinkFormProps) {
   return (
     <form
       onSubmit={submit}
-      noValidate={false}
       className="flex flex-col gap-5 rounded-card border border-line bg-surface p-7"
     >
       {notice && (
