@@ -5,6 +5,12 @@
  *
  *   make web                       # the dev server, with the API on the demo store and Mailpit up
  *   node scripts/screens.mjs       # writes docs/screens/page-1/app/<screen>-<light|dark>.png
+ *   node scripts/screens.mjs 2-3   # the conversation and the approval page: page-2-3/app/
+ *
+ * Pages 2 and 3 approve two of the demo store's decisions (the simulator carries them out) and ask
+ * one question (a model call): re-seed the demo store afterwards (`make demo-seed`). The
+ * API needs APPROVAL_LINK_SECRET for the email links, and ffmpeg for the recording. With
+ * SCREENS_EXPIRED_LINK set to an expired link's token, the expired link's page is taken too.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -12,7 +18,8 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 
 const BASE = process.env.SCREENS_BASE_URL ?? "http://localhost:3000";
-const OUT = new URL("../../docs/screens/page-1/app/", import.meta.url);
+const PAGE = process.argv[2] ?? "1";
+const OUT = new URL(`../../docs/screens/page-${PAGE}/app/`, import.meta.url);
 const VIEWPORT = { width: 1280, height: 960 };
 // The demo session is kept between runs (the API sends 5 sign-in links an hour at most).
 const SESSION = new URL("../node_modules/.cache/screens-session.json", import.meta.url);
@@ -51,7 +58,8 @@ async function signIn(browser) {
   return state;
 }
 
-async function capture(browser, session, scheme) {
+/** Page 1: the sign-in page, the shell, the style guide and the proof sheets, in one theme. */
+async function foundation(browser, session, scheme) {
   const file = (name) => fileURLToPath(new URL(`${name}-${scheme}.png`, OUT));
 
   const visitor = await browser.newContext({ viewport: VIEWPORT, colorScheme: scheme });
@@ -102,11 +110,183 @@ async function capture(browser, session, scheme) {
   await owner.close();
 }
 
+/** A spoken question, played by the browser's fake microphone (the voice tests' recording). */
+const SPEECH = fileURLToPath(
+  new URL("../../backend/tests/fixtures/voice/question_en.wav", import.meta.url),
+);
+const QUESTION = "What was my net profit last week, and which campaign cost me the most?";
+
+/** The same moment in both themes: the app follows the system's. */
+async function both(page, name, target = page, { quick = false, ...options } = {}) {
+  for (const scheme of ["light", "dark"]) {
+    await page.emulateMedia({ colorScheme: scheme });
+    if (!quick) await settle(page);
+    await page.waitForTimeout(400); // the colours' transitions
+    const path = fileURLToPath(new URL(`${name}-${scheme}.png`, OUT));
+    await target.screenshot({ path, ...options });
+  }
+}
+
+/** The message at the top of the window, clear of the composer below. */
+async function into(locator) {
+  await locator.page().waitForTimeout(800); // the conversation's own smooth scroll
+  await locator.evaluate((element) => {
+    window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - 24 });
+  });
+}
+
+/** The end of the conversation, as it reads after a new message. */
+async function end(page) {
+  await page.waitForTimeout(800);
+  await page.evaluate(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight });
+  });
+}
+
+/** The whole page at once: a window as tall as the page. */
+async function whole(page, name) {
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.setViewportSize({ width: VIEWPORT.width, height });
+  await both(page, name);
+  await page.setViewportSize(VIEWPORT);
+}
+
+/** Pages 2 and 3: the brief, an investigation, a decision, Ask by voice, the email page. */
+async function conversation(browser, session) {
+  const owner = await browser.newContext({
+    viewport: VIEWPORT,
+    storageState: session,
+    permissions: ["microphone"],
+  });
+  const api = async (method, path, data) => {
+    const csrf = (await owner.cookies()).find((cookie) => cookie.name === "pa_csrf");
+    const response = await owner.request.fetch(`${BASE}/api/v1${path}`, {
+      method,
+      data,
+      headers: { "X-CSRF-Token": csrf?.value ?? "" },
+    });
+    if (!response.ok()) throw new Error(`${method} ${path}: ${response.status()}`);
+    return response.json();
+  };
+  const [store] = (await api("GET", "/auth/session")).store_ids;
+  const { items } = await api("GET", `/stores/${store}/decisions?limit=50`);
+  // The demo's story: a decision replaced by the Trail Jacket's, and one more waiting.
+  const replaced = items.find((d) => d.status === "superseded" && d.superseded_by);
+  const story = items.find((d) => d.decision_id === replaced?.superseded_by);
+  const other = items.find((d) => d.status === "proposed" && d !== story);
+  if (story?.status !== "proposed" || !other) {
+    throw new Error("the demo's decisions were decided already: run make demo-seed");
+  }
+  const link = async (d) => {
+    const path = `/stores/${store}/decisions/${d.decision_id}/links`;
+    return (await api("POST", path, { option_id: d.recommended_option_id })).token;
+  };
+
+  const page = await owner.newPage();
+  await page.goto(`${BASE}/`);
+  const brief = page.getByRole("article", { name: "Morning brief" });
+  await brief.waitFor();
+  await settle(page);
+  await whole(page, "chat-brief");
+
+  await brief.getByRole("button", { name: "What I checked" }).first().click();
+  const checked = page.getByRole("region", { name: "What I checked" });
+  await checked.getByRole("button", { name: "Full report" }).waitFor();
+  await into(checked);
+  await both(page, "chat-investigation");
+
+  await checked.getByRole("button", { name: "See options" }).click();
+  const card = page.getByRole("article", { name: story.label });
+  await card.getByText(/^Safety checks passed/).waitFor();
+  await into(card);
+  await both(page, "chat-decision");
+  await both(page, "decision-card", card);
+
+  // The email approval page, as the owner's mailbox opens it: no session.
+  const visitor = await browser.newContext({ viewport: VIEWPORT });
+  const mail = await visitor.newPage();
+  const open = async (token) => {
+    await mail.goto("about:blank"); // each link as a new visit
+    await mail.goto(`${BASE}/approve#token=${token}`);
+    await mail.locator("main h1").first().waitFor();
+  };
+  const storyLink = await link(story);
+  await open(storyLink);
+  await both(mail, "approval-preview");
+  await open(await link(replaced));
+  await both(mail, "approval-replaced");
+  if (process.env.SCREENS_EXPIRED_LINK) {
+    await open(process.env.SCREENS_EXPIRED_LINK);
+    await both(mail, "approval-expired");
+  }
+  const otherLink = await link(other);
+  await open(otherLink);
+  await mail.getByRole("button", { name: "Approve" }).click();
+  await mail.getByRole("heading", { name: "Approved" }).waitFor();
+  await both(mail, "approval-approved");
+  await open(otherLink);
+  await both(mail, "approval-used");
+
+  // Approved in the conversation: followed live until the platform's state is read back. Before
+  // the question below: answering it can propose a fresher decision that replaces this one.
+  await into(card);
+  await card.getByRole("button", { name: "Approve" }).click();
+  const outcome = page.getByRole("article", { name: story.label });
+  await outcome
+    .getByRole("status")
+    .filter({ hasText: /Approved|Carrying/ })
+    .waitFor();
+  await both(page, "decision-executing", page, { quick: true });
+  await outcome.getByRole("listitem").first().waitFor({ timeout: 60_000 });
+  await into(outcome);
+  await both(page, "decision-executed");
+  await open(storyLink);
+  await both(mail, "approval-decided");
+
+  // The microphone: the waveform while it records. The demo store's spoken questions are refused
+  // by the transcription endpoint for now (two campaign names exceed its keyword length), so the
+  // question is then typed.
+  await page.getByRole("button", { name: "Ask by voice" }).click();
+  await page.getByRole("group", { name: "Recording your question" }).waitFor();
+  await page.waitForTimeout(2500);
+  await both(page, "voice-recording", page, { quick: true });
+  await page.getByRole("button", { name: "Cancel the recording" }).click();
+
+  // Asked: the work as it streams, then the answer.
+  const box = page.getByRole("textbox", { name: "Ask anything about your store" });
+  await box.fill(QUESTION);
+  await box.press("Enter");
+  const working = page.getByRole("region", { name: "Working" });
+  await working.getByRole("listitem").nth(2).waitFor({ timeout: 60_000 }); // a few steps in
+  await end(page);
+  await both(page, "ask-working", page, { quick: true });
+  await page.getByRole("article", { name: "Answer" }).waitFor({ timeout: 180_000 });
+  await end(page);
+  await both(page, "ask-answer");
+  await visitor.close();
+  await owner.close();
+}
+
 await mkdir(OUT, { recursive: true });
-const browser = await chromium.launch({ channel: process.env.SCREENS_BROWSER ?? "msedge" });
+const browser = await chromium.launch({
+  channel: process.env.SCREENS_BROWSER ?? "msedge",
+  // Pages 2 and 3: the microphone is the recording of a spoken question, allowed without a prompt.
+  args:
+    PAGE === "1"
+      ? []
+      : [
+          "--use-fake-ui-for-media-stream",
+          "--use-fake-device-for-media-stream",
+          `--use-file-for-fake-audio-capture=${SPEECH}%noloop`,
+        ],
+});
 try {
   const session = await demoSession(browser);
-  for (const scheme of ["light", "dark"]) await capture(browser, session, scheme);
+  if (PAGE === "1") {
+    for (const scheme of ["light", "dark"]) await foundation(browser, session, scheme);
+  } else {
+    await conversation(browser, session);
+  }
 } finally {
   await browser.close();
 }
