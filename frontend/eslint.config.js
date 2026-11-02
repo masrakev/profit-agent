@@ -58,7 +58,7 @@ export default tseslint.config(
           message: "Merchant text is rendered as text, never as HTML.",
         },
       ],
-      eqeqeq: ["error", "always"],
+      eqeqeq: ["error", "always", { null: "ignore" }],
       "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
