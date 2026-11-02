@@ -91,7 +91,21 @@ describe("the proof sheet", () => {
     expect(within(sheet).getByText("Most likely")).toBeInTheDocument();
     expect(within(sheet).getByText(/a range, not a promise/)).toBeInTheDocument();
     expect(
-      await within(sheet).findByText("No formula: this value was read from your data."),
+      await within(sheet).findByText("Read from your data, without a formula."),
+    ).toBeInTheDocument();
+  });
+
+  it("says a fact without a formula is derived when it has parents", async () => {
+    const fake = fakeApi().on(`GET ${FACTS}/13`, {
+      fact: estimate,
+      formula: null,
+      parents: [{ role: "impact", fact: parent }],
+      sources: [],
+    });
+    renderInStore(<FactValue fact={estimate} />, fake.api);
+    await userEvent.click(screen.getByRole("button"));
+    expect(
+      await screen.findByText("Derived from the facts it is built from, below."),
     ).toBeInTheDocument();
   });
 

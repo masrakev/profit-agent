@@ -182,7 +182,14 @@ function Calculation({ detail, pending, failed }: CalculationProps) {
     return <p aria-busy="true" className="h-5 w-3/4 animate-pulse rounded-bar bg-subtle" />;
   }
   if (failed || !detail) return <p className="text-ink-muted">The proof could not be loaded.</p>;
-  return <p>{detail.formula?.description ?? "No formula: this value was read from your data."}</p>;
+  if (detail.formula) return <p>{detail.formula.description}</p>;
+  return (
+    <p>
+      {detail.parents.length > 0
+        ? "Derived from the facts it is built from, below."
+        : "Read from your data, without a formula."}
+    </p>
+  );
 }
 
 /** Modal behaviour: focus moves in, Tab stays in, Escape or a click outside closes. */
