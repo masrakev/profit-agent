@@ -20,7 +20,7 @@ from app.briefings.models import (
     Item,
     Section,
 )
-from app.briefings.narrative import Narrative, loss_signs, narrated, sentences
+from app.briefings.narrative import Narrative, amounts_once, loss_signs, narrated, sentences
 from app.briefings.service import generate
 from app.detection import pipeline
 from app.facts.model import Fact, FactKind, FactStatus, Period, Scope, Unit
@@ -40,6 +40,15 @@ def store(app_engine: Engine) -> Any:
     load(app_engine, data, manifest.config)
     pipeline.run_pipeline(app_engine, data.store.store_id)
     return data.store.store_id
+
+
+def distinct_amounts(body: dict[str, Any]) -> list[int]:
+    """The briefing's facts that each show an amount no other one shows."""
+    seen: dict[str, int] = {}
+    for fact in briefing_facts(body):
+        amount = json.dumps({k: fact.get(k) for k in ("unit", "value", "p10", "p50", "p90")})
+        seen.setdefault(amount, fact["fact_id"])
+    return list(seen.values())
 
 
 def briefing_facts(body: dict[str, Any]) -> list[dict[str, Any]]:
@@ -151,15 +160,53 @@ def test_a_loss_is_never_a_negative_amount() -> None:
     assert sentences("One {{F1}}. Two! Three? Four.") == ["One {{F1}}.", "Two!", "Three?", "Four."]
 
 
+def test_an_amount_is_said_once() -> None:
+    check = amounts_once({1: money(1, "50"), 2: money(2, "50"), 3: money(3, "60")})
+
+    def narrative(text: str) -> Narrative:
+        return Narrative(summary=text, evidence=[])
+
+    assert check(narrative("It costs about {{F1}}, and {{F3}} in all.")) == []
+    [same] = check(narrative("It costs about {{F1}} a month out of about {{F2}} at stake."))
+    assert same.detail == "{{F1}} and {{F2}} show the same amount: say it once"
+    assert len(check(narrative("{{F1}} yesterday; {{F1}} again."))) == 1
+
+
+def test_an_amount_said_twice_is_rewritten(app_engine: Engine, store: Any) -> None:
+    def twice(body: dict[str, Any]) -> f.Reply:
+        fid = briefing_facts(body)[0]["fact_id"]
+        text = f"Net profit was {{{{F{fid}}}}}, that is {{{{F{fid}}}}}."
+        return f.structured({"summary": text, "evidence": [fid]}, model="muse-spark-1.3")
+
+    def once(body: dict[str, Any]) -> f.Reply:
+        fid = briefing_facts(body)[0]["fact_id"]
+        text = f"Net profit was {{{{F{fid}}}}}."
+        return f.structured({"summary": text, "evidence": [fid]}, model="muse-spark-1.3")
+
+    h = Harness([twice, once])
+    record = generate(
+        app_engine, store, BriefingKind.DAILY, h.provider, local_today=date(2026, 10, 4), now=NOW
+    )
+    assert record.narration.narrative is not None
+    assert record.narration.narrative.count("{{F") == 1
+    assert record.narration.attempts == 2
+    assert "say it once" in json.dumps(h.transport.requests[1]["input"])
+
+
 WORDS = ("alpha", "beta", "gamma", "delta", "epsilon")
+
+
+def point(i: int, ids: list[int] | list[str]) -> str:
+    """A sentence citing its own amount, while the briefing has amounts left (each is said once)."""
+    return f"Point {WORDS[i]} cites {{{{F{ids[i]}}}}}." if i < len(ids) else f"Point {WORDS[i]}."
 
 
 def long_then(second: int) -> list[Any]:
     def reply(n: int) -> Any:
         def step(body: dict[str, Any]) -> f.Reply:
-            first = briefing_facts(body)[0]["fact_id"]
-            text = " ".join(f"Point {WORDS[i]} cites {{{{F{first}}}}}." for i in range(n))
-            return f.structured({"summary": text, "evidence": [first]}, model="muse-spark-1.3")
+            ids = distinct_amounts(body)[:n]
+            text = " ".join(point(i, ids) for i in range(n))
+            return f.structured({"summary": text, "evidence": ids}, model="muse-spark-1.3")
 
         return step
 
@@ -185,8 +232,8 @@ def test_then_cut_at_a_sentence_end(app_engine: Engine, store: Any) -> None:
     )
     narrative = record.narration.narrative
     assert narrative is not None
-    [first] = set(re.findall(r"\{\{F(\d+)\}\}", narrative))
-    assert sentences(narrative) == [f"Point {WORDS[i]} cites {{{{F{first}}}}}." for i in range(3)]
+    ids = re.findall(r"\{\{F(\d+)\}\}", narrative)
+    assert sentences(narrative) == [point(i, ids) for i in range(3)]
     assert (record.status, record.narration.attempts) == ("narrated", 2)
 
 

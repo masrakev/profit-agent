@@ -4,10 +4,12 @@ The model sees the briefing's sections and the facts they cite (values included,
 what went up or down) and writes two or three sentences citing those facts. Entities appear only
 as references: no merchant-provided text reaches the model. The output is verified like any
 answer; if the model is unavailable or the verifier rejects it twice, there is no narrative and
-the briefing is sent from facts only. Two rules of the narrative are checked by code:
+the briefing is sent from facts only. Three rules of the narrative are checked by code:
 
 - a loss is a positive amount with a word that says so ("lost", "down"), never a loss word next
   to a negative fact ("lost -$..."): such an answer is rejected like an invented number;
+- an amount is said once: two references showing the same amount (one fact twice, or the money
+  at stake of a single problem next to that problem's cost) are rejected the same way;
 - at most three sentences: a longer narrative is rewritten once, then cut at a sentence end.
 """
 
@@ -30,7 +32,7 @@ from app.briefings.models import BriefingContent
 from app.briefings.store import Narration
 from app.facts.model import Fact
 from app.verifier import entity_references, fact_references
-from app.verifier.render import REFERENCE
+from app.verifier.render import REFERENCE, display_fact
 
 MAX_REGENERATIONS = 1  # two rejections, and the briefing goes out from facts only
 TABLES = frozenset({"campaigns", "unit_economics"})  # most of the facts, not narrated
@@ -127,6 +129,38 @@ def loss_signs(facts: Mapping[int, Fact]) -> Callable[[Narrative], list[OutputVi
     return check
 
 
+def amounts_once(facts: Mapping[int, Fact]) -> Callable[[Narrative], list[OutputViolation]]:
+    """Reject an amount said twice: two references showing the same amount, as the reader sees
+    it (one fact cited twice, or two facts of the same value)."""
+
+    def check(narrative: Narrative) -> list[OutputViolation]:
+        first: dict[str, str] = {}
+        found = []
+        for match in REFERENCE.finditer(narrative.summary):
+            fact = facts.get(int(match.group(1)))
+            if fact is None or not fact.is_defined:
+                continue
+            shown = display_fact(fact)
+            if shown not in first:
+                first[shown] = match.group(0)
+                continue
+            found.append(
+                OutputViolation(
+                    "summary",
+                    "contract",
+                    f"{first[shown]} and {match.group(0)} show the same amount: say it once",
+                )
+            )
+        return found
+
+    return check
+
+
+def checks(facts: Mapping[int, Fact]) -> Callable[[Narrative], list[OutputViolation]]:
+    rules = (loss_signs(facts), amounts_once(facts))
+    return lambda narrative: [v for rule in rules for v in rule(narrative)]
+
+
 def narrate(
     provider: LLMProvider,
     content: BriefingContent,
@@ -167,7 +201,7 @@ def narrate(
             known_entities=known_entities,
             fallback=lambda _reason: Narrative(summary="", evidence=[]),
             max_regenerations=regenerations,
-            validate=loss_signs(facts),
+            validate=checks(facts),
         )
 
     outcome = guarded(request, MAX_REGENERATIONS)
