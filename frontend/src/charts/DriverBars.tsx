@@ -20,7 +20,8 @@ export function DriverBars({ drivers }: { drivers: Driver[] }) {
   const values = drivers.map((d) => Number(d.fact.value));
   const largest = Math.max(0, ...values.filter(Number.isFinite).map(Math.abs));
   return (
-    <ul className="flex flex-col gap-3">
+    // One grid for every row, so the tracks share their length and their centre.
+    <ul className="grid grid-cols-[minmax(0,14rem)_1fr_auto] items-center gap-x-4 gap-y-3">
       {drivers.map((d, index) => {
         const value = values[index] ?? Number.NaN;
         const length = Number.isFinite(value) && largest > 0 ? Math.abs(value) / largest / 2 : 0;
@@ -28,7 +29,7 @@ export function DriverBars({ drivers }: { drivers: Driver[] }) {
         return (
           <li
             key={d.driver}
-            className="grid grid-cols-[minmax(0,14rem)_1fr_auto] items-center gap-4 text-small"
+            className="col-span-full grid grid-cols-subgrid items-center text-small"
           >
             <span className="flex flex-col">
               <span className="text-ink">{d.fact.name}</span>
@@ -53,7 +54,7 @@ export function DriverBars({ drivers }: { drivers: Driver[] }) {
                 />
               )}
             </span>
-            <FactValue fact={d.fact} title={d.fact.name} className="text-ink" />
+            <FactValue fact={d.fact} title={d.fact.name} className="justify-self-end text-ink" />
           </li>
         );
       })}
