@@ -234,8 +234,15 @@ def test_approval_queues_the_actions_in_the_same_transaction(
 
 def test_rejection_and_expiry(conn: Connection, golden_stockout: dict[str, Any]) -> None:
     d = proposed(conn, golden_stockout)
-    rejected = decide(
-        conn, d.store_id, d.decision_id, None, Verdict.REJECTED, channel=Channel.API, actor="o"
+    rejected = decide(  # on the test's clock: the decision lives 72 hours from NOW
+        conn,
+        d.store_id,
+        d.decision_id,
+        None,
+        Verdict.REJECTED,
+        channel=Channel.API,
+        actor="o",
+        now=NOW,
     )
     assert rejected.status is DecisionStatus.REJECTED
     late = proposed(conn, golden_stockout)
