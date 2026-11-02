@@ -41,7 +41,14 @@ make demo-seed                            # the demo store: history, alert, inve
 make demo                                 # the stockout loop: alert -> approval -> action -> outcome
 make scheduler                            # briefings, detection and alerts, email (arq + Redis)
 make smoke-live                           # one live call per Meta model (needs MODEL_API_KEY)
+make web-install                          # the web platform's packages (Node 20.19 or later)
+make web                                  # the web platform on http://localhost:3000 (proxies /api)
 ```
+
+To browse the demo store on the web, run the API on its database
+(`APP_DATABASE_URL` with the database name `profit_demo`, then `make api`) and sign in with "Use
+the demo store" (development builds only). `node frontend/scripts/screens.mjs` then writes the
+light and dark screenshots used for design review (ADR 0025).
 
 The benchmark's agent arm investigates each primary incident with a live model:
 `uv run python -m bench.runner --suite dev --agent --routing economy` (Contributor model on
@@ -87,6 +94,11 @@ Each Makefile target runs these commands:
 | `make demo` | `uv run python -m bench.demo` (seeds the demo store, runs the loop; writes `bench/reports/demo-stockout.md`) |
 | `make demo-whatsapp` | `uv run python -m bench.demo_whatsapp` (the stockout alert on WhatsApp, approved from the phone; writes `bench/reports/demo-whatsapp.md`) |
 | `make smoke-whatsapp` | `uv run python scripts/whatsapp_smoke.py` (live: a template, a text and reply buttons to `WHATSAPP_TEST_RECIPIENT`) |
+| `make web` | `cd frontend && npm run dev` (Vite on port 3000; `/api` goes to the API, `/__mailpit` to Mailpit) |
+| `make web-install` | `cd frontend && npm ci` |
+| `make web-lint` | `npm run api:check` (the generated client matches `docs/api/openapi.json`), `typecheck`, then ESLint and Prettier |
+| `make web-test` | `npm test` (Vitest with coverage, 90% lines required) |
+| `make web-audit` | `npm audit --omit=dev` (what reaches the browser) |
 
 The compose stack publishes PostgreSQL on port 55432 and Redis on 56379 to avoid clashing with
 local installs (`POSTGRES_HOST_PORT` / `REDIS_HOST_PORT` override them), and Mailpit, which
