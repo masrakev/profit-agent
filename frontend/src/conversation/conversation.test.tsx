@@ -311,6 +311,8 @@ describe("asking by voice", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "speak" }));
     expect(await screen.findByText(/No speech was heard/)).toBeInTheDocument();
+    expect(screen.getByText("Your recorded question")).toBeInTheDocument();
+    expect(screen.queryByText("Listening to your question…")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "speak" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("over two minutes");
   });

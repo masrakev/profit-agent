@@ -38,7 +38,7 @@ function MessageView({ message }: { message: Message }) {
         <Bubble from="owner">
           {message.text ?? (
             <span className="text-ink-muted">
-              {message.via === "voice" ? "Listening to your question…" : "…"}
+              {message.listening ? "Listening to your question…" : "Your recorded question"}
             </span>
           )}
         </Bubble>

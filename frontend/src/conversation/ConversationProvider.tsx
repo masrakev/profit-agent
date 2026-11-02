@@ -48,8 +48,9 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
             dispatch({ type: "step", id: answerId, step: event.data as AgentStep });
           } else if (event.event === "transcript") {
             const heard = event.data as { transcript?: unknown };
-            const text = typeof heard.transcript === "string" ? heard.transcript : "";
-            dispatch({ type: "heard", id: questionId, text });
+            if (typeof heard.transcript === "string" && heard.transcript) {
+              dispatch({ type: "heard", id: questionId, text: heard.transcript });
+            }
           } else if (event.event === "answer") {
             ended = true;
             dispatch({ type: "answered", id: answerId, result: event.data as AskAnswer });
@@ -64,6 +65,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
         if (!ended) dispatch({ type: "failed", id: answerId, problem: FAILED });
       } catch (error) {
         dispatch({ type: "failed", id: answerId, problem: problemText(error) });
+      } finally {
+        dispatch({ type: "listened", id: questionId });
       }
     },
     [],
@@ -77,7 +80,10 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     ) => {
       const questionId = id();
       const answerId = id();
-      dispatch({ type: "add", message: { id: questionId, kind: "question", text, via } });
+      dispatch({
+        type: "add",
+        message: { id: questionId, kind: "question", text, via, listening: via === "voice" },
+      });
       dispatch({
         type: "add",
         message: {

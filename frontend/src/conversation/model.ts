@@ -18,7 +18,13 @@ export interface AgentStep {
 export type AnswerStatus = "working" | "answered" | "failed" | "no_speech";
 
 export type Message =
-  | { id: number; kind: "question"; text: string | null; via: "text" | "voice" }
+  | {
+      id: number;
+      kind: "question";
+      text: string | null; // a recorded question's, once heard
+      via: "text" | "voice";
+      listening: boolean; // a recorded question, until it is heard or the answer ends
+    }
   | {
       id: number;
       kind: "answer";
@@ -34,6 +40,7 @@ export type Action =
   | { type: "add"; message: Message }
   | { type: "step"; id: number; step: AgentStep }
   | { type: "heard"; id: number; text: string }
+  | { type: "listened"; id: number }
   | { type: "answered"; id: number; result: AskAnswer }
   | { type: "no_speech"; id: number }
   | { type: "failed"; id: number; problem: string };
@@ -43,7 +50,10 @@ export function reduce(messages: Message[], action: Action): Message[] {
   return messages.map((message) => {
     if (message.id !== action.id) return message;
     if (message.kind === "question" && action.type === "heard") {
-      return { ...message, text: action.text };
+      return { ...message, text: action.text, listening: false };
+    }
+    if (message.kind === "question" && action.type === "listened") {
+      return { ...message, listening: false };
     }
     if (message.kind !== "answer") return message;
     switch (action.type) {
