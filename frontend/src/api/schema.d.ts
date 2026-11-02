@@ -1694,6 +1694,8 @@ export interface components {
             scope: string;
             /** Significant */
             significant?: boolean | null;
+            /** Simulations */
+            simulations?: number | null;
             /** Status */
             status: string;
             /** Undefined Reason */

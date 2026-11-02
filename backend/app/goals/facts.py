@@ -50,8 +50,10 @@ def estimate(
     key: object,
     parents: tuple[tuple[str, Fact], ...],
     currency: str,
+    draws: int | None = None,
 ) -> Fact:
-    """An estimate fact (value: its P50), persisted with its parents."""
+    """An estimate fact (value: its P50), persisted with its parents; `draws`: how many
+    simulated paths its range comes from, when it is known."""
     q10, q50, q90 = (_quantize(q, unit) for q in quantiles)
     for _, parent in parents:
         engine.adopt(parent)
@@ -68,6 +70,7 @@ def estimate(
         p50=q50,
         p90=max(q90, q50),
         method=method,
+        draws=draws,
         unit=unit,
         currency=currency if unit is Unit.MONEY else None,
         inputs_hash=sha256_hex(

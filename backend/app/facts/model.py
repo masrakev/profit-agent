@@ -117,6 +117,8 @@ class Fact(_Frozen):
     p50: Decimal | None = None
     p90: Decimal | None = None
     method: str | None = None
+    # Estimates: how many simulated or resampled draws the range comes from (None: no draws).
+    draws: int | None = None
     # Comparison facts: whether the value lies outside its noise band (None: not assessed).
     significant: bool | None = None
     inputs_hash: str
@@ -136,6 +138,8 @@ class Fact(_Frozen):
             raise ValueError("an undefined fact has no value and a reason")
         if (self.unit is Unit.MONEY) != (self.currency is not None):
             raise ValueError("money facts, and only money facts, carry a currency")
+        if self.draws is not None and (self.draws < 1 or self.kind is not FactKind.ESTIMATE):
+            raise ValueError("only an estimate has draws, at least one")
         if self.baseline is not None and self.baseline.end > self.period.start:
             raise ValueError("the baseline period must end before the period starts")
         return self
@@ -168,6 +172,8 @@ class Fact(_Frozen):
             content["baseline_end"] = self.baseline.end
         if self.significant is not None:
             content["significant"] = self.significant
+        if self.draws is not None:
+            content["draws"] = self.draws
         return sha256_hex(canonical_json(content))
 
     @property

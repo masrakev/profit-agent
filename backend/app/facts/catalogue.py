@@ -214,25 +214,48 @@ def is_change(formula_id: str) -> bool:
     return found is not None and found.change
 
 
-# How estimates are made, in words (method ids are versioned: `<method>_v<n>`).
-METHODS: dict[str, str] = {
-    "twin_monte_carlo_v1": "simulated by the store twin",
-    "synthetic_control_v2": "measured against a synthetic control",
-    "block_bootstrap_shapley_v1": "resampled from your history",
-    "goal_trend_block_bootstrap_v1": "your recent trend, resampled from your history",
-    "goal_plan_greedy_v1": "simulated with the plan's steps",
-    "goal_parameter_v1": "set from your goal",
-    "ols_daily_normal_v1": "fitted to the daily trend",
-    "sum_of_quantiles_v1": "added up from the ranges it is built from",
-    "shapley_v1": "split between the drivers (Shapley values)",
+# How estimates are made, in words (method ids are versioned: `<method>_v<n>`): without and
+# with the number of draws (`{n}`).
+METHODS: dict[str, tuple[str, str]] = {
+    "twin_monte_carlo_v1": (
+        "simulated by the store twin",
+        "simulated {n} times by the store twin",
+    ),
+    "synthetic_control_v2": (
+        "measured against a synthetic control",
+        "measured against a synthetic control",
+    ),
+    "block_bootstrap_shapley_v1": (
+        "resampled from your history",
+        "resampled {n} times from your history",
+    ),
+    "goal_trend_block_bootstrap_v1": (
+        "your recent trend, resampled from your history",
+        "your recent trend, resampled {n} times from your history",
+    ),
+    "goal_plan_greedy_v1": (
+        "simulated with the plan's steps",
+        "simulated {n} times with the plan's steps",
+    ),
+    "goal_parameter_v1": ("set from your goal", "set from your goal"),
+    "ols_daily_normal_v1": ("fitted to the daily trend", "fitted to the daily trend"),
+    "sum_of_quantiles_v1": (
+        "added up from the ranges it is built from",
+        "added up from the ranges it is built from",
+    ),
+    "shapley_v1": (
+        "split between the drivers (Shapley values)",
+        "split between the drivers (Shapley values)",
+    ),
 }
 
 
-def method_text(method: str | None) -> str | None:
-    """How an estimate was made, in words. A derived method names its operation first
-    (`negated:<method>`); a method may add its settings after a semicolon
-    (`twin_monte_carlo_v1;calibration v1`)."""
+def method_text(method: str | None, draws: int | None = None) -> str | None:
+    """How an estimate was made, in words, with its number of draws when it has some. A derived
+    method names its operation first (`negated:<method>`); a method may add its settings after a
+    semicolon (`twin_monte_carlo_v1;calibration v1`)."""
     if not method:
         return None
     base = method.rsplit(":", 1)[-1].split(";", 1)[0]
-    return METHODS.get(base, base.removesuffix("_v1").replace("_", " "))
+    plain, counted = METHODS.get(base, (base.removesuffix("_v1").replace("_", " "),) * 2)
+    return counted.format(n=f"{draws:,}") if draws else plain

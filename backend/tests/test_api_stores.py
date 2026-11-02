@@ -19,6 +19,7 @@ from app.api.main import app
 from app.api.openapi import OPENAPI_FILE, document, main
 from app.briefings.models import BriefingKind
 from app.briefings.service import generate
+from app.detection.config import default_config
 from tests.api_helpers import act_as
 from tests.llm_helpers import Harness
 
@@ -82,6 +83,11 @@ def test_overview_incidents_and_facts(client: TestClient, golden_stockout: dict[
     first = incidents["items"][0]
     assert (first["incident_id"], first["alert"]) == (golden_stockout["incident"], "critical")
     assert first["monthly_impact"]["kind"] == "estimate"
+    draws = first["monthly_impact"]["simulations"]
+    assert draws == default_config().materiality.resamples
+    assert first["monthly_impact"]["method_description"] == (
+        f"resampled {draws:,} times from your history"
+    )
     one = client.get(f"{base}/incidents", params={"limit": 1}).json()
     assert len(one["items"]) == 1
     detail = client.get(f"{base}/incidents/{golden_stockout['incident']}").json()

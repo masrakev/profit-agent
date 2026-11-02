@@ -197,6 +197,7 @@ def assess_store(
             key=(seed, key),
             parents=parents,
             currency=currency,
+            draws=f.draws,
         )
 
     daily = {

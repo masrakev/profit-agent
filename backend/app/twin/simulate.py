@@ -232,6 +232,7 @@ def simulate(
         change={m: widen(_range(totals[m] - base[m]), cal.change_factor(m)) for m in METRICS},
         low_evidence=tuple(weak),
         calibration_version=cal.version,
+        draws=draws,
     )
 
 

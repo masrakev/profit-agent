@@ -182,6 +182,10 @@ class Forecast:
     def horizon(self) -> int:
         return int(self.paths.shape[1])
 
+    @property
+    def draws(self) -> int:
+        return int(self.paths.shape[0])
+
     def quantiles(self, day: int) -> tuple[float, float, float]:
         """P10, P50, P90 of the cumulative value over the first `day` days."""
         q10, q50, q90 = np.percentile(self.paths[:, day - 1], [10, 50, 90])

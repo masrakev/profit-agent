@@ -55,6 +55,7 @@ def save_fact(conn: Connection, fact: Fact, parent_ids: Mapping[str, int]) -> tu
             p90=fact.p90,
             method=fact.method,
             significant=fact.significant,
+            draws=fact.draws,
             unit=fact.unit.value,
             currency=fact.currency,
             undefined_reason=fact.undefined_reason,
@@ -129,6 +130,7 @@ def _fact_from_row(row: Row[Any], lineage: Lineage) -> Fact:
         p90=row.p90,
         method=row.method,
         significant=row.significant,
+        draws=row.draws,
         inputs_hash=row.inputs_hash,
         lineage=lineage,
     )

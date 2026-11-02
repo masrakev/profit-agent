@@ -1537,6 +1537,17 @@
             ],
             "title": "Significant"
           },
+          "simulations": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulations"
+          },
           "status": {
             "title": "Status",
             "type": "string"

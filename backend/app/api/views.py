@@ -54,6 +54,7 @@ class FactOut(BaseModel):
     baseline_end: datetime | None = None
     method: str | None = None
     method_description: str | None = None  # how an estimate was made, in words
+    simulations: int | None = None  # how many simulated or resampled draws its range rests on
     significant: bool | None = None
     undefined_reason: str | None = None
 
@@ -105,7 +106,8 @@ def fact_out(fact: Fact) -> FactOut:
         baseline_start=fact.baseline.start if fact.baseline else None,
         baseline_end=fact.baseline.end if fact.baseline else None,
         method=fact.method,
-        method_description=method_text(fact.method),
+        method_description=method_text(fact.method, fact.draws),
+        simulations=fact.draws,
         significant=fact.significant,
         undefined_reason=fact.undefined_reason,
     )

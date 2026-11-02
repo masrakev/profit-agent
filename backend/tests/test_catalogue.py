@@ -62,5 +62,9 @@ def test_methods_are_told_in_words() -> None:
     assert method_text("negated:block_bootstrap_shapley_v1") == "resampled from your history"
     assert method_text("twin_monte_carlo_v1;calibration v1") == "simulated by the store twin"
     assert method_text("brand_new_v1") == "brand new"
+    assert method_text("twin_monte_carlo_v1;calibration v1", 1000) == (
+        "simulated 1,000 times by the store twin"
+    )
+    assert method_text("synthetic_control_v2", 500) == "measured against a synthetic control"
     assert method_text(None) is None
     assert method_text("") is None

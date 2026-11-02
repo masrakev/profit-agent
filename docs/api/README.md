@@ -30,7 +30,8 @@ ADR 0020.
   for the proof sheet), `display` is short (whole units, a range as "low to high", a change
   signed: `+$613 to +$654`), and an estimate's `quantiles` give P10, P50 and P90 in both forms.
   `change` says the fact is a difference between two states; `method_description` says how an
-  estimate was made, in words.
+  estimate was made, in words, and `simulations` how many simulated or resampled draws its range
+  rests on (null for an estimate made without draws).
 - Streams are server-sent events (`text/event-stream`): `event: step` per agent step, then
   `answer` (Ask), `done` or `failed`. A reconnecting client sends `Last-Event-ID`. Ask by voice
   starts with `event: transcript`, and ends with `no_speech` then `done` when nothing was heard.

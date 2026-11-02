@@ -203,6 +203,7 @@ facts = Table(
     Column("p90", Numeric, nullable=True),
     Column("method", Text, nullable=True),
     Column("significant", Boolean, nullable=True),
+    Column("draws", Integer, nullable=True),
     Column("unit", Text, nullable=False),
     _currency(nullable=True),
     Column("undefined_reason", Text, nullable=True),

@@ -166,6 +166,8 @@ def _impact_fact(
     baseline: Period,
     current: Period,
     digest: str,
+    *,
+    draws: int,
 ) -> Fact:
     """Persist the incident's `expected_monthly_impact` estimate, with its symptoms' facts as
     parents."""
@@ -195,6 +197,7 @@ def _impact_fact(
         p50=impact.p50,
         p90=impact.p90,
         method=IMPACT_METHOD,
+        draws=draws,
         unit=Unit.MONEY,
         currency=engine.currency,
         inputs_hash=inputs_hash,
@@ -243,7 +246,9 @@ def expected_impact(
             }
         )
     )
-    return impact, _impact_fact(facts, group, impact, baseline, current, digest)
+    return impact, _impact_fact(
+        facts, group, impact, baseline, current, digest, draws=cfg.materiality.resamples
+    )
 
 
 def run_pipeline(

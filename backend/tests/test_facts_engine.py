@@ -235,6 +235,23 @@ def test_baseline_period_is_optional_and_hashed_only_when_present() -> None:
         _fact(baseline=JAN)
 
 
+def test_draws_belong_to_estimates_and_are_hashed_only_when_present() -> None:
+    estimate = {
+        "kind": FactKind.ESTIMATE,
+        "p10": Decimal("0.50"),
+        "p50": Decimal("1.00"),
+        "p90": Decimal("1.50"),
+        "method": "twin_monte_carlo_v1",
+    }
+    plain, drawn = _fact(**estimate), _fact(**estimate, draws=1000)
+    assert plain.fact_hash != drawn.fact_hash
+    assert drawn.fact_hash != _fact(**estimate, draws=2000).fact_hash
+    with pytest.raises(ValueError, match="only an estimate has draws"):
+        _fact(draws=1000)
+    with pytest.raises(ValueError, match="only an estimate has draws"):
+        _fact(**estimate, draws=0)
+
+
 def test_fact_invariants() -> None:
     assert _fact().fact_hash == _fact().fact_hash
     assert _fact().fact_hash != _fact(value=Decimal("1.0")).fact_hash  # scale is part of the value

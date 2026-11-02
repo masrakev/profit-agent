@@ -136,3 +136,4 @@ class Simulation:
     low_evidence: tuple[str, ...] = ()
     undefined_reason: str | None = None
     calibration_version: int = 0
+    draws: int | None = None  # how many Monte Carlo draws the ranges come from

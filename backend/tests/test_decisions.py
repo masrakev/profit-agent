@@ -38,6 +38,7 @@ from app.facts.engine import FactEngine
 from app.facts.model import FactKind
 from app.facts.repository import get_facts, load_lineage
 from app.twin import fit_twin
+from app.twin.simulate import DRAWS
 from app.verifier import verify
 
 pytestmark = pytest.mark.db
@@ -114,6 +115,8 @@ def test_a_decision_reads_as_labels_and_shows_doing_nothing(
         Decimal(0),
     )
     assert (zero.period, zero.currency) == (impact.period, impact.currency)
+    assert impact.draws == DRAWS  # the store twin's Monte Carlo draws
+    assert zero.draws is None
     parents = load_lineage(conn, decision.store_id, zero_id).parents
     assert [p.role for p in parents] == ["do_nothing"]
 

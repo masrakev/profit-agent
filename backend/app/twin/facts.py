@@ -114,6 +114,7 @@ def simulation_facts(
                 p50=_decimal(r.p50, metric) if r else None,
                 p90=_decimal(r.p90, metric) if r else None,
                 method=method if defined else None,
+                draws=sim.draws if defined else None,
                 undefined_reason=None if defined else (sim.undefined_reason or "not simulated"),
                 unit=Unit.MONEY if money else Unit.COUNT,
                 currency=model.currency if money else None,
