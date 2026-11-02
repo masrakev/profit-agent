@@ -63,6 +63,7 @@ from app.goals.feasibility import seed_of
 from app.goals.forecast import daily_values, forecast
 from app.observability import configure_logging
 from app.twin import Action, ActionKind, fit_twin
+from bench.generator.config import DisplayNames
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
 from bench.scenarios.manifest import ScenarioManifest, load_suite
@@ -128,8 +129,52 @@ class Seeded:
     counts: dict[str, int]
 
 
+# The demo store as people see it: an outdoor gear shop. Names only (the generator's display
+# names): every draw and id is the golden scenario's, so its labels and faults still hold.
+DEMO_NAMES = DisplayNames(
+    store="Northwind Outdoor",
+    products={
+        "ea63836b-e0d7-5298-b9db-b58631ed27f1": "Trail Jacket",  # out of stock (the fault)
+        "4ab3ac76-a05d-5d55-8cdc-d9d2a69a5e28": "Camp Mug Set",
+        "76ea8a0f-463a-5213-82c8-020e2265016f": "Ridge Daypack",
+        "d8175430-b8a2-55cb-9755-c2175d353960": "Summit Rain Shell",
+        "f6ca91b1-1201-517d-a63b-987f7920a2c4": "Basecamp Lantern",
+        "3b29fb6a-c4fe-5d1b-ac7f-18c499123431": "Camp Pillow",
+        "1baf4a53-4f81-5bf0-9a6e-4cd777f19407": "Merino Base Layer",
+        "51e5a20f-5bd7-5c70-b685-77cc5a291d28": "Trail Running Vest",
+        "b91af78d-70ca-5ac3-be07-543a3fe22a17": "Insulated Bottle",
+        "440137e4-3ffd-5696-aba8-6b016089998d": "Backcountry Stove",
+        "d9f2f8b6-52e6-56e7-a2c3-ab3aeb67e4eb": "Fleece Pullover",
+        "9c9b56dd-e797-5fe6-9986-c929216a3cca": "Alpine Backpack",
+        "359f5aa8-be09-52d8-974b-f53fbbd8775f": "Two-Person Tent",
+        "e3a41610-88a4-5f9f-ae0e-f7454d7438fc": "Camp Blanket",
+        "5dc4cd48-ce2f-5b06-ac2d-83d2d2654e0e": "Packable Tote",
+        "ecad6f96-261e-5e40-9389-05e988c7e0ac": "Trail Wallet",
+        "e63c1d60-becf-55a3-a466-26f3ecc4ba37": "Down Vest",
+        "e86bb2b7-215e-592f-9e2c-eb8cac41d5b8": "Hiking Poles",
+        "01bd0ed6-993b-532f-b09a-bac09e720286": "Trail Cap",
+        "5eb4897c-e8cc-5a15-a2f8-ee03710f64a8": "Down Sleeping Bag",
+        "8899f2bc-e6b7-5dee-b717-b98ab3c7e095": "Sleeping Pad",
+        "e0ffe00e-2d8f-5ef0-be60-1ece4d343ae9": "Softshell Pants",
+        "9e431f08-8f46-5787-86cd-2e109559a9d0": "Hiking Boots",
+        "d8c10620-fc36-5097-ac96-838f8cbaa74f": "Camp Kitchen Set",
+        "b8025a37-7579-5c52-b019-fd7e1b7cc6ee": "Rain Jacket",
+    },
+    campaigns={
+        "6433a313-4edd-55d2-a5f8-baf1fc04ed95": "Trail Jacket — Prospecting",
+        "ef059977-c250-5493-9b6f-2a67cd56629b": "Trail Essentials — Retargeting",
+        "35a0346f-d642-5cfa-b905-400f4375d7cd": "Layers & Camp Kitchen — Lookalike",
+        "bd10756b-10c0-546c-9da9-246545d74f62": "Basecamp Gear — Prospecting",
+    },
+)
+
+
 def demo_manifest() -> ScenarioManifest:
-    return next(m for m in load_suite("golden") if m.scenario_id == SCENARIO)
+    """The golden stockout scenario, with the demo's names."""
+    manifest = next(m for m in load_suite("golden") if m.scenario_id == SCENARIO)
+    return manifest.model_copy(
+        update={"config": manifest.config.model_copy(update={"names": DEMO_NAMES})}
+    )
 
 
 def _campaigns(engine: Engine, store: UUID, promoted: UUID) -> list[UUID]:

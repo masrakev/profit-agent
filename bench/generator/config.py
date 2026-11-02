@@ -27,6 +27,19 @@ class LongHistory(BaseModel):
     regime_shift_sd: Decimal = Field(default=Decimal("0.15"), ge=0)  # log level shift
 
 
+class DisplayNames(BaseModel):
+    """What people see the store, its products and its campaigns called (the demo store's).
+    Cosmetic: no draw and no id depends on a name, so they stay out of the fingerprint and the
+    named store is the same store, with the same ids, as the unnamed one."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    store: str | None = None
+    # By id, as text (the config is audited as JSON).
+    products: dict[str, str] = Field(default_factory=dict)
+    campaigns: dict[str, str] = Field(default_factory=dict)
+
+
 class GeneratorConfig(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -74,6 +87,8 @@ class GeneratorConfig(BaseModel):
     # Off unless set; left out of the serialized config when off, so existing manifests, seeds
     # and stores are unchanged.
     long_history: LongHistory | None = Field(default=None, exclude_if=lambda v: v is None)
+    # Names shown instead of the generated ones; left out of the fingerprint (see DisplayNames).
+    names: DisplayNames | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @model_validator(mode="after")
     def _ranges(self) -> "GeneratorConfig":
@@ -87,4 +102,4 @@ class GeneratorConfig(BaseModel):
 
     @property
     def fingerprint(self) -> str:
-        return sha256_hex(canonical_json(self.model_dump()))
+        return sha256_hex(canonical_json(self.model_dump(exclude={"names"})))

@@ -161,9 +161,12 @@ def generate(
 ) -> GeneratedStore:
     rng = np.random.default_rng(config.seed)
     store_id = store_id_for(config)  # the same store, whatever the owner does
+    names = config.names
     store = Store(
         store_id=store_id,
-        name=config.store_name or f"Bench store {config.seed}",
+        name=(names.store if names and names.store else None)
+        or config.store_name
+        or f"Bench store {config.seed}",
         currency=config.currency,
         synthetic=True,
     )
@@ -329,7 +332,9 @@ def _products(
         demand = float(rng.gamma(2.0, 1.2)) + 0.3
         lead_time = int(rng.integers(5, 31))
         product_id = stable_id(store_id, "product", i)
-        name = f"{ADJECTIVES[i % len(ADJECTIVES)]} {NOUNS[(i * 7) % len(NOUNS)]} {i + 1}"
+        name = (config.names.products.get(str(product_id)) if config.names else None) or (
+            f"{ADJECTIVES[i % len(ADJECTIVES)]} {NOUNS[(i * 7) % len(NOUNS)]} {i + 1}"
+        )
         truth = ProductTruth(
             product_id=product_id,
             base_daily_demand=demand,
@@ -381,7 +386,8 @@ def _campaigns(
                 id=campaign_id,
                 store_id=store_id,
                 external_id=f"cmp_{c + 1:02d}",
-                name=f"Campaign {c + 1}",
+                name=(config.names.campaigns.get(str(campaign_id)) if config.names else None)
+                or f"Campaign {c + 1}",
                 platform="meta",
                 currency=config.currency,
                 daily_budget=money(budget),

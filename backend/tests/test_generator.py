@@ -11,6 +11,7 @@ from sqlalchemy import Engine, text
 from app.db import tenant_transaction
 from app.domain.audit import verify_chain
 from app.facts import recompute
+from bench.demo_seed import demo_manifest
 from bench.generator import (
     Fault,
     GeneratedStore,
@@ -22,6 +23,7 @@ from bench.generator import (
     generate,
 )
 from bench.generator.__main__ import main as generator_main
+from bench.generator.config import DisplayNames
 from bench.generator.simulate import demand_scale
 from bench.scenarios.manifest import load_suite
 
@@ -39,6 +41,43 @@ def test_generation_is_deterministic(small: GeneratedStore) -> None:
     other = generate(SMALL.model_copy(update={"seed": 8}))
     assert other.store.store_id != small.store.store_id
     assert other.orders != small.orders
+
+
+def test_display_names_change_no_draw_and_no_id(small: GeneratedStore) -> None:
+    product, campaign = small.products[0], small.campaigns[0]
+    named_config = SMALL.model_copy(
+        update={
+            "names": DisplayNames(
+                store="Acme Outdoor",
+                products={str(product.id): "Trail Jacket"},
+                campaigns={str(campaign.id): "Trail Jacket — Prospecting"},
+            )
+        }
+    )
+    named = generate(named_config)
+    assert named_config.fingerprint == SMALL.fingerprint
+    assert named.store.store_id == small.store.store_id
+    assert (named.store.name, named.products[0].name, named.campaigns[0].name) == (
+        "Acme Outdoor",
+        "Trail Jacket",
+        "Trail Jacket — Prospecting",
+    )
+    assert named.products[1].name == small.products[1].name  # unnamed: the generated name
+    assert named.orders == small.orders
+    assert named.ad_metrics == small.ad_metrics
+
+
+def test_the_demo_store_is_named_and_unchanged() -> None:
+    manifest = demo_manifest()
+    data = manifest.generate()
+    label = manifest.labels[0]
+    names = {p.id: p.name for p in data.products} | {c.id: c.name for c in data.campaigns}
+    assert data.store.name == "Northwind Outdoor"
+    assert [names[e.id] for e in label.entities] == ["Trail Jacket", "Trail Jacket — Prospecting"]
+    display = manifest.config.names
+    assert display is not None
+    assert set(display.products) == {str(p.id) for p in data.products}
+    assert set(display.campaigns) == {str(c.id) for c in data.campaigns}
 
 
 def test_generated_store_respects_config() -> None:
