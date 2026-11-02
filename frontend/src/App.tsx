@@ -1,6 +1,17 @@
-import { BRAND } from "@/brand";
+import { useState } from "react";
+import { createBrowserRouter, RouterProvider } from "react-router";
 
-/** The application; its shell and pages come with the design tokens (Task 7, page 1). */
+import { ApiProvider } from "@/api/ApiProvider";
+import { routes } from "@/router";
+import { ThemeProvider } from "@/theme/ThemeProvider";
+
 export function App() {
-  return <main>{BRAND.name}</main>;
+  const [router] = useState(() => createBrowserRouter(routes()));
+  return (
+    <ApiProvider>
+      <ThemeProvider>
+        <RouterProvider router={router} />
+      </ThemeProvider>
+    </ApiProvider>
+  );
 }

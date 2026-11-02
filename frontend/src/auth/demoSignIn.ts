@@ -59,5 +59,9 @@ export async function demoSignIn(api: Api, options: Options = {}): Promise<Sessi
     }
     await sleep(delayMs);
   }
-  throw new Error("no sign-in email reached Mailpit: is the demo store seeded (`make demo-seed`)?");
+  // The API answers the same whether or not it sent a link (no account, or the hourly limit).
+  throw new Error(
+    "no sign-in email reached Mailpit: is the demo store seeded (`make demo-seed`), " +
+      "or were 5 links already sent to the demo owner this hour?",
+  );
 }
