@@ -1,0 +1,154 @@
+/*
+ * Design tokens from the Figma frame "Style guide · Profit Agent", light and dark.
+ *
+ * Components use the semantic utilities below (bg-surface, text-ink, rounded-card…), never raw
+ * colours: each token is a CSS variable that `<html data-theme>` swaps, so one class serves both
+ * themes. Tailwind's default palette is removed so a colour outside the style guide cannot slip in.
+ *
+ * WCAG AA (Task 7, adjustment 5). Three Figma pairs fall under 4.5:1, so text uses its own token:
+ *   - light blue text #0866FF on the grey boxes (#F0F2F5: 4.30, #F5F6F8: 4.46) → accent-ink #065DE6;
+ *   - dark: white on the #4C8DFF button (3.20) → accent-fill #1F6BFA (4.62), and the selected rail
+ *     label #4C8DFF on #192A46 (4.49) → accent-ink #5A96FF (4.96);
+ *   - red text #E41E3F on light greys (4.11) → danger-ink #D91A3B; on dark (3.89) → #FF6B7D.
+ * Marks (brand mark, range marker, dots) keep the Figma blues: they are graphics, above 3:1.
+ */
+@import "tailwindcss";
+@import "@fontsource/figtree/latin-400.css";
+@import "@fontsource/figtree/latin-500.css";
+@import "@fontsource/figtree/latin-600.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root,
+[data-theme="light"] {
+  --pa-canvas: #f5f6f8;
+  --pa-surface: #ffffff;
+  --pa-subtle: #f0f2f5;
+  --pa-line: #e4e6eb;
+  --pa-ink: #1c1e21;
+  --pa-ink-muted: #65676b;
+  --pa-accent: #0866ff;
+  --pa-accent-ink: #065de6;
+  --pa-accent-fill: #0866ff;
+  --pa-accent-soft: #edf3ff;
+  --pa-on-accent: #ffffff;
+  --pa-bubble-owner: #dce8ff;
+  --pa-danger: #e41e3f;
+  --pa-danger-ink: #d91a3b;
+  --pa-warning: #f7b928;
+  --pa-good: #31a24c;
+  --pa-shadow-float: 0 8px 28px 0 rgb(22 37 68 / 0.07);
+  --pa-shadow-sheet: -8px 0 32px 0 rgb(0 0 0 / 0.09);
+  --pa-scrim: rgb(11 11 12 / 0.24);
+}
+
+[data-theme="dark"] {
+  --pa-canvas: #0b0b0c;
+  --pa-surface: #16171a;
+  --pa-subtle: #1f2024;
+  --pa-line: #2a2c31;
+  --pa-ink: #f2f3f5;
+  --pa-ink-muted: #a0a3aa;
+  --pa-accent: #4c8dff;
+  --pa-accent-ink: #5a96ff;
+  --pa-accent-fill: #1f6bfa;
+  --pa-accent-soft: #192a46;
+  --pa-on-accent: #ffffff;
+  --pa-bubble-owner: #1e3a6b;
+  --pa-danger: #e41e3f;
+  --pa-danger-ink: #ff6b7d;
+  --pa-scrim: rgb(0 0 0 / 0.48);
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-canvas: var(--pa-canvas);
+  --color-surface: var(--pa-surface);
+  --color-subtle: var(--pa-subtle);
+  --color-line: var(--pa-line);
+  --color-ink: var(--pa-ink);
+  --color-ink-muted: var(--pa-ink-muted);
+  --color-accent: var(--pa-accent);
+  --color-accent-ink: var(--pa-accent-ink);
+  --color-accent-fill: var(--pa-accent-fill);
+  --color-accent-soft: var(--pa-accent-soft);
+  --color-on-accent: var(--pa-on-accent);
+  --color-bubble-owner: var(--pa-bubble-owner);
+  --color-danger: var(--pa-danger);
+  --color-danger-ink: var(--pa-danger-ink);
+  --color-warning: var(--pa-warning);
+  --color-good: var(--pa-good);
+  --color-scrim: var(--pa-scrim);
+
+  --shadow-*: initial;
+  --shadow-float: var(--pa-shadow-float);
+  --shadow-sheet: var(--pa-shadow-sheet);
+}
+
+@theme {
+  --font-*: initial;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+
+  /* Type scale. Running text is set at 1.45; single-line labels at the font's own height. */
+  --text-*: initial;
+  --text-proof: 40px;
+  --text-proof--line-height: 1.2;
+  --text-proof--letter-spacing: -0.7px;
+  --text-title: 28px;
+  --text-title--line-height: 1.45;
+  --text-card: 20px;
+  --text-card--line-height: 1.45;
+  --text-brand: 17px;
+  --text-brand--line-height: normal;
+  --text-body: 15px;
+  --text-body--line-height: 1.45;
+  --text-small: 13px;
+  --text-small--line-height: 1.45;
+  --text-label: 12px;
+  --text-label--line-height: normal;
+  --text-caption: 11px;
+  --text-caption--line-height: normal;
+  --text-tiny: 10px;
+  --text-tiny--line-height: normal;
+
+  --radius-*: initial;
+  --radius-bar: 3px;
+  --radius-mark: 10px;
+  --radius-avatar: 11px;
+  --radius-box: 12px;
+  --radius-destination: 14px;
+  --radius-bubble: 18px;
+  --radius-card: 20px;
+  --radius-full: 9999px;
+}
+
+@layer base {
+  html {
+    background-color: var(--pa-canvas);
+    color: var(--pa-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--pa-canvas);
+  }
+
+  /* One focus style everywhere: visible on keyboard focus, absent on mouse clicks. */
+  :focus-visible {
+    outline: 2px solid var(--pa-accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

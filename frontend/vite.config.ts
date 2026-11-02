@@ -39,7 +39,7 @@ export default defineConfig({
   preview: { port: 3000, strictPort: true },
   build: {
     target: "es2022",
-    sourcemap: true,
+    sourcemap: "hidden", // for error reports; not linked from the served bundles
   },
   test: {
     environment: "jsdom",

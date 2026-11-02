@@ -68,6 +68,11 @@ export default tseslint.config(
     rules: { "no-restricted-properties": "off" },
   },
   {
+    // Dates and times are formatted here and only here (ADR 0025); a number never is.
+    files: ["src/format/dates.ts"],
+    rules: { "no-restricted-globals": "off" },
+  },
+  {
     files: ["**/*.test.{ts,tsx}", "src/test/**/*.{ts,tsx}"],
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
