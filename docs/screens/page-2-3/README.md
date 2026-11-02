@@ -7,8 +7,9 @@ the Figma exports in `../figma/`.
 
 They come from `node frontend/scripts/screens.mjs 2-3`, on the demo store (`make demo-seed`), with:
 
-- the API given an `APPROVAL_LINK_SECRET` (the email links) and run with `LLM_MODE=live` for the
-  one question asked (about $0.11 with the investigation it led to);
+- the API given an `APPROVAL_LINK_SECRET` (the email links) and ffmpeg (the recording), and run
+  with `LLM_MODE=live` for the one question, asked by voice: Edge's fake microphone plays the voice
+  tests' recording `question_en.wav` (about $0.04: $0.0005 to hear it, the rest to answer);
 - the executor worker running (`python -m app.executor --loop 5`): the demo store's actions go to
   the simulator;
 - `SCREENS_EXPIRED_LINK`, an approval link made by the backend's own `create_link` dated two days
@@ -24,7 +25,7 @@ conversation): re-seed the demo store afterwards.
 | [chat-decision.png](chat-decision.png) | the light permission frame (the decision in the conversation), Dark · Permission card |
 | [decision-card.png](decision-card.png) | Permission card, light and dark |
 | [decision-live.png](decision-live.png) | none: approved in the conversation, then done with the platform's state read back |
-| [ask.png](ask.png) | the composer only: recording, the work as it streams, the answer |
+| [ask.png](ask.png) | the composer only: recording, what was heard with the work as it streams, the answer |
 | [approval.png](approval.png) | none: a link opened, approved, used again, decided in the app, replaced, expired |
 
 The Figma MCP server is still at its plan's call limit: the light Morning brief, the investigation,
@@ -60,22 +61,22 @@ conversation" frame was fetched before the limit, and is now in `../figma/permis
 
 ### Found while taking these screens
 
-1. **Spoken questions fail on the demo store (backend; needs your approval).** The transcription
-   endpoint refuses any recognition keyword over 30 characters ("ASR keyword 1 exceeds the maximum
-   length of 30 characters"); the backend allows 40 (`MAX_KEYWORD_CHARS` in
-   `backend/app/agent/llm/transcribe.py`). Two of the demo campaign names given in the backend
-   task are longer ("Layers & Camp Kitchen — Lookalike" is 33), so every spoken question there
-   ends with "The answer could not be completed". The fix is `MAX_KEYWORD_CHARS = 30` (a longer
-   name is already left out, not cut). Until then the sheets show the recording and a typed
-   question; the "what was heard, then the answer" screen is missing.
+1. **Spoken questions failed on the demo store** (fixed in the backend, with your approval). The
+   transcription endpoint refuses a recognition keyword over 30 characters; the backend allowed
+   40, and two of the demo campaign names are longer ("Layers & Camp Kitchen — Lookalike" is 33),
+   so every spoken question there ended with "The answer could not be completed". The limit is now
+   30 characters (the endpoint counts characters, not bytes), and such names are left out of the
+   keywords. The sheets show the spoken question heard, then answered.
 2. **The brief's time** is when the briefing was made. On the demo store that is the seed time
-   (here 3:16 PM, today), next to the briefing's own date (Tue, Sep 15, the demo data's last day);
-   on a real store both are the same morning.
+   (the afternoon the screens were taken), next to the briefing's own date (Tue, Sep 15, the
+   demo data's last day); on a real store both are the same morning.
 3. **The brief's narrative repeats the money at stake** ("costing about $5,743 to $6,469 per month
    out of about $5,743 to $6,469 at stake"): the briefing's text, from the backend.
-4. **Live answers vary.** Asked "What was my net profit last week, and which campaign cost me the
-   most?", this run answered the profit and could not name the campaign (flagged "Little
-   evidence"); an earlier run named "Layers & Camp Kitchen — Lookalike" with $517 of spend.
+4. **Live answers vary, and can use raw metric names.** Asked which campaign cost the most
+   compared with the sales it brought back, one run answered the profit and could not name the
+   campaign; this one names "Trail Jacket — Prospecting" but writes "net_profit", "ad_spend",
+   "attributed_revenue" and "roas 0.00×" as they are (flagged "Little evidence"). That wording
+   is the model's, in the answer contract's text; the page renders it as text.
 5. **The investigation has no duration or cited facts in its API** (reported before):
    the steps are shown without "took 12 s", and facts it cites are fetched one by one.
 

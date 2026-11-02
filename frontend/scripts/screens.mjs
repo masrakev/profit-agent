@@ -8,7 +8,7 @@
  *   node scripts/screens.mjs 2-3   # the conversation and the approval page: page-2-3/app/
  *
  * Pages 2 and 3 approve two of the demo store's decisions (the simulator carries them out) and ask
- * one question (a model call): re-seed the demo store afterwards (`make demo-seed`). The
+ * one spoken question (model calls): re-seed the demo store afterwards (`make demo-seed`). The
  * API needs APPROVAL_LINK_SECRET for the email links, and ffmpeg for the recording. With
  * SCREENS_EXPIRED_LINK set to an expired link's token, the expired link's page is taken too.
  */
@@ -114,7 +114,7 @@ async function foundation(browser, session, scheme) {
 const SPEECH = fileURLToPath(
   new URL("../../backend/tests/fixtures/voice/question_en.wav", import.meta.url),
 );
-const QUESTION = "What was my net profit last week, and which campaign cost me the most?";
+const SPEECH_SECONDS = 10.5; // the recording lasts 10.1 s
 
 /** The same moment in both themes: the app follows the system's. */
 async function both(page, name, target = page, { quick = false, ...options } = {}) {
@@ -243,19 +243,18 @@ async function conversation(browser, session) {
   await open(storyLink);
   await both(mail, "approval-decided");
 
-  // The microphone: the waveform while it records. The demo store's spoken questions are refused
-  // by the transcription endpoint for now (two campaign names exceed its keyword length), so the
-  // question is then typed.
+  // Asked by voice: the waveform while it records, what was heard with the work as it streams,
+  // then the answer.
   await page.getByRole("button", { name: "Ask by voice" }).click();
   await page.getByRole("group", { name: "Recording your question" }).waitFor();
+  const started = Date.now();
   await page.waitForTimeout(2500);
   await both(page, "voice-recording", page, { quick: true });
-  await page.getByRole("button", { name: "Cancel the recording" }).click();
-
-  // Asked: the work as it streams, then the answer.
-  const box = page.getByRole("textbox", { name: "Ask anything about your store" });
-  await box.fill(QUESTION);
-  await box.press("Enter");
+  await page.waitForTimeout(Math.max(0, SPEECH_SECONDS * 1000 - (Date.now() - started)));
+  await page.getByRole("button", { name: "Send" }).click();
+  const listening = page.getByText("Listening to your question…");
+  await listening.waitFor();
+  await listening.waitFor({ state: "detached", timeout: 60_000 });
   const working = page.getByRole("region", { name: "Working" });
   await working.getByRole("listitem").nth(2).waitFor({ timeout: 60_000 }); // a few steps in
   await end(page);
