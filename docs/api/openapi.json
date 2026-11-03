@@ -661,6 +661,61 @@
             "description": "The question, recorded: WAV, Ogg/Opus (WhatsApp), WebM/Opus (Chrome, Firefox) or MP4/AAC (Safari), converted to WAV when needed; at most 120 seconds and 6291456 bytes.",
             "title": "Audio",
             "type": "string"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the conversation it continues; a new one if none",
+            "title": "Conversation Id"
+          },
+          "topic_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "what it is about: its id",
+            "title": "Topic Id"
+          },
+          "topic_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "decision",
+                  "goal"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "what it is about: its kind",
+            "title": "Topic Kind"
+          },
+          "topic_label": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "what it is about: its label",
+            "title": "Topic Label"
           }
         },
         "required": [
@@ -1115,6 +1170,86 @@
         "title": "Contribution",
         "type": "object"
       },
+      "ConversationOut": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "questions": {
+            "title": "Questions",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/TurnOut"
+            },
+            "title": "Turns",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "title",
+          "questions",
+          "created_at",
+          "updated_at",
+          "turns"
+        ],
+        "title": "ConversationOut",
+        "type": "object"
+      },
+      "ConversationSummary": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "questions": {
+            "title": "Questions",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "title",
+          "questions",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ConversationSummary",
+        "type": "object"
+      },
       "DailyBrief": {
         "additionalProperties": false,
         "properties": {
@@ -1215,6 +1350,16 @@
           "floor": {
             "title": "Floor",
             "type": "string"
+          },
+          "goal_step": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GoalStepLink"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "horizon_days": {
             "title": "Horizon Days",
@@ -2150,6 +2295,43 @@
           "facts"
         ],
         "title": "GoalOut",
+        "type": "object"
+      },
+      "GoalStepLink": {
+        "description": "The step of a goal's plan a decision carries out: proposed when the plan was accepted\nand the step's day came.",
+        "properties": {
+          "goal_id": {
+            "format": "uuid",
+            "title": "Goal Id",
+            "type": "string"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "format": "uuid",
+            "title": "Step Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal_id",
+          "plan_id",
+          "step_id",
+          "position",
+          "status"
+        ],
+        "title": "GoalStepLink",
         "type": "object"
       },
       "Health": {
@@ -3177,6 +3359,33 @@
         "title": "Page[BriefingSummary]",
         "type": "object"
       },
+      "Page_ConversationSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[ConversationSummary]",
+        "type": "object"
+      },
       "Page_DecisionView_": {
         "properties": {
           "items": {
@@ -3712,9 +3921,31 @@
       },
       "Question": {
         "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
           "question": {
             "title": "Question",
             "type": "string"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Topic"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -4745,6 +4976,38 @@
         "title": "TokenRequest",
         "type": "object"
       },
+      "Topic": {
+        "additionalProperties": false,
+        "description": "What a question is about: a decision or a goal of the store, by the label the owner saw.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "decision",
+              "goal"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "label"
+        ],
+        "title": "Topic",
+        "type": "object"
+      },
       "TrustEntry": {
         "properties": {
           "abstained": {
@@ -4844,6 +5107,60 @@
           "proposal"
         ],
         "title": "TrustEntry",
+        "type": "object"
+      },
+      "TurnOut": {
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/AskOut"
+          },
+          "asked_at": {
+            "format": "date-time",
+            "title": "Asked At",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Topic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "turn_id": {
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          },
+          "via": {
+            "enum": [
+              "text",
+              "voice"
+            ],
+            "title": "Via",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turn_id",
+          "position",
+          "question",
+          "via",
+          "topic",
+          "asked_at",
+          "answer"
+        ],
+        "title": "TurnOut",
         "type": "object"
       },
       "UsageSummary": {
@@ -6591,7 +6908,7 @@
     },
     "/api/v1/stores/{store_id}/ask/stream": {
       "post": {
-        "description": "Ask, with the agent's steps as server-sent events while it works, then\n`event: answer` (the answer contract, with the facts and names it cites) and\n`event: done`.",
+        "description": "Ask, with the agent's steps as server-sent events while it works, then\n`event: answer` (the answer contract, with the facts and names it cites) and\n`event: done`. The question goes into a conversation: `conversation_id` continues one,\nelse a new one starts, titled by the question; `event: conversation` names it first. The\nanswer is kept as the conversation's next turn. A question about a decision or a goal\n(`topic`) is read by the agent with its label first. Errors: 404 for a conversation, 422 for\na topic, that is not the store's.",
         "operationId": "post_ask_stream_api_v1_stores__store_id__ask_stream_post",
         "parameters": [
           {
@@ -6686,7 +7003,7 @@
     },
     "/api/v1/stores/{store_id}/ask/voice": {
       "post": {
-        "description": "Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:\n`event: transcript` (what was heard, its duration and the cost of hearing it), then the\nquestion is answered exactly like Ask: `event: step`..., `event: answer`, `event: done`.\nA goal said aloud is restated for confirmation, like a typed one. When nothing was heard:\n`event: no_speech`, then `event: done`. A transcript is a question, never an approval; one\nthat reads like an instruction is answered as a question and flagged. The recording is not\nstored: only its transcript, duration and cost are kept. A WAV the transcription endpoint\ntakes is sent as it is; Ogg/Opus, WebM/Opus, MP4/AAC and other PCM WAVs are converted to\nWAV first. Errors: 413 over the size, 415 another format or an unreadable recording, 422\nover two minutes or empty, 503 when recordings cannot be converted.",
+        "description": "Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:\n`event: transcript` (what was heard, its duration and the cost of hearing it), then the\nquestion is answered exactly like Ask: `event: step`..., `event: answer`, `event: done`.\nA goal said aloud is restated for confirmation, like a typed one. When nothing was heard:\n`event: no_speech`, then `event: done`. A transcript is a question, never an approval; one\nthat reads like an instruction is answered as a question and flagged. The recording is not\nstored: only its transcript, duration and cost are kept. A WAV the transcription endpoint\ntakes is sent as it is; Ogg/Opus, WebM/Opus, MP4/AAC and other PCM WAVs are converted to\nWAV first. Errors: 413 over the size, 415 another format or an unreadable recording, 422\nover two minutes or empty, 503 when recordings cannot be converted. Like a typed question,\nit goes into a conversation (`event: conversation` first), about a topic when one is given\n(all three topic fields, or none).",
         "operationId": "post_ask_voice_api_v1_stores__store_id__ask_voice_post",
         "parameters": [
           {
@@ -7343,6 +7660,227 @@
         "summary": "Put Connection",
         "tags": [
           "privacy"
+        ]
+      }
+    },
+    "/api/v1/stores/{store_id}/conversations": {
+      "get": {
+        "description": "The store's conversations, the one answered last first.",
+        "operationId": "list_conversations_api_v1_stores__store_id__conversations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "store_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Store Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "items per page",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "next_cursor of the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "next_cursor of the previous page",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ConversationSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not signed in, or the token is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not allowed (CSRF, a token where a session is needed)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not found, or not one of the caller's stores"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "The request is not valid"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Too many requests"
+          }
+        },
+        "summary": "List Conversations",
+        "tags": [
+          "conversations"
+        ]
+      }
+    },
+    "/api/v1/stores/{store_id}/conversations/{conversation_id}": {
+      "get": {
+        "description": "A conversation, its questions and their answers in order.",
+        "operationId": "get_conversation_api_v1_stores__store_id__conversations__conversation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "store_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Store Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not signed in, or the token is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not allowed (CSRF, a token where a session is needed)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not found, or not one of the caller's stores"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "The request is not valid"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Too many requests"
+          }
+        },
+        "summary": "Get Conversation",
+        "tags": [
+          "conversations"
         ]
       }
     },

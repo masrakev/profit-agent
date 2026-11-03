@@ -145,12 +145,46 @@ class DecisionView(BaseModel):
     label: str  # the question it asks: its recommended option
     do_nothing: "DoNothing"
     outcomes: list["OutcomeView"] = []  # what its actions were measured to do, once measured
+    goal_step: "GoalStepLink | None" = None  # the goal plan's step it carries out, if any
 
     def option(self, option_id: str) -> OptionRow:
         found = next((o for o in self.options if o.option_id == option_id), None)
         if found is None:
             raise DecisionError("unknown_option", f"decision has no option {option_id!r}")
         return found
+
+
+class GoalStepLink(BaseModel):
+    """The step of a goal's plan a decision carries out: proposed when the plan was accepted
+    and the step's day came."""
+
+    model_config = ConfigDict(frozen=True)
+
+    goal_id: UUID
+    plan_id: UUID
+    step_id: UUID
+    position: int  # the step's place in its plan, from 1
+    status: str  # the step's own: proposed, done, skipped, superseded
+
+
+def goal_step_of(conn: Connection, store_id: UUID, decision_id: UUID) -> GoalStepLink | None:
+    row = conn.execute(
+        text(
+            "SELECT s.step_id, s.plan_id, s.position, s.status, p.goal_id FROM goal_steps s "
+            "JOIN goal_plans p ON p.store_id = s.store_id AND p.plan_id = s.plan_id "
+            "WHERE s.store_id = :s AND s.decision_id = :d ORDER BY s.position LIMIT 1"
+        ),
+        {"s": store_id, "d": decision_id},
+    ).first()
+    if row is None:
+        return None
+    return GoalStepLink(
+        goal_id=row.goal_id,
+        plan_id=row.plan_id,
+        step_id=row.step_id,
+        position=row.position,
+        status=row.status,
+    )
 
 
 class DoNothing(BaseModel):
@@ -520,6 +554,7 @@ def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = Fal
         label=decision_label(recommended.label),
         do_nothing=DoNothing(impact_fact_id=row.do_nothing_fact_id),
         outcomes=outcomes_of(conn, store_id, decision_id),
+        goal_step=goal_step_of(conn, store_id, decision_id),
     )
 
 

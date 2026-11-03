@@ -77,8 +77,8 @@ def test_the_transcript_then_the_answer(
     assert response.headers["content-type"].startswith("text/event-stream")
     streamed = events(response.text)
     kinds = [k for k, _ in streamed]
-    assert (kinds[0], kinds[-2:]) == ("transcript", ["answer", "done"])
-    heard = streamed[0][1]
+    assert (kinds[:2], kinds[-2:]) == (["conversation", "transcript"], ["answer", "done"])
+    heard = streamed[1][1]
     assert (heard["transcript"], heard["heard"], heard["flags"]) == (
         "Should I hire someone?",
         True,
@@ -108,8 +108,8 @@ def test_nothing_heard_nothing_asked(
 ) -> None:
     voice.transport.add(f.transcription("", 3_000))
     streamed = events(client.post(url(golden_stockout), files=upload(wav(3.0, tone=False))).text)
-    assert [k for k, _ in streamed] == ["transcript", "no_speech", "done"]
-    assert streamed[0][1]["heard"] is False
+    assert [k for k, _ in streamed] == ["conversation", "transcript", "no_speech", "done"]
+    assert streamed[1][1]["heard"] is False
     assert llm.transport.requests == []
 
 
@@ -118,7 +118,8 @@ def test_a_failed_transcription_ends_the_stream(
 ) -> None:
     voice.transport.add(*[f.error(500, "server_error", "Transcription failed")] * 2)
     streamed = events(client.post(url(golden_stockout), files=upload(wav(1.0))).text)
-    assert streamed == [("failed", {"error": "ProviderUnavailableError"})]
+    assert [k for k, _ in streamed] == ["conversation", "failed"]
+    assert streamed[-1][1] == {"error": "ProviderUnavailableError"}
 
 
 @pytest.mark.parametrize(
@@ -183,7 +184,7 @@ def test_a_recording_in_another_format_is_converted_first(
     llm.transport.add(classified("out_of_scope"))
     recording = (VOICE_DIR / name).read_bytes()
     kinds = [k for k, _ in events(client.post(url(golden_stockout), files=upload(recording)).text)]
-    assert (kinds[0], kinds[-1]) == ("transcript", "done")
+    assert (kinds[:2], kinds[-1]) == (["conversation", "transcript"], "done")
     sent = voice.transport.requests[0]["audio"]
     assert sent["type"] == "audio/wav"
     assert sent["bytes"] > 24_000 * 2 * 6  # about seven seconds of 24 kHz PCM

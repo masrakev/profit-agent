@@ -93,6 +93,12 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     assert lost["superseded_by"] == str(seeded.decision_id)
     assert lost["options"][0]["option_id"].startswith("goal:reallocate_budget")
     assert "more recent data" in lost["superseded_reason"]
+    # Each step's decision names the goal step it carries out; the alert's decision is no step.
+    views = {d["decision_id"]: d for d in before["decisions"]["items"]}
+    assert views[str(seeded.decision_id)]["goal_step"] is None
+    linked = [views[str(d)]["goal_step"] for d in goal.decisions]
+    assert {link["goal_id"] for link in linked} == {str(goal.goal_id)}
+    assert sorted(link["status"] for link in linked) == ["proposed", "superseded"]
     assert set(statuses) == {str(p.decision_id) for p in seeded.past}
     assert all(p.outcome["status"] in ("measured", "abstained") for p in seeded.past)
     assert set(statuses.values()) <= {"measured", "executed"}

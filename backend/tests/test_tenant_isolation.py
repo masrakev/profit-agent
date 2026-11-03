@@ -52,6 +52,8 @@ TENANT_TABLES = (
     "voice_questions",
     "whatsapp_numbers",
     "goal_links",
+    "conversations",
+    "conversation_turns",
 )
 
 

@@ -32,6 +32,7 @@ from app.agent.llm.transcribe import Transcriber, TranscriptionRequest
 from app.agent.origin import data_origin
 from app.agent.stages import Routing, StagesConfig
 from app.agent.untrusted import CLOSE, OPEN, looks_like_instruction
+from app.conversations.store import Topic, framed
 from app.db import tenant_transaction
 from app.domain.schema import voice_questions
 from app.domain.text import strip_invisible
@@ -146,14 +147,16 @@ def answer_transcript(
     routing: Routing = Routing.PRODUCTION,
     stages: StagesConfig | None = None,
     run_id: str | None = None,
+    topic: Topic | None = None,
 ) -> AskResult | None:
-    """Ask the transcript, like a typed question; its flags carried onto the answer."""
+    """Ask the transcript, like a typed question (about `topic`, when one is given); its
+    flags carried onto the answer."""
     if not heard.heard:
         return None
     result = ask(
         engine,
         store_id,
-        heard.transcript,
+        framed(heard.transcript, topic),
         provider,
         routing=routing,
         stages=stages,
@@ -187,12 +190,20 @@ def ask_by_voice(
     stages: StagesConfig | None = None,
     run_id: str | None = None,
     on_transcript: Callable[[VoiceTranscript], None] | None = None,
+    topic: Topic | None = None,
 ) -> VoiceAnswer:
     """Transcribe, then answer; `on_transcript` hears the transcript before Ask starts."""
     heard = transcribe_question(engine, store_id, audio, transcriber, run_id=run_id)
     if on_transcript is not None:
         on_transcript(heard)
     result = answer_transcript(
-        engine, store_id, heard, provider, routing=routing, stages=stages, run_id=run_id
+        engine,
+        store_id,
+        heard,
+        provider,
+        routing=routing,
+        stages=stages,
+        run_id=run_id,
+        topic=topic,
     )
     return VoiceAnswer(heard, result)

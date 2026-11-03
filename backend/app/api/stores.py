@@ -21,6 +21,7 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     File,
+    Form,
     Header,
     HTTPException,
     Path,
@@ -55,6 +56,8 @@ from app.briefings.content import build, context, open_incidents, profit_bridge
 from app.briefings.models import BriefingKind
 from app.briefings.store import get as get_briefing
 from app.briefings.store import list_briefings, scheduled_at
+from app.conversations import store as conversations
+from app.conversations.store import ConversationError, Topic
 from app.db import tenant_transaction
 from app.detection.repository import load_incident
 from app.facts.catalogue import describe
@@ -676,6 +679,48 @@ def get_briefing_detail(store_id: StoreDep, briefing_id: UUID, engine: EngineDep
 
 class Question(BaseModel):
     question: str
+    conversation_id: UUID | None = None  # the conversation it continues; a new one if none
+    topic: Topic | None = None  # a decision or a goal it is about
+
+
+def _conversation(
+    engine: Engine, store_id: UUID, question: str, conversation_id: UUID | None, topic: Topic | None
+) -> UUID:
+    """The conversation the question goes into (a new one, titled by it, if none), its topic
+    checked: 404 for a conversation, 422 for a topic, that is not the store's."""
+    try:
+        with tenant_transaction(engine, store_id) as conn:
+            if topic is not None:
+                conversations.check_topic(conn, store_id, topic)
+            if conversation_id is None:
+                return conversations.start(conn, store_id, question)
+            conversations.require(conn, store_id, conversation_id)
+            return conversation_id
+    except ConversationError as exc:
+        raise HTTPException(
+            status_code=404 if exc.code == "not_found" else 422,
+            detail={"code": exc.code, "message": str(exc)},
+        ) from exc
+
+
+def _kept(
+    engine: Engine,
+    result: AskResult,
+    conversation_id: UUID,
+    question: str,
+    via: Literal["text", "voice"],
+    topic: Topic | None,
+) -> None:
+    with tenant_transaction(engine, result.store_id) as conn:
+        conversations.append(
+            conn,
+            result.store_id,
+            conversation_id,
+            question=question,
+            via=via,
+            topic=topic,
+            result=result,
+        )
 
 
 Events = queue.Queue[tuple[str, Any]]
@@ -715,17 +760,28 @@ def post_ask_stream(
 ) -> StreamingResponse:
     """Ask, with the agent's steps as server-sent events while it works, then
     `event: answer` (the answer contract, with the facts and names it cites) and
-    `event: done`."""
+    `event: done`. The question goes into a conversation: `conversation_id` continues one,
+    else a new one starts, titled by the question; `event: conversation` names it first. The
+    answer is kept as the conversation's next turn. A question about a decision or a goal
+    (`topic`) is read by the agent with its label first. Errors: 404 for a conversation, 422 for
+    a topic, that is not the store's."""
     if not 1 <= len(body.question) <= 2000:
         raise HTTPException(
             status_code=422,
             detail={"code": "invalid_request", "message": "a question of 1 to 2000 characters"},
         )
+    conversation_id = _conversation(
+        engine, store_id, body.question, body.conversation_id, body.topic
+    )
 
     def work(events: Events) -> None:
+        events.put(("conversation", {"conversation_id": str(conversation_id)}))
         with recording(lambda s: events.put(("step", s.__dict__))):
             try:
-                result: AskResult = ask(engine, store_id, body.question, provider)
+                result: AskResult = ask(
+                    engine, store_id, conversations.framed(body.question, body.topic), provider
+                )
+                _kept(engine, result, conversation_id, body.question, "text", body.topic)
             except Exception as exc:  # the stream must end, whatever happened
                 events.put(("failed", {"error": type(exc).__name__}))
                 return
@@ -775,6 +831,16 @@ def post_ask_voice(
     provider: ProviderDep,
     transcriber: TranscriberDep,
     converter: ConverterDep,
+    conversation_id: Annotated[
+        UUID | None, Form(description="the conversation it continues; a new one if none")
+    ] = None,
+    topic_kind: Annotated[
+        Literal["decision", "goal"] | None, Form(description="what it is about: its kind")
+    ] = None,
+    topic_id: Annotated[UUID | None, Form(description="what it is about: its id")] = None,
+    topic_label: Annotated[
+        str | None, Form(max_length=200, description="what it is about: its label")
+    ] = None,
 ) -> StreamingResponse:
     """Ask by voice (ADR 0026). The recording is transcribed by Muse Voice Transcribe:
     `event: transcript` (what was heard, its duration and the cost of hearing it), then the
@@ -785,7 +851,9 @@ def post_ask_voice(
     stored: only its transcript, duration and cost are kept. A WAV the transcription endpoint
     takes is sent as it is; Ogg/Opus, WebM/Opus, MP4/AAC and other PCM WAVs are converted to
     WAV first. Errors: 413 over the size, 415 another format or an unreadable recording, 422
-    over two minutes or empty, 503 when recordings cannot be converted."""
+    over two minutes or empty, 503 when recordings cannot be converted. Like a typed question,
+    it goes into a conversation (`event: conversation` first), about a topic when one is given
+    (all three topic fields, or none)."""
     try:
         clip = audio.file.read(MAX_BYTES + 1)
     finally:
@@ -797,7 +865,21 @@ def post_ask_voice(
             status_code=exc.status, detail={"code": exc.code, "message": exc.message}
         ) from exc
 
+    given = (topic_kind, topic_id, topic_label)
+    if any(v is not None for v in given) and None in given:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_topic", "message": "a topic needs its kind, id and label"},
+        )
+    topic = (
+        Topic(kind=topic_kind, id=topic_id, label=topic_label)
+        if topic_kind and topic_id and topic_label
+        else None
+    )
+    conversation = _conversation(engine, store_id, "Question by voice", conversation_id, topic)
+
     def work(events: Events) -> None:
+        events.put(("conversation", {"conversation_id": str(conversation)}))
         with recording(lambda s: events.put(("step", s.__dict__))):
             try:
                 done = ask_by_voice(
@@ -807,7 +889,17 @@ def post_ask_voice(
                     transcriber,
                     provider,
                     on_transcript=lambda h: events.put(("transcript", h.model_dump(mode="json"))),
+                    topic=topic,
                 )
+                if done.result is not None:
+                    _kept(
+                        engine,
+                        done.result,
+                        conversation,
+                        done.transcript.transcript,
+                        "voice",
+                        topic,
+                    )
             except Exception as exc:  # the stream must end, whatever happened
                 events.put(("failed", {"error": type(exc).__name__}))
                 return

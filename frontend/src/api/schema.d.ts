@@ -270,7 +270,11 @@ export interface paths {
          * Post Ask Stream
          * @description Ask, with the agent's steps as server-sent events while it works, then
          *     `event: answer` (the answer contract, with the facts and names it cites) and
-         *     `event: done`.
+         *     `event: done`. The question goes into a conversation: `conversation_id` continues one,
+         *     else a new one starts, titled by the question; `event: conversation` names it first. The
+         *     answer is kept as the conversation's next turn. A question about a decision or a goal
+         *     (`topic`) is read by the agent with its label first. Errors: 404 for a conversation, 422 for
+         *     a topic, that is not the store's.
          */
         post: operations["post_ask_stream_api_v1_stores__store_id__ask_stream_post"];
         delete?: never;
@@ -299,7 +303,9 @@ export interface paths {
          *     stored: only its transcript, duration and cost are kept. A WAV the transcription endpoint
          *     takes is sent as it is; Ogg/Opus, WebM/Opus, MP4/AAC and other PCM WAVs are converted to
          *     WAV first. Errors: 413 over the size, 415 another format or an unreadable recording, 422
-         *     over two minutes or empty, 503 when recordings cannot be converted.
+         *     over two minutes or empty, 503 when recordings cannot be converted. Like a typed question,
+         *     it goes into a conversation (`event: conversation` first), about a topic when one is given
+         *     (all three topic fields, or none).
          */
         post: operations["post_ask_voice_api_v1_stores__store_id__ask_voice_post"];
         delete?: never;
@@ -384,6 +390,46 @@ export interface paths {
         post?: never;
         /** Delete Connection Route */
         delete: operations["delete_connection_route_api_v1_stores__store_id__connections__provider__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stores/{store_id}/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Conversations
+         * @description The store's conversations, the one answered last first.
+         */
+        get: operations["list_conversations_api_v1_stores__store_id__conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stores/{store_id}/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Conversation
+         * @description A conversation, its questions and their answers in order.
+         */
+        get: operations["get_conversation_api_v1_stores__store_id__conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1346,6 +1392,26 @@ export interface components {
              * @description The question, recorded: WAV, Ogg/Opus (WhatsApp), WebM/Opus (Chrome, Firefox) or MP4/AAC (Safari), converted to WAV when needed; at most 120 seconds and 6291456 bytes.
              */
             audio: string;
+            /**
+             * Conversation Id
+             * @description the conversation it continues; a new one if none
+             */
+            conversation_id?: string | null;
+            /**
+             * Topic Id
+             * @description what it is about: its id
+             */
+            topic_id?: string | null;
+            /**
+             * Topic Kind
+             * @description what it is about: its kind
+             */
+            topic_kind?: ("decision" | "goal") | null;
+            /**
+             * Topic Label
+             * @description what it is about: its label
+             */
+            topic_label?: string | null;
         };
         /** Bridge */
         Bridge: {
@@ -1552,6 +1618,52 @@ export interface components {
             /** Significant */
             significant: boolean | null;
         };
+        /** ConversationOut */
+        ConversationOut: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Questions */
+            questions: number;
+            /** Title */
+            title: string;
+            /** Turns */
+            turns: components["schemas"]["TurnOut"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ConversationSummary */
+        ConversationSummary: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Questions */
+            questions: number;
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** DailyBrief */
         DailyBrief: {
             /**
@@ -1613,6 +1725,7 @@ export interface components {
             expires_at: string;
             /** Floor */
             floor: string;
+            goal_step?: components["schemas"]["GoalStepLink"] | null;
             /** Horizon Days */
             horizon_days: number;
             /** Incident Id */
@@ -1931,6 +2044,32 @@ export interface components {
             status: string;
             /** Target Fact Id */
             target_fact_id: number | null;
+        };
+        /**
+         * GoalStepLink
+         * @description The step of a goal's plan a decision carries out: proposed when the plan was accepted
+         *     and the step's day came.
+         */
+        GoalStepLink: {
+            /**
+             * Goal Id
+             * Format: uuid
+             */
+            goal_id: string;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /** Position */
+            position: number;
+            /** Status */
+            status: string;
+            /**
+             * Step Id
+             * Format: uuid
+             */
+            step_id: string;
         };
         /** Health */
         Health: {
@@ -2340,6 +2479,13 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /** Page[ConversationSummary] */
+        Page_ConversationSummary_: {
+            /** Items */
+            items: components["schemas"]["ConversationSummary"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /** Page[DecisionView] */
         Page_DecisionView_: {
             /** Items */
@@ -2530,8 +2676,11 @@ export interface components {
         };
         /** Question */
         Question: {
+            /** Conversation Id */
+            conversation_id?: string | null;
             /** Question */
             question: string;
+            topic?: components["schemas"]["Topic"] | null;
         };
         /**
          * QuestionType
@@ -2998,6 +3147,24 @@ export interface components {
             /** Name */
             name: string;
         };
+        /**
+         * Topic
+         * @description What a question is about: a decision or a goal of the store, by the label the owner saw.
+         */
+        Topic: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "decision" | "goal";
+            /** Label */
+            label: string;
+        };
         /** TrustEntry */
         TrustEntry: {
             /** Abstained */
@@ -3030,6 +3197,30 @@ export interface components {
              * @default 10
              */
             threshold: number;
+        };
+        /** TurnOut */
+        TurnOut: {
+            answer: components["schemas"]["AskOut"];
+            /**
+             * Asked At
+             * Format: date-time
+             */
+            asked_at: string;
+            /** Position */
+            position: number;
+            /** Question */
+            question: string;
+            topic: components["schemas"]["Topic"] | null;
+            /**
+             * Turn Id
+             * Format: uuid
+             */
+            turn_id: string;
+            /**
+             * Via
+             * @enum {string}
+             */
+            via: "text" | "voice";
         };
         /** UsageSummary */
         UsageSummary: {
@@ -4870,6 +5061,156 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Not signed in, or the token is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not allowed (CSRF, a token where a session is needed) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not found, or not one of the caller's stores */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description The request is not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+        };
+    };
+    list_conversations_api_v1_stores__store_id__conversations_get: {
+        parameters: {
+            query?: {
+                /** @description items per page */
+                limit?: number;
+                /** @description next_cursor of the previous page */
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                store_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ConversationSummary_"];
+                };
+            };
+            /** @description Not signed in, or the token is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not allowed (CSRF, a token where a session is needed) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not found, or not one of the caller's stores */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description The request is not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+        };
+    };
+    get_conversation_api_v1_stores__store_id__conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+                store_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"];
+                };
             };
             /** @description Not signed in, or the token is not valid */
             401: {

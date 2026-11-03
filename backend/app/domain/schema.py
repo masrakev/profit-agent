@@ -648,3 +648,30 @@ goal_links = Table(
     Column("used_at", DateTime(timezone=True), nullable=True),
     _ts("created_at"),
 )
+
+conversations = Table(
+    "conversations",
+    metadata,
+    Column("conversation_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("title", Text, nullable=False),
+    _ts("created_at"),
+    _ts("updated_at"),
+)
+
+conversation_turns = Table(
+    "conversation_turns",
+    metadata,
+    Column("turn_id", Uuid, primary_key=True),
+    _store_id(),
+    Column("conversation_id", Uuid, nullable=False),
+    Column("position", Integer, nullable=False),
+    Column("question", Text, nullable=False),
+    Column("via", Text, nullable=False),
+    Column("topic_kind", Text, nullable=True),
+    Column("topic_id", Uuid, nullable=True),
+    Column("topic_label", Text, nullable=True),
+    Column("ask_id", Uuid, nullable=False),
+    Column("result", JSONB, nullable=False),
+    _ts("created_at"),
+)
