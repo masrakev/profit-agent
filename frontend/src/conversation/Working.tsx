@@ -52,7 +52,7 @@ export function Working({
           {live ? (
             <span
               aria-hidden="true"
-              className="size-2 animate-pulse rounded-full bg-accent"
+              className="size-2 animate-pulse rounded-full bg-accent-mark"
               data-part="live"
             />
           ) : (

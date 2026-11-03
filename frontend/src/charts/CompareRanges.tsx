@@ -34,7 +34,7 @@ export function CompareRanges({ rows }: { rows: Compared[] }) {
                 <>
                   <span
                     data-part="range"
-                    className="absolute inset-y-0 block rounded-full bg-accent/35"
+                    className="absolute inset-y-0 block rounded-full bg-accent-mark/35"
                     style={{
                       left: pct(geometry.low),
                       width: pct(Math.max(geometry.high - geometry.low, 0.01)),
@@ -42,7 +42,7 @@ export function CompareRanges({ rows }: { rows: Compared[] }) {
                   />
                   <span
                     data-part="likely"
-                    className="absolute top-1/2 block h-3.5 w-1 -translate-1/2 rounded-[2px] bg-accent"
+                    className="absolute top-1/2 block h-3.5 w-1 -translate-1/2 rounded-[2px] bg-accent-mark"
                     style={{ left: pct(geometry.mark) }}
                   />
                 </>

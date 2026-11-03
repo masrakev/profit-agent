@@ -233,7 +233,7 @@ function Outcome({
           <Icon name={done && decision.status !== "failed" ? "circle-check" : "pause"} />
         </span>
         <h3
-          className={`flex-1 text-card font-semibold text-ink ${superseded ? "line-through" : ""}`}
+          className={`flex-1 text-heading font-semibold text-ink ${superseded ? "line-through" : ""}`}
         >
           {chosen && decision.approved_option_id ? chosen.label : decision.label}
         </h3>

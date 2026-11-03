@@ -126,7 +126,7 @@ function LinkForm({ notice, onSignedIn }: LinkFormProps) {
         role="status"
         className="flex flex-col gap-5 rounded-card border border-line bg-surface p-7"
       >
-        <h2 className="text-card font-semibold text-ink">Check your email</h2>
+        <h2 className="text-heading font-semibold text-ink">Check your email</h2>
         <p className="text-body text-ink">
           If <span className="font-semibold">{sentTo}</span> has an account, a sign-in link is on
           its way. Open it on this device.
@@ -176,7 +176,7 @@ function LinkForm({ notice, onSignedIn }: LinkFormProps) {
           }}
           aria-invalid={problem ? true : undefined}
           aria-describedby={problem ? problemId : undefined}
-          className="h-[52px] w-full rounded-box border border-line bg-surface px-4 text-body text-ink outline-none placeholder:text-ink-muted focus:border-accent"
+          className="h-[52px] w-full rounded-box border border-line bg-surface px-4 text-body text-ink outline-none placeholder:text-ink-muted focus:border-accent-mark"
         />
         {problem && (
           <p id={problemId} role="alert" className="text-label leading-[1.45] text-danger-ink">

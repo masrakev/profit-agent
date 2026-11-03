@@ -155,7 +155,7 @@ function Confirm({
         </h1>
       </div>
       <section className="flex flex-col gap-5 rounded-card border border-line bg-surface p-7">
-        <h2 className="text-card font-semibold text-ink">{result.decision.label}</h2>
+        <h2 className="text-heading font-semibold text-ink">{result.decision.label}</h2>
         {approving && option && option !== result.decision.label.replace(/\?$/, "") && (
           <p className="text-body text-ink">{option}</p>
         )}
@@ -214,7 +214,7 @@ function Message({ title, text, done = false }: Problem & { done?: boolean }) {
       <span className="inline-flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
         <Icon name={done ? "circle-check" : "x"} />
       </span>
-      <h1 className="text-card font-semibold text-ink">{title}</h1>
+      <h1 className="text-heading font-semibold text-ink">{title}</h1>
       <p className="text-body text-ink-muted">{text}</p>
       <OpenApp primary={false} />
     </section>

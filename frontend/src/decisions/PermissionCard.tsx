@@ -67,7 +67,7 @@ export function PermissionCard({
         <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-box bg-accent-soft text-accent-ink">
           <Icon name={icon} />
         </span>
-        <h3 id={questionId} className="flex-1 text-card font-semibold text-ink">
+        <h3 id={questionId} className="flex-1 text-heading font-semibold text-ink">
           {question}
         </h3>
         {sealed && <VerifiedSeal fact={sealed} />}

@@ -143,7 +143,7 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
       {top && (
         <article className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-float">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-card font-semibold text-ink">
+            <h3 className="text-heading font-semibold text-ink">
               {top.entities.map((entity, index) => (
                 <span key={entity}>
                   {index > 0 && ", "}

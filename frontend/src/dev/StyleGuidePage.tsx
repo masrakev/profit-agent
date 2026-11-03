@@ -42,7 +42,7 @@ const STATUS_BARS = [
   ["critical", "bg-danger"],
   ["warning", "bg-warning"],
   ["good", "bg-good"],
-  ["info", "bg-accent"],
+  ["info", "bg-accent-mark"],
 ] as const;
 
 function useCatalogueFacts() {
@@ -126,7 +126,7 @@ export function StyleGuidePage() {
             <Sample size="28" className="text-title font-semibold">
               Title · A little more clarity
             </Sample>
-            <Sample size="20" className="text-card font-semibold">
+            <Sample size="20" className="text-heading font-semibold">
               Card title · Your next best step
             </Sample>
             <Sample size="15" className="text-body">
@@ -191,7 +191,9 @@ export function StyleGuidePage() {
           </Bubble>
           <Composer />
           <div className="flex flex-col gap-2 px-3 py-4">
-            <p className="text-card font-semibold text-ink">Friendly. Confident. Never alarming.</p>
+            <p className="text-heading font-semibold text-ink">
+              Friendly. Confident. Never alarming.
+            </p>
             <p className="text-small text-ink-muted">
               Start with what matters. Show the evidence on demand. Ask before acting. Measure what
               happened.
@@ -218,7 +220,7 @@ export function StyleGuidePage() {
         className="grid gap-5 rounded-card bg-canvas p-6 text-ink md:grid-cols-2"
       >
         <div className="flex flex-col gap-4">
-          <h2 className="text-card font-semibold">Dark / Same rhythm, softer light</h2>
+          <h2 className="text-heading font-semibold">Dark / Same rhythm, softer light</h2>
           <div className="flex flex-wrap items-center gap-2.5">
             <Button>Approve</Button>
             <Button variant="secondary">Not now</Button>
@@ -287,7 +289,7 @@ function Palette({ theme, title }: { theme: "light" | "dark"; title: string }) {
       aria-label={title}
       className="flex flex-col gap-5 rounded-card border border-line bg-surface p-6 text-ink"
     >
-      <h2 className="text-card font-semibold">{title}</h2>
+      <h2 className="text-heading font-semibold">{title}</h2>
       <ul className="grid grid-cols-2 gap-x-6 gap-y-4">
         {SWATCHES.map(([name, token]) => (
           <li key={token} className="flex items-center gap-3">
@@ -311,7 +313,7 @@ function Card({ title, seal, children }: { title: string; seal?: ReactNode; chil
   return (
     <section className="flex flex-col gap-5 rounded-card border border-line bg-surface p-6">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-card font-semibold text-ink">{title}</h2>
+        <h2 className="text-heading font-semibold text-ink">{title}</h2>
         {seal}
       </div>
       {children}

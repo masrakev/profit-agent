@@ -50,7 +50,13 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/api/schema.d.ts", "src/main.tsx", "src/test/**", "src/**/*.test.{ts,tsx}"],
+      exclude: [
+        "src/api/schema.d.ts",
+        "src/main.tsx",
+        "src/test/**",
+        "src/**/*.test.{ts,tsx}",
+        "src/components/ui/**", // vendored shadcn/ui components
+      ],
       thresholds: { lines: 90, functions: 90, branches: 85, statements: 90 },
     },
   },

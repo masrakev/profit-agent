@@ -50,7 +50,7 @@ export function RangeBar({
           <Dot at={geometry.low} part="low" />
           <span
             data-part="likely"
-            className="absolute top-1/2 block h-3.5 w-1 -translate-1/2 rounded-[2px] bg-accent"
+            className="absolute top-1/2 block h-3.5 w-1 -translate-1/2 rounded-[2px] bg-accent-mark"
             style={{ left: pct(geometry.mark) }}
           />
           <Dot at={geometry.high} part="high" />
@@ -86,7 +86,7 @@ function Dot({ at, part }: { at: number; part: string }) {
   return (
     <span
       data-part={part}
-      className="absolute top-1/2 block size-[5px] -translate-1/2 rounded-full bg-accent"
+      className="absolute top-1/2 block size-[5px] -translate-1/2 rounded-full bg-accent-mark"
       style={{ left: pct(at) }}
     />
   );

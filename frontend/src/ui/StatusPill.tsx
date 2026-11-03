@@ -8,7 +8,7 @@ const DOTS: Record<Tone, string> = {
   good: "bg-good",
   warning: "bg-warning",
   critical: "bg-danger",
-  info: "bg-accent",
+  info: "bg-accent-mark",
   neutral: "bg-ink-muted",
 };
 

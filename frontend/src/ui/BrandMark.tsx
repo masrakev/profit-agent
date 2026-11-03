@@ -8,7 +8,7 @@ export function BrandMark({ named = false }: { named?: boolean }) {
     <span className="inline-flex items-center gap-2.5">
       <span
         aria-hidden="true"
-        className="inline-flex size-[30px] items-center justify-center gap-[3px] rounded-mark bg-accent"
+        className="inline-flex size-[30px] items-center justify-center gap-[3px] rounded-mark bg-accent-mark"
       >
         {SIGNALS.map((height) => (
           <span key={height} className={`w-1 rounded-bar bg-on-accent ${height}`} />

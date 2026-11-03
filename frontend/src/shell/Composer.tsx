@@ -85,7 +85,7 @@ export function Composer({ onSend, onVoice, recorder = createRecorder }: Compose
         <div
           role="group"
           aria-label="Recording your question"
-          className="flex h-16 w-full items-center gap-4 rounded-card border border-accent bg-surface px-5 shadow-float"
+          className="flex h-16 w-full items-center gap-4 rounded-card border border-accent-mark bg-surface px-5 shadow-float"
         >
           <button
             type="button"
@@ -110,7 +110,7 @@ export function Composer({ onSend, onVoice, recorder = createRecorder }: Compose
       ) : (
         <form
           onSubmit={submit}
-          className="flex h-16 w-full items-center gap-4 rounded-card border border-line bg-surface px-5 shadow-float focus-within:border-accent"
+          className="flex h-16 w-full items-center gap-4 rounded-card border border-line bg-surface px-5 shadow-float focus-within:border-accent-mark"
         >
           <button
             type="button"

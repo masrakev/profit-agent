@@ -43,7 +43,7 @@ export function Waveform({ samples }: { samples: () => Uint8Array | null }) {
       aria-hidden="true"
       width={240}
       height={28}
-      className="h-7 w-full min-w-0 flex-1 text-accent"
+      className="h-7 w-full min-w-0 flex-1 text-accent-mark"
     />
   );
 }
