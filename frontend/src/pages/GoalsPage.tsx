@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Link } from "react-router";
+import { useEffect, type ReactNode } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
@@ -8,11 +8,14 @@ import { CompareRanges } from "@/charts/CompareRanges";
 import { FanChart, type FanWeek } from "@/charts/FanChart";
 import { VerdictBand } from "@/charts/VerdictBand";
 import { RangeBar } from "@/charts/RangeBar";
+import { statusOf } from "@/decisions/status";
+import { useDecisions } from "@/decisions/useDecisions";
 import { useOpen } from "@/conversation/open";
+import { plainText } from "@/conversation/plain";
 import { RichText, type Facts, type Names } from "@/conversation/RichText";
 import { FactValue } from "@/facts/FactValue";
 import type { Fact } from "@/facts/facts";
-import { formatDay } from "@/format/dates";
+import { formatDay, formatLastDay } from "@/format/dates";
 import { useGoalAsk } from "@/goals/ask";
 import { Composer } from "@/shell/Composer";
 import { useStore } from "@/stores/store";
@@ -109,13 +112,14 @@ function verdictText(verdict: string | null, band: string[]): string {
 /**
  * Goals: a goal said or typed, restated for the owner to confirm; whether it is within reach (a
  * point chance up to 90 days, a band and why the evidence is thin beyond); the plan, week by week,
- * with and without it; its steps, the superseded one with what replaced it; and the weekly
- * progress, including the weeks that wait for the owner's approval.
+ * with and without it; its steps, the superseded one with what replaced it; then the goal as a
+ * thread: what lies ahead, and what happened, newest first. Each goal has its address.
  */
 export function GoalsPage() {
   const api = useApi();
   const { storeId } = useStore();
-  const [chosen, setChosen] = useState<string | null>(null);
+  const { goalId } = useParams();
+  const navigate = useNavigate();
   const goals = useQuery({
     queryKey: ["goals", storeId],
     queryFn: () =>
@@ -127,10 +131,14 @@ export function GoalsPage() {
 
   const items = goals.data ?? [];
   const drafted = ask.state === "drafted" ? ask.goalId : null;
-  // The goal shown first: the one picked or just said, else the one being followed (its plan
-  // accepted), else a confirmed one, else a draft.
+  // A goal just said opens at its address, to be confirmed there.
+  useEffect(() => {
+    if (drafted) void navigate(`/goals/${drafted}`);
+  }, [drafted, navigate]);
+  // The goal shown: the one at the address, else the one being followed (its plan accepted),
+  // else a confirmed one, else a draft.
   const current =
-    items.find((g) => g.goal_id === (chosen ?? drafted)) ??
+    items.find((g) => g.goal_id === goalId) ??
     LEAD.map((status) => items.find((g) => g.status === status)).find((g) => g) ??
     items[0];
   const others = items.filter((g) => g !== current);
@@ -181,15 +189,12 @@ export function GoalsPage() {
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <StatusPill tone={status.tone}>{status.text}</StatusPill>
-                    <Button
-                      variant="ghost"
-                      className="h-9 px-3 text-small"
-                      onClick={() => {
-                        setChosen(g.goal_id);
-                      }}
+                    <Link
+                      to={`/goals/${g.goal_id}`}
+                      className="inline-flex h-9 items-center rounded-full px-3 text-small font-medium text-ink-muted transition-colors duration-150 hover:bg-subtle hover:text-ink"
                     >
                       Show
-                    </Button>
+                    </Link>
                   </span>
                 </li>
               );
@@ -227,6 +232,7 @@ function AskState({ ask }: { ask: ReturnType<typeof useGoalAsk>["ask"] }) {
 
 function GoalView({ goal }: { goal: Goal }) {
   const api = useApi();
+  const open = useOpen();
   const queries = useQueryClient();
   const { storeId } = useStore();
   const path = { store_id: storeId, goal_id: goal.goal_id };
@@ -286,7 +292,9 @@ function GoalView({ goal }: { goal: Goal }) {
         <p className="max-w-[40ch] text-heading font-medium text-ink">
           <RichText text={goal.restatement} facts={goal.facts} names={goal.names} />
         </p>
-        {goal.question && <p className="text-label text-ink-muted">You said: “{goal.question}”</p>}
+        {!confirmed && goal.question && (
+          <p className="text-label text-ink-muted">You said: “{goal.question}”</p>
+        )}
         {!confirmed && (
           <div className="flex flex-wrap items-center gap-2.5">
             <Button
@@ -338,8 +346,29 @@ function GoalView({ goal }: { goal: Goal }) {
           onAccepted={refresh}
         />
       )}
-      {progress.data && progress.data.length > 0 && (
-        <Weekly entries={progress.data} names={plan?.names ?? {}} />
+      {confirmed && (
+        <Thread
+          goal={goal}
+          plan={plan}
+          feasibility={feasibility.data}
+          progress={progress.data ?? []}
+        />
+      )}
+      {confirmed && (
+        <footer className="flex flex-wrap items-center gap-3 border-t border-line pt-6">
+          <Button
+            variant="secondary"
+            className="h-9 px-4 text-small"
+            onClick={() => {
+              open.ask({ kind: "goal", id: goal.goal_id, label: goalLabel(goal) });
+            }}
+          >
+            Ask about this goal
+          </Button>
+          <span className="text-label text-ink-muted">
+            To change the target or the deadline, say or type the goal again above.
+          </span>
+        </footer>
       )}
     </article>
   );
@@ -351,10 +380,6 @@ function Reach({ feasibility: f }: { feasibility: Feasibility }) {
   const chance = fact(f.probability_fact_id);
   const forecast = fact(f.forecast_fact_id);
   const gap = fact(f.gap_fact_id);
-  const checkpoints = (f.checkpoints as unknown as Checkpoint[]).flatMap((c) => {
-    const found = fact(c.fact_id);
-    return found ? [{ ...c, fact: found }] : [];
-  });
   return (
     <section aria-labelledby="reach-title" className="flex flex-col gap-4">
       <h2
@@ -396,19 +421,6 @@ function Reach({ feasibility: f }: { feasibility: Feasibility }) {
           </div>
         )}
       </dl>
-      {checkpoints.length > 0 && (
-        <section aria-label="Checkpoints" className="flex flex-col gap-2">
-          <h3 className="text-small font-medium text-ink">Checkpoints</h3>
-          <ol className="flex flex-col border-l border-line pl-4">
-            {checkpoints.map((c) => (
-              <li key={c.day} className="flex justify-between gap-3 py-1.5 text-small">
-                <span className="text-ink-muted">{formatDay(c.date)}</span>
-                <FactValue fact={c.fact} title={c.fact.name} className="text-ink" />
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
     </section>
   );
 }
@@ -668,66 +680,272 @@ function ReplacedBy({ decisionId, names }: { decisionId: string; names: Names })
   );
 }
 
-/** The goal's weeks: what was measured against the plan, and the weeks that wait for you. */
-function Weekly({ entries, names }: { entries: Progress[]; names: Names }) {
+/** The goal in a few words, for a conversation about it: its restatement, in plain text. */
+function goalLabel(goal: Goal): string {
+  const text = plainText(goal.restatement, goal.facts, goal.names).replace(/^Your goal: /, "");
+  return text.charAt(0).toUpperCase() + text.slice(1).replace(/\.$/, "");
+}
+
+/** One moment of the thread: its store date, and its place within that day. */
+interface Moment {
+  key: string;
+  day: string;
+  /** The day as shown, when it is not `day` itself (the deadline: its last day included). */
+  shown?: string;
+  rank: number;
+  title: string;
+  pill?: { tone: Tone; text: string };
+  body: ReactNode;
+}
+
+const newestFirst = (a: Moment, b: Moment) =>
+  a.day === b.day ? b.rank - a.rank : a.day < b.day ? 1 : -1;
+
+/**
+ * The goal as a thread, newest first. Ahead, in dashes: the deadline, the checkpoints beyond 90
+ * days, the steps still to come and the plan's next weeks. Then what happened: the weekly checks,
+ * the revisions, the plan's steps as decisions (with where each stands now), the plan accepted
+ * and the goal set.
+ */
+function Thread({
+  goal,
+  plan,
+  feasibility,
+  progress,
+}: {
+  goal: Goal;
+  plan: Plan | undefined;
+  feasibility: Feasibility | undefined;
+  progress: Progress[];
+}) {
+  const decisions = useDecisions();
+  const live = new Map((decisions.data?.items ?? []).map((d) => [d.decision_id, d]));
+  const p = (plan?.payload ?? {}) as PlanPayload;
+  const planFacts = plan?.facts ?? {};
+  const names = plan?.names ?? goal.names;
+  const planFact = (id: number | null | undefined) =>
+    id == null ? undefined : planFacts[String(id)];
+  const accepted = plan?.status === "accepted";
+  const now = [goal.as_of, ...(accepted ? [plan.as_of] : []), ...progress.map((e) => e.as_of)]
+    .sort()
+    .at(-1);
+  const after = (day: string) => now === undefined || day > now;
+
+  const ahead: Moment[] = [];
+  const target = goal.target_fact_id == null ? undefined : goal.facts[String(goal.target_fact_id)];
+  ahead.push({
+    key: "deadline",
+    day: goal.deadline,
+    shown: formatLastDay(goal.deadline),
+    rank: 3,
+    title: "Deadline",
+    body: target && (
+      <p className="text-small text-ink-muted">
+        Target <FactValue fact={target} title={target.name} className="text-ink" />
+      </p>
+    ),
+  });
+  const thin = (feasibility?.low_evidence.length ?? 0) > 0;
+  for (const c of (feasibility?.checkpoints ?? []) as unknown as Checkpoint[]) {
+    const likely = feasibility?.facts[String(c.fact_id)];
+    // The one at the deadline is the forecast Reach already shows.
+    if (!likely || !after(c.date) || c.date >= goal.deadline) continue;
+    ahead.push({
+      key: `checkpoint-${String(c.day)}`,
+      day: c.date,
+      rank: 2,
+      title: "Checkpoint",
+      pill: thin ? { tone: "neutral", text: "Low evidence" } : undefined,
+      body: (
+        <p className="text-small text-ink-muted">
+          Likely by then <FactValue fact={likely} title={likely.name} className="text-ink" />
+        </p>
+      ),
+    });
+  }
+  if (accepted) {
+    for (const step of plan.steps) {
+      if (step.status !== "planned" || !after(step.due_date)) continue;
+      ahead.push({
+        key: step.step_id,
+        day: step.due_date,
+        rank: 1,
+        title: `Step ${String(step.position)}`,
+        body: (
+          <p className="text-small text-ink-muted">
+            <RichText text={step.summary} facts={planFacts} names={names} />
+          </p>
+        ),
+      });
+    }
+    for (const m of (p.milestones ?? []).filter((m) => after(m.date)).slice(0, 2)) {
+      const milestone = planFact(m.fact_id);
+      if (!milestone) continue;
+      ahead.push({
+        key: `milestone-${String(m.day)}`,
+        day: m.date,
+        rank: 0,
+        title: "Weekly check",
+        body: (
+          <p className="text-small text-ink-muted">
+            Plan <FactValue fact={milestone} title={milestone.name} className="text-ink" />
+          </p>
+        ),
+      });
+    }
+  }
+
+  const past: Moment[] = [];
+  past.push({
+    key: "set",
+    day: goal.as_of,
+    rank: 0,
+    title: "Goal set and confirmed",
+    body: goal.question && <p className="text-small text-ink-muted">You said: “{goal.question}”</p>,
+  });
+  if (accepted) {
+    const added = planFact(p.profit_change_fact_id);
+    const chance = planFact(p.probability_with_fact_id);
+    past.push({
+      key: "plan",
+      day: plan.as_of,
+      rank: 1,
+      title: "Plan accepted",
+      body: (added ?? chance) && (
+        <p className="flex flex-wrap gap-x-4 gap-y-1 text-small text-ink-muted">
+          {added && (
+            <span>
+              Adds <FactValue fact={added} title={added.name} className="text-ink" />
+            </span>
+          )}
+          {chance && (
+            <span>
+              Chance with it <FactValue fact={chance} title={chance.name} className="text-ink" />
+            </span>
+          )}
+        </p>
+      ),
+    });
+    for (const step of plan.steps) {
+      if (!step.decision_id) continue;
+      const decision = live.get(step.decision_id);
+      const replaced = (decision?.status ?? step.status) === "superseded";
+      past.push({
+        key: step.step_id,
+        day: step.due_date,
+        rank: 2,
+        title: `Step ${String(step.position)}`,
+        pill: decision ? statusOf(decision.status) : words(STEP_STATUS, step.status),
+        body: (
+          <p className="flex flex-col gap-1 text-small">
+            <span className={replaced ? "text-ink-muted line-through" : "text-ink"}>
+              <RichText text={step.summary} facts={planFacts} names={names} />
+            </span>
+            <Link
+              to={`/decisions/${step.decision_id}`}
+              className="self-start rounded-sm text-label font-medium text-accent-ink underline-offset-4 hover:underline"
+            >
+              Open the decision
+            </Link>
+          </p>
+        ),
+      });
+    }
+  }
+  for (const e of progress) {
+    const fact = (id: number | null) => (id == null ? undefined : e.facts[String(id)]);
+    const actual = fact(e.actual_fact_id);
+    const milestone = fact(e.milestone_fact_id);
+    const chance = fact(e.probability_fact_id);
+    const revision = e.kind === "revision";
+    past.push({
+      key: e.progress_id,
+      day: e.as_of,
+      rank: revision ? 4 : 3,
+      title: revision ? "Revision proposed" : "Weekly check",
+      pill: e.status ? words(PROGRESS_STATUS, e.status) : undefined,
+      body: (
+        <>
+          {(actual ?? milestone) && (
+            <p className="flex flex-wrap gap-x-4 gap-y-1 text-small text-ink-muted">
+              {actual && (
+                <span>
+                  Actual <FactValue fact={actual} title={actual.name} className="text-ink" />
+                </span>
+              )}
+              {milestone && (
+                <span>
+                  Plan <FactValue fact={milestone} title={milestone.name} className="text-ink" />
+                </span>
+              )}
+              {chance && (
+                <span>
+                  Chance now <FactValue fact={chance} title={chance.name} className="text-ink" />
+                </span>
+              )}
+            </p>
+          )}
+          {e.reason && (
+            <p className="text-label text-ink-muted">
+              <RichText text={e.reason} facts={e.facts} names={{ ...names, ...e.names }} />
+            </p>
+          )}
+        </>
+      ),
+    });
+  }
+
   return (
-    <section aria-labelledby="weekly-title" className="flex flex-col gap-2">
+    <section aria-labelledby="thread-title" className="flex flex-col gap-6">
       <h2
-        id="weekly-title"
+        id="thread-title"
         className="border-b border-line pb-2.5 text-small font-medium text-ink-muted"
       >
-        Week by week
+        The thread
       </h2>
-      <ol className="flex flex-col divide-y divide-line">
-        {entries.map((e) => {
-          const fact = (id: number | null) => (id == null ? undefined : e.facts[String(id)]);
-          const actual = fact(e.actual_fact_id);
-          const milestone = fact(e.milestone_fact_id);
-          const chance = fact(e.probability_fact_id);
-          const status = e.status ? words(PROGRESS_STATUS, e.status) : null;
-          return (
-            <li
-              key={e.progress_id}
-              aria-label={`${formatDay(e.as_of)}, ${e.kind}`}
-              className="flex flex-col gap-1.5 py-3"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-small font-medium text-ink">{formatDay(e.as_of)}</span>
-                {status ? (
-                  <StatusPill tone={status.tone}>{status.text}</StatusPill>
-                ) : (
-                  e.revision_proposed && <StatusPill tone="info">Revision proposed</StatusPill>
-                )}
-              </div>
-              {(actual ?? milestone) && (
-                <p className="flex flex-wrap gap-x-4 gap-y-1 text-small text-ink-muted">
-                  {actual && (
-                    <span>
-                      Actual <FactValue fact={actual} title={actual.name} className="text-ink" />
-                    </span>
-                  )}
-                  {milestone && (
-                    <span>
-                      Plan{" "}
-                      <FactValue fact={milestone} title={milestone.name} className="text-ink" />
-                    </span>
-                  )}
-                  {chance && (
-                    <span>
-                      Chance now{" "}
-                      <FactValue fact={chance} title={chance.name} className="text-ink" />
-                    </span>
-                  )}
-                </p>
-              )}
-              {e.reason && (
-                <p className="text-label text-ink-muted">
-                  <RichText text={e.reason} facts={e.facts} names={{ ...names, ...e.names }} />
-                </p>
-              )}
-            </li>
-          );
-        })}
+      <Moments label="Ahead" moments={ahead.sort(newestFirst)} dashed />
+      <Moments label="So far" moments={past.sort(newestFirst)} />
+    </section>
+  );
+}
+
+function Moments({
+  label,
+  moments,
+  dashed = false,
+}: {
+  label: string;
+  moments: Moment[];
+  dashed?: boolean;
+}) {
+  if (moments.length === 0) return null;
+  return (
+    <section aria-label={label} className="flex flex-col gap-2">
+      <h3 className="text-small font-medium text-ink">{label}</h3>
+      <ol
+        className={cx(
+          "flex flex-col border-l pl-4",
+          dashed ? "border-dashed border-line" : "border-line",
+        )}
+      >
+        {moments.map((m) => (
+          <li
+            key={m.key}
+            aria-label={`${m.shown ?? formatDay(m.day)}, ${m.title}`}
+            className="flex flex-col gap-1.5 py-3"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex flex-wrap items-baseline gap-x-2.5">
+                <time className="font-mono text-label text-ink-muted">
+                  {m.shown ?? formatDay(m.day)}
+                </time>
+                <span className="text-small font-medium text-ink">{m.title}</span>
+              </span>
+              {m.pill && <StatusPill tone={m.pill.tone}>{m.pill.text}</StatusPill>}
+            </div>
+            {m.body}
+          </li>
+        ))}
       </ol>
     </section>
   );

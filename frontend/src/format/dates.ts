@@ -48,6 +48,12 @@ export function formatDay(day: string): string {
   return date ? DAY_YEAR.format(date) : day;
 }
 
+/** The last day before a day the API names as an excluded end ("2026-11-30"): "Nov 29, 2026". */
+export function formatLastDay(endExclusive: string): string {
+  const until = instant(`${endExclusive}T00:00:00Z`);
+  return until ? DAY_YEAR.format(new Date(until.getTime() - 1)) : endExclusive;
+}
+
 /** A store's calendar day as a heading: "TUE, SEP 15" (upper case is the style's). */
 export function formatWeekday(day: string): string {
   const date = instant(`${day}T00:00:00Z`);

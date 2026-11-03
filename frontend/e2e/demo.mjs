@@ -13,8 +13,8 @@
  *   3. The status line leads to the decisions inbox; the decision opens at its address, why and
  *      then the approval card; Approve; executing; executed, with the platform's confirmation.
  *   4. The Journal (from Settings) records it.
- *   5. Goals: the 90-day goal and its plan; the six-month goal with low evidence and quarterly
- *      checkpoints.
+ *   5. Goals: the 90-day goal, its plan and its thread; the six-month goal with low evidence and
+ *      quarterly checkpoints ahead.
  */
 import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
@@ -203,17 +203,28 @@ try {
     .first()
     .waitFor();
   await page.getByRole("region", { name: "The plan" }).getByRole("img").waitFor();
-  holds("the 90-day goal: within reach as a percentage, and its plan");
+  await page
+    .getByRole("region", { name: "So far" })
+    .getByRole("listitem", { name: /Weekly check$/ })
+    .first()
+    .waitFor();
+  holds("the 90-day goal: within reach as a percentage, its plan and its thread");
   const others = page.getByRole("region", { name: "Other goals" });
   await others
     .getByRole("listitem")
     .filter({ hasText: /2027/ })
-    .getByRole("button", { name: "Show" })
+    .getByRole("link", { name: "Show" })
     .click();
+  await page.waitForURL(/\/goals\/[0-9a-f-]{36}$/);
   const far = page.getByRole("region", { name: "Within reach?" });
   await far.getByText(/I give no single chance/).waitFor({ timeout: 30_000 });
   await far.getByText(/^Low evidence:/).waitFor();
-  await far.getByRole("region", { name: "Checkpoints" }).waitFor();
+  const ahead = page.getByRole("region", { name: "Ahead" });
+  await ahead
+    .getByRole("listitem", { name: /Checkpoint$/ })
+    .first()
+    .waitFor();
+  await ahead.getByText("Low evidence").first().waitFor();
   holds("the six-month goal: a band, low evidence and quarterly checkpoints");
 
   if (problems.length > 0) throw new Error(`console errors: ${problems.join(" | ")}`);

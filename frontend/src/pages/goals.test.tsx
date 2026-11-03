@@ -287,7 +287,9 @@ describe("Goals", () => {
     expect(await screen.findByRole("heading", { name: "Goals", level: 1 })).toBeVisible();
     const yours = await screen.findByRole("article", { name: "Your goal" });
     expect(within(yours).getByText("Following its plan")).toBeVisible();
-    expect(within(yours).getByRole("button", { name: "$225,000, see the proof" })).toBeVisible();
+    expect(
+      within(yours).getAllByRole("button", { name: "$225,000, see the proof" })[0],
+    ).toBeVisible();
     expect(within(yours).getByText("Northwind Outdoor")).toBeVisible();
 
     const reach = await screen.findByRole("region", { name: "Within reach?" });
@@ -354,15 +356,84 @@ describe("Goals", () => {
     expect(await screen.findByRole("heading", { name: "Decisions", level: 1 })).toBeVisible();
   });
 
-  it("follows the weeks, including those waiting for the owner's approval", async () => {
-    renderApp("/goals", goals().api);
-    const weeks = await screen.findByRole("region", { name: "Week by week" });
-    const items = within(weeks).getAllByRole("listitem");
-    expect(items).toHaveLength(2);
-    expect(within(items[0]!).getByText("Waiting for your approval")).toBeVisible();
-    expect(items[0]).toHaveTextContent("Actual $17,572");
-    expect(items[0]).toHaveTextContent("Plan $16,438 to $22,297");
-    expect(within(items[1]!).getByText("Revision proposed")).toBeVisible();
+  it("reads the goal as a thread: what lies ahead, then what happened, newest first", async () => {
+    const live = {
+      items: [decision("approved", { decision_id: STEP_DECISION })],
+      next_cursor: null,
+    };
+    renderApp(`/goals/${GOAL}`, goals((f) => f.on(`GET ${BASE}/decisions`, live)).api);
+    const ahead = await screen.findByRole("region", { name: "Ahead" });
+    await within(ahead).findByRole("listitem", { name: "Sep 22, 2026, Weekly check" });
+    await screen.findByRole("listitem", { name: "Sep 15, 2026, Revision proposed" });
+    expect(
+      within(ahead)
+        .getAllByRole("listitem")
+        .map((li) => li.getAttribute("aria-label")),
+    ).toEqual(["Nov 29, 2026, Deadline", "Sep 22, 2026, Weekly check"]);
+    expect(within(ahead).getAllByRole("listitem")[1]).toHaveTextContent("Plan $49,813 to $64,763");
+    const past = screen.getByRole("region", { name: "So far" });
+    const items = within(past).getAllByRole("listitem");
+    expect(items.map((li) => li.getAttribute("aria-label"))).toEqual([
+      "Sep 15, 2026, Revision proposed",
+      "Sep 8, 2026, Weekly check",
+      "Sep 1, 2026, Step 1",
+      "Sep 1, 2026, Step 2",
+      "Sep 1, 2026, Plan accepted",
+      "Sep 1, 2026, Goal set and confirmed",
+    ]);
+    expect(items[0]).toHaveTextContent(
+      "another pending decision acts on Trail Jacket — Prospecting",
+    );
+    expect(within(items[1]!).getByText("Waiting for your approval")).toBeVisible();
+    expect(items[1]).toHaveTextContent("Actual $17,572");
+    expect(items[1]).toHaveTextContent("Plan $16,438 to $22,297");
+    // A step's decision, as it stands now (approved since the plan was written), at its address.
+    expect(await within(items[2]!).findByText("Approved: starting")).toBeVisible();
+    expect(within(items[2]!).getByRole("link", { name: "Open the decision" })).toHaveAttribute(
+      "href",
+      `/decisions/${STEP_DECISION}`,
+    );
+    expect(within(items[3]!).getByText("Replaced")).toBeVisible();
+    expect(items[4]).toHaveTextContent("Adds +$740 to +$5,042");
+    expect(items[5]).toHaveTextContent("You said: “I want 225,000 in net profit");
+  });
+
+  it("opens each goal at its address, the others one link away", async () => {
+    const longer = goal("confirmed", {
+      goal_id: "g-six-months",
+      restatement:
+        "Your goal: net profit of {{F1}} in total from 2026-09-01 to 2027-02-27 included.",
+    });
+    const fake = goals((f) =>
+      f
+        .on(`GET ${BASE}/goals`, [longer, goal()])
+        .on(`GET ${BASE}/goals/g-six-months/feasibility`, feasibility({ goal_id: "g-six-months" }))
+        .on(`GET ${BASE}/goals/g-six-months/plans`, [])
+        .on(`GET ${BASE}/goals/g-six-months/progress`, []),
+    );
+    const { router } = renderApp("/goals", fake.api);
+    const others = await screen.findByRole("region", { name: "Other goals" });
+    await userEvent.click(within(others).getByRole("link", { name: "Show" }));
+    expect(router.state.location.pathname).toBe("/goals/g-six-months");
+    const yours = await screen.findByRole("article", { name: "Your goal" });
+    expect(within(yours).getByText("Confirmed")).toBeVisible();
+    expect(yours).toHaveTextContent("2027-02-27");
+  });
+
+  it("asks about the goal in the conversation, the goal named above the composer", async () => {
+    const fake = goals((f) => f.on(`POST ${BASE}/ask/stream`, () => sse(["done", {}])));
+    const { router } = renderApp(`/goals/${GOAL}`, fake.api);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask about this goal" }));
+    expect(router.state.location.pathname).toBe("/chat");
+    expect(screen.getByText(/^Net profit of \$225,000 in total from 2026-09-01/)).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Am I on track?" }));
+    const sent = fake.requests.find((r) => r.url.endsWith("/ask/stream"));
+    expect(((await sent?.json()) as { question: string }).question).toMatch(
+      /^About the goal “Net profit of \$225,000 in total .*Northwind Outdoor as a whole”: Am I on track\?$/,
+    );
+    expect(await screen.findByText(/^About Net profit of/)).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Ask about the store as a whole" }));
+    expect(screen.queryByRole("button", { name: "Am I on track?" })).toBeNull();
   });
 
   it("beyond 90 days shows a band, why the evidence is thin, and quarterly checkpoints", async () => {
@@ -371,7 +442,10 @@ describe("Goals", () => {
       verdict: null,
       probability: null,
       verdict_band: ["stretch", "possible"],
-      checkpoints: [{ day: 91, date: "2026-12-01", fact_id: 100 }],
+      checkpoints: [
+        { day: 61, date: "2026-11-01", fact_id: 100 },
+        { day: 90, date: "2026-11-30", fact_id: 100 }, // at the deadline: Reach shows it
+      ],
       low_evidence: ["less than a year of history"],
     });
     renderApp("/goals", goals((f) => f.on(`GET ${BASE}/goals/${GOAL}/feasibility`, far)).api);
@@ -382,8 +456,11 @@ describe("Goals", () => {
     expect(within(reach).queryByText(/Chance of reaching it/)).toBeNull();
     expect(within(reach).getByText(/I give no single chance/)).toBeVisible();
     expect(within(reach).getByText("Low evidence: less than a year of history.")).toBeVisible();
-    const checkpoints = within(reach).getByRole("region", { name: "Checkpoints" });
-    expect(checkpoints).toHaveTextContent("Dec 1, 2026");
+    const ahead = screen.getByRole("region", { name: "Ahead" });
+    const checkpoint = within(ahead).getByRole("listitem", { name: "Nov 1, 2026, Checkpoint" });
+    expect(within(checkpoint).getByText("Low evidence")).toBeVisible();
+    expect(checkpoint).toHaveTextContent("Likely by then $167,131 to $276,743");
+    expect(within(ahead).getAllByRole("listitem", { name: /Checkpoint$/ })).toHaveLength(1);
   });
 
   it("restates a typed goal, then confirms it", async () => {

@@ -25,6 +25,7 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
     { path: "decisions", element: <DecisionsPage />, handle: inbox },
     { path: "decisions/:decisionId", element: <DecisionsPage />, handle: inbox },
     { path: "goals", element: <GoalsPage /> },
+    { path: "goals/:goalId", element: <GoalsPage /> },
     { path: "journal", element: <JournalPage /> },
     { path: "settings", element: <SettingsPage /> },
   ];

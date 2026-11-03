@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDay, formatPeriod } from "./dates";
+import { formatDay, formatLastDay, formatPeriod } from "./dates";
 import { counted, humanize } from "./words";
 
 describe("a fact's period", () => {
@@ -24,6 +24,11 @@ describe("a fact's period", () => {
     expect(formatPeriod("2026-09-01T00:00:00Z", "2026-09-08T00:00:00Z")).toBe(
       "Sep 1 – Sep 7, 2026",
     );
+  });
+
+  it("names the last day before an excluded end, as a goal's deadline is", () => {
+    expect(formatLastDay("2026-11-30")).toBe("Nov 29, 2026");
+    expect(formatLastDay("2027-01-01")).toBe("Dec 31, 2026");
   });
 
   it("names one day of the API's", () => {
