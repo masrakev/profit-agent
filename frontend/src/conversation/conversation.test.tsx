@@ -398,12 +398,8 @@ describe("what was checked about a problem", () => {
     expect(within(checked).getByText(/Spend kept going/)).toBeVisible();
     expect(within(checked).getByRole("button", { name: "$140, see the proof" })).toBeVisible();
     await userEvent.click(within(checked).getByRole("button", { name: "See options" }));
-    expect(
-      await screen.findByRole("article", { name: decision("proposed").label }),
-    ).toBeInTheDocument();
-    // Opening the same thing twice shows it once.
-    await userEvent.click(screen.getAllByRole("button", { name: "See options" })[0]!);
-    expect(screen.getAllByRole("article", { name: decision("proposed").label })).toHaveLength(1);
+    // A decision opens where decisions live: the Decisions page, not the conversation.
+    expect(await screen.findByRole("heading", { name: "Decisions", level: 1 })).toBeVisible();
   });
 
   it("can be started, and followed as it works", async () => {

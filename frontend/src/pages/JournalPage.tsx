@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
-import { useOpenInChat } from "@/conversation/open";
+import { useOpen } from "@/conversation/open";
 import type { Names } from "@/conversation/RichText";
 import { statusOf } from "@/decisions/status";
 import { FactValue } from "@/facts/FactValue";
@@ -190,7 +190,7 @@ function JournalLine({
   names,
 }: Cited & { entry: Entry; decisions: Map<string, Decision> }) {
   const { timezone } = useStore();
-  const open = useOpenInChat();
+  const open = useOpen();
   const s = entry.summary as Summary;
   const decisionId = text(s.decision_id) ?? (entry.kind === "decision" ? entry.id : null);
   const decision = decisionId ? decisions.get(decisionId) : undefined;

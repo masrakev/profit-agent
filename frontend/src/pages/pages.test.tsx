@@ -108,10 +108,8 @@ describe("Today", () => {
     renderApp("/today", fake.api);
     expect(await screen.findByText(/No driver stands out/)).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "See options" }));
-    expect(
-      await screen.findByRole("article", { name: decision("proposed").label }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Chat" })).toBeInTheDocument();
+    // The decision opens on the Decisions page, its row expanded into the approval moment.
+    expect(await screen.findByRole("heading", { name: "Decisions", level: 1 })).toBeVisible();
   });
 
   it("says when the day or the profit drivers cannot be read", async () => {
@@ -267,7 +265,7 @@ describe("the Decisions page", () => {
     expect(allow[0]).toHaveAttribute("href", "/settings");
   });
 
-  it("opens a decision in the conversation", async () => {
+  it("opens a decision in place: the approval moment, not the conversation", async () => {
     const fake = page()
       .on(`GET ${BASE}/briefings`, { items: [], next_cursor: null })
       .on(`GET ${BASE}/decisions/${DECISION}`, decision("proposed"))
@@ -275,8 +273,11 @@ describe("the Decisions page", () => {
       .on(`POST ${BASE}/policy/preview`, { allowed: true, rule: "ok", reason: "ok" });
     renderApp("/decisions", fake.api);
     const waiting = await screen.findByRole("region", { name: "Waiting for you" });
-    await userEvent.click(within(waiting).getByRole("button", { name: "Review" }));
-    expect(await screen.findByRole("heading", { name: "Chat" })).toBeInTheDocument();
+    const review = within(waiting).getByRole("button", { name: "Review" });
+    await userEvent.click(review);
+    expect(review).toHaveAttribute("aria-expanded", "true");
+    expect(await within(waiting).findByRole("button", { name: "Approve" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
   });
 
   it("says when there is none, or they cannot be read", async () => {

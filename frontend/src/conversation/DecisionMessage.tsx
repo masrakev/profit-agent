@@ -1,6 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useConversation } from "./context";
+import { useOpen } from "./open";
 import { ApiError, unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
 import { PermissionCard } from "@/decisions/PermissionCard";
@@ -8,6 +8,7 @@ import { factKey, type Fact } from "@/facts/facts";
 import { formatPeriod } from "@/format/dates";
 import { useStore } from "@/stores/store";
 import { Button } from "@/ui/Button";
+import { AgentMark } from "@/ui/AgentMark";
 import { Icon } from "@/ui/Icon";
 import { STATUS } from "@/decisions/status";
 import { StatusPill, type Tone } from "@/ui/StatusPill";
@@ -70,7 +71,7 @@ export function DecisionMessage({ decisionId }: { decisionId: string }) {
   const api = useApi();
   const { storeId } = useStore();
   const queries = useQueryClient();
-  const { openDecision } = useConversation();
+  const open = useOpen();
   const key = ["decision", storeId, decisionId];
   const path = { store_id: storeId, decision_id: decisionId };
 
@@ -186,7 +187,7 @@ export function DecisionMessage({ decisionId }: { decisionId: string }) {
       </div>
     );
   }
-  return <Outcome decision={d} option={recommended} onOpen={openDecision} />;
+  return <Outcome decision={d} option={recommended} onOpen={open.decision} />;
 }
 
 /** A decided decision: what happened to it, and what the platform reports now. */
@@ -224,17 +225,10 @@ function Outcome({
   const superseded = decision.status === "superseded";
 
   return (
-    <article
-      aria-label={decision.label}
-      className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-float"
-    >
+    <article aria-label={decision.label} className="flex flex-col gap-4 rounded-card bg-subtle p-5">
       <header className="flex items-start gap-3">
-        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-box bg-accent-soft text-accent-ink">
-          <Icon name={done && decision.status !== "failed" ? "circle-check" : "pause"} />
-        </span>
-        <h3
-          className={`flex-1 text-heading font-semibold text-ink ${superseded ? "line-through" : ""}`}
-        >
+        <AgentMark size="sm" className="mt-1" />
+        <h3 className={`flex-1 text-body font-medium text-ink ${superseded ? "line-through" : ""}`}>
           {chosen && decision.approved_option_id ? chosen.label : decision.label}
         </h3>
         <span role="status">
@@ -300,7 +294,7 @@ function ReadBack({ entries, failed }: { entries: Entry[] | undefined; failed: b
             <Icon
               name={failed ? "x" : "circle-check"}
               size={16}
-              className={failed ? "mt-1 text-danger-ink" : "mt-1 text-accent-ink"}
+              className={failed ? "mt-1 text-danger-ink" : "mt-1 text-good-ink"}
             />
             <span>
               {failed

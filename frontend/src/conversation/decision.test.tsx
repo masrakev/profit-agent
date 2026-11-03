@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import { useLocation } from "react-router";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -36,11 +37,18 @@ function api(body: unknown = decision("proposed")): FakeApi {
     .on(`POST ${BASE}/policy/preview`, PASSED);
 }
 
+/** Where the app went: a decision opens on the Decisions page, its row expanded. */
+function Where() {
+  const { pathname, search } = useLocation();
+  return <p data-testid="location">{pathname + search}</p>;
+}
+
 function show(fake: FakeApi) {
   renderInStore(
     <ConversationProvider>
       <DecisionMessage decisionId={DECISION} />
       <Opened />
+      <Where />
     </ConversationProvider>,
     fake.api,
   );
@@ -211,9 +219,7 @@ describe("a decision in the conversation", () => {
     await userEvent.click(
       within(old).getByRole("button", { name: "See the decision that replaced it" }),
     );
-    expect(
-      await screen.findByRole("article", { name: "Lower the daily budget?" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/decisions?open=d-2");
   });
 
   it.each([

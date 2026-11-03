@@ -7,7 +7,7 @@ import { useApi } from "@/api/context";
 import { CompareRanges } from "@/charts/CompareRanges";
 import { FanChart, type FanWeek } from "@/charts/FanChart";
 import { RangeBar } from "@/charts/RangeBar";
-import { useOpenInChat } from "@/conversation/open";
+import { useOpen } from "@/conversation/open";
 import { RichText, type Facts, type Names } from "@/conversation/RichText";
 import { FactValue } from "@/facts/FactValue";
 import type { Fact } from "@/facts/facts";
@@ -559,7 +559,7 @@ function PlanView({
 }
 
 function StepRow({ step, facts, names }: { step: Step; facts: Facts; names: Names }) {
-  const open = useOpenInChat();
+  const open = useOpen();
   const status = words(STEP_STATUS, step.status);
   const effect = step.effect_fact_id == null ? undefined : facts[String(step.effect_fact_id)];
   const replaced = step.status === "superseded";
@@ -602,7 +602,7 @@ function StepRow({ step, facts, names }: { step: Step; facts: Facts; names: Name
 function ReplacedBy({ decisionId, names }: { decisionId: string; names: Names }) {
   const api = useApi();
   const { storeId } = useStore();
-  const open = useOpenInChat();
+  const open = useOpen();
   const get = (id: string) =>
     unwrap(
       api.GET("/api/v1/stores/{store_id}/decisions/{decision_id}", {

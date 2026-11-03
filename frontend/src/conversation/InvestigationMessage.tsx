@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 
-import { useConversation } from "./context";
 import type { AgentStep } from "./model";
+import { useOpen } from "./open";
 import { RichText } from "./RichText";
 import { Working } from "./Working";
 import { unwrap } from "@/api/client";
@@ -38,7 +38,7 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
   const api = useApi();
   const { storeId } = useStore();
   const queries = useQueryClient();
-  const { openDecision } = useConversation();
+  const open = useOpen();
   const [live, setLive] = useState<AgentStep[] | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const reportId = useId();
@@ -178,7 +178,7 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
             {decision && (
               <Button
                 onClick={() => {
-                  openDecision(decision);
+                  open.decision(decision);
                 }}
               >
                 See options

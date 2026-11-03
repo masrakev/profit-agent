@@ -3,24 +3,21 @@ import { useLocation, useNavigate } from "react-router";
 import { useConversation } from "./context";
 
 /**
- * Opening a decision or an investigation puts it in the conversation; from another page, the
- * owner is taken there to see it.
+ * Where things open. A decision always opens on the Decisions page, its row expanded (everything
+ * that asks the owner to decide lives there, not in the conversation). An investigation opens in
+ * the conversation; from another page, the owner is taken there to see it.
  */
-export function useOpenInChat() {
-  const { openDecision, openInvestigation } = useConversation();
+export function useOpen() {
+  const { openInvestigation } = useConversation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const there = () => {
-    if (pathname !== "/") void navigate("/");
-  };
   return {
     decision: (decisionId: string) => {
-      openDecision(decisionId);
-      there();
+      void navigate(`/decisions?open=${encodeURIComponent(decisionId)}`);
     },
     investigation: (incidentId: string) => {
       openInvestigation(incidentId);
-      there();
+      if (pathname !== "/") void navigate("/");
     },
   };
 }

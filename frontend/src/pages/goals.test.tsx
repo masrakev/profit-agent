@@ -339,7 +339,7 @@ describe("Goals", () => {
       "(another pending decision acts on Trail Jacket — Prospecting)",
     );
     await userEvent.click(replacement);
-    expect(await screen.findByRole("heading", { name: "Chat" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Decisions", level: 1 })).toBeVisible();
   });
 
   it("follows the weeks, including those waiting for the owner's approval", async () => {

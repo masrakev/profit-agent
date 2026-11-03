@@ -1,4 +1,4 @@
-import { useOpenInChat } from "./open";
+import { useOpen } from "./open";
 import { RichText, type Facts, type Names } from "./RichText";
 import type { Schemas } from "@/api/client";
 import { RangeBar } from "@/charts/RangeBar";
@@ -125,7 +125,7 @@ const LEVELS: Record<string, { dot: string; word: string }> = {
 
 /** One problem worth the owner's attention, as a row: its options and its evidence a click away. */
 function Attention({ item, facts, names }: Parts & { item: Item }) {
-  const open = useOpenInChat();
+  const open = useOpen();
   const decision = item.decision_id;
   const incident = item.incident_id;
   const level = item.level ? LEVELS[item.level] : undefined;
@@ -176,7 +176,7 @@ function Attention({ item, facts, names }: Parts & { item: Item }) {
 }
 
 function Pending({ section, facts, names }: Parts & { section?: Section }) {
-  const open = useOpenInChat();
+  const open = useOpen();
   if (!section || section.items.length === 0) return null;
   return (
     <section aria-label={section.title} className="flex flex-col">
