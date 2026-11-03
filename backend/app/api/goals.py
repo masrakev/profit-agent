@@ -1,7 +1,8 @@
 """Goals (Task 6 B4, SPEC 17, ADR 0024): set a goal, confirm it, its feasibility, its plan,
 accept the plan, follow its progress, revise it.
 
-Every number is a fact (`facts`, by id); text cites facts and entities by reference. A goal is
+Every number is a fact (`facts`, by id); text cites facts and entities by reference, the names
+of the entities it cites alongside (`names`, raw merchant data a client escapes). A goal is
 a draft until the owner confirms the restated goal. Beyond 90 days a goal shows no point
 probability (SPEC 17.2, rule 6): `probability` is null and `probability_range` and
 `verdict_band` say what can be said. Accepting a plan proposes its decision steps whose day has
@@ -23,11 +24,13 @@ from app.agent.ask import AskResult, explain_goal
 from app.api.auth import PrincipalDep, StoreDep
 from app.api.deps import EngineDep, ProviderDep
 from app.api.views import FactOut, fact_out
+from app.channels.render import load_entity_names
 from app.db import tenant_transaction
 from app.facts.repository import get_facts
 from app.goals import service
 from app.goals.feasibility import Assessment
 from app.goals.service import Goal, GoalError, PlanRecord, Progress
+from app.verifier import entity_references
 
 router = APIRouter(prefix="/api/v1/stores/{store_id}/goals", tags=["goals"])
 GoalId = Annotated[UUID, Path()]
@@ -56,6 +59,12 @@ def _facts(conn: Connection, store_id: UUID, ids: list[int | None]) -> dict[str,
     return {str(k): fact_out(v) for k, v in found.items()}
 
 
+def _names(conn: Connection, store_id: UUID, texts: list[str | None]) -> dict[str, str]:
+    """The names of the entities the texts cite (`{{E:...}}`)."""
+    refs = {r for t in texts if t for r in entity_references(t)}
+    return load_entity_names(conn, store_id, refs)
+
+
 class GoalIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -79,9 +88,11 @@ class GoalOut(BaseModel):
     confirmed_at: datetime | None
     restatement: str
     facts: dict[str, FactOut]
+    names: dict[str, str] = {}
 
 
 def goal_out(conn: Connection, goal: Goal) -> GoalOut:
+    restatement = service.restate(goal)
     return GoalOut(
         goal_id=goal.goal_id,
         metric=goal.metric,
@@ -94,8 +105,9 @@ def goal_out(conn: Connection, goal: Goal) -> GoalOut:
         question=goal.question,
         created_at=goal.created_at,
         confirmed_at=goal.confirmed_at,
-        restatement=service.restate(goal),
+        restatement=restatement,
         facts=_facts(conn, goal.store_id, [goal.target_fact_id]),
+        names=_names(conn, goal.store_id, [restatement]),
     )
 
 
@@ -173,6 +185,7 @@ class PlanOut(BaseModel):
     payload: dict[str, Any]
     steps: list[StepOut]
     facts: dict[str, FactOut]
+    names: dict[str, str] = {}
 
 
 def plan_out(conn: Connection, store_id: UUID, plan: PlanRecord) -> PlanOut:
@@ -199,6 +212,11 @@ def plan_out(conn: Connection, store_id: UUID, plan: PlanRecord) -> PlanOut:
         payload=p,
         steps=[StepOut(**s.__dict__) for s in plan.steps],
         facts=_facts(conn, store_id, ids),
+        names=_names(
+            conn,
+            store_id,
+            [s.summary for s in plan.steps] + [e["summary"] for e in p.get("experiments", [])],
+        ),
     )
 
 
@@ -217,6 +235,7 @@ class ProgressOut(BaseModel):
     revision_proposed: bool
     reason: str | None
     facts: dict[str, FactOut]
+    names: dict[str, str] = {}
 
 
 def progress_out(conn: Connection, store_id: UUID, p: Progress) -> ProgressOut:
@@ -225,6 +244,7 @@ def progress_out(conn: Connection, store_id: UUID, p: Progress) -> ProgressOut:
         facts=_facts(
             conn, store_id, [p.actual_fact_id, p.milestone_fact_id, p.probability_fact_id]
         ),
+        names=_names(conn, store_id, [p.reason]),
     )
 
 

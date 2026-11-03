@@ -1916,6 +1916,13 @@ export interface components {
             horizon_days: number;
             /** Metric */
             metric: string;
+            /**
+             * Names
+             * @default {}
+             */
+            names: {
+                [key: string]: string;
+            };
             /** Question */
             question: string | null;
             /** Restatement */
@@ -2401,6 +2408,13 @@ export interface components {
              * Format: uuid
              */
             goal_id: string;
+            /**
+             * Names
+             * @default {}
+             */
+            names: {
+                [key: string]: string;
+            };
             /** Payload */
             payload: {
                 [key: string]: unknown;
@@ -2483,6 +2497,13 @@ export interface components {
             kind: string;
             /** Milestone Fact Id */
             milestone_fact_id: number | null;
+            /**
+             * Names
+             * @default {}
+             */
+            names: {
+                [key: string]: string;
+            };
             /** Plan Id */
             plan_id: string | null;
             /** Probability Fact Id */

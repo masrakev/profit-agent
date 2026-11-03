@@ -22,6 +22,7 @@ from app.api.main import app
 from app.config import get_settings
 from app.db import make_engine, tenant_transaction
 from app.decisions.store import DecisionStatus, list_decisions, shared_targets, targets
+from app.verifier import entity_references
 from bench.demo import markdown, run
 from bench.demo_seed import demo_provider, seed
 from bench.demo_seed import markdown as seed_markdown
@@ -63,6 +64,7 @@ def demo(database_urls: tuple[str, str]) -> dict[str, Any]:
             "journal": "/journal?limit=200",
             "goal": f"/goals/{seeded.goal.goal_id}",
             "goal_progress": f"/goals/{seeded.goal.goal_id}/progress",
+            "goal_plans": f"/goals/{seeded.goal.goal_id}/plans",
             "weekly": f"/briefings/{seeded.briefings['weekly']}",
         },
     )
@@ -141,6 +143,16 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     revision = before["goal_progress"][1]
     assert revision["revision_proposed"]
     assert revision["reason"].startswith("its reallocate budget step was superseded")
+    # Every text names what it cites: the campaign the revision is about, the plan's entities.
+    assert set(revision["names"]) == entity_references(revision["reason"])
+    [plan] = before["goal_plans"]
+    texts = [s["summary"] for s in plan["steps"]] + [
+        e["summary"] for e in plan["payload"]["experiments"]
+    ]
+    cited = {r for t in texts for r in entity_references(t)}
+    assert cited
+    assert set(plan["names"]) == cited
+    assert all(plan["names"].values())
     for w in goal.progress:  # its steps wait for the owner: no verdict drop, no revision
         assert (w["status"], w["revision"]) == ("waiting_for_approval", False)
         assert w["adherence"]["awaiting_approval"] == len(goal.decisions)

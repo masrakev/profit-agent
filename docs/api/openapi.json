@@ -2095,6 +2095,14 @@
             "title": "Metric",
             "type": "string"
           },
+          "names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Names",
+            "type": "object"
+          },
           "question": {
             "anyOf": [
               {
@@ -3367,6 +3375,14 @@
             "title": "Goal Id",
             "type": "string"
           },
+          "names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Names",
+            "type": "object"
+          },
           "payload": {
             "additionalProperties": true,
             "title": "Payload",
@@ -3580,6 +3596,14 @@
               }
             ],
             "title": "Milestone Fact Id"
+          },
+          "names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "default": {},
+            "title": "Names",
+            "type": "object"
           },
           "plan_id": {
             "anyOf": [
