@@ -42,7 +42,7 @@ const range = (
 const ratio = (id: number, raw: [string, string, string], shown: string, name: string) => ({
   ...estimateFact(id, raw, [shown, shown, shown], [shown, shown, shown]),
   display: shown,
-  unit: "ratio",
+  unit: "probability",
   name,
 });
 
@@ -56,7 +56,7 @@ const FORECAST = range(
 const CHANCE = ratio(
   101,
   ["0.481", "0.495", "0.510"],
-  "0.48× to 0.51×",
+  "48 to 51%",
   "Chance of reaching the target",
 );
 const GAP = range(
@@ -190,8 +190,8 @@ function plan(status = "accepted") {
     ],
     facts: {
       "1": TARGET,
-      "286": ratio(286, ["0.48", "0.49", "0.51"], "0.48× to 0.51×", "Chance without the plan"),
-      "287": ratio(287, ["0.50", "0.51", "0.53"], "0.50× to 0.53×", "Chance with the plan"),
+      "286": ratio(286, ["0.48", "0.49", "0.51"], "48 to 51%", "Chance without the plan"),
+      "287": ratio(287, ["0.50", "0.51", "0.53"], "50 to 53%", "Chance with the plan"),
       "288": range(
         288,
         ["169093", "226000", "279307"],
@@ -294,9 +294,7 @@ describe("Goals", () => {
     expect(within(reach).getAllByText("Possible")[0]).toBeVisible(); // the verdict, then its step
     const lit = reach.querySelectorAll('[data-part="verdict-band"] [data-lit="true"]');
     expect([...lit].map((step) => step.textContent)).toEqual(["Possible"]);
-    expect(
-      within(reach).getByRole("button", { name: "0.48× to 0.51×, see the proof" }),
-    ).toBeVisible();
+    expect(within(reach).getByRole("button", { name: "48 to 51%, see the proof" })).toBeVisible();
     expect(within(reach).getByText("Low evidence: yearly seasonality not learned.")).toBeVisible();
     expect(
       within(reach).getByRole("button", { name: /^\$167,131 to \$276,743, most likely/ }),
@@ -311,9 +309,7 @@ describe("Goals", () => {
     expect(
       within(thePlan).getByRole("button", { name: "$169,093 to $279,307, see the proof" }),
     ).toBeVisible();
-    expect(
-      within(thePlan).getByRole("button", { name: "0.50× to 0.53×, see the proof" }),
-    ).toBeVisible();
+    expect(within(thePlan).getByRole("button", { name: "50 to 53%, see the proof" })).toBeVisible();
     expect(
       within(thePlan)
         .getByText(/I propose to revise the plan/)

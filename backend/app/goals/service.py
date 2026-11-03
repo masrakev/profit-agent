@@ -215,12 +215,13 @@ def create(
 
 
 def restate(goal: Goal) -> str:
-    """The goal in plain words, for the owner to confirm (facts by reference, ISO dates)."""
+    """The goal in plain words (facts by reference, ISO dates); a draft asks the owner to confirm
+    it, a confirmed goal does not."""
+    ask = " Confirm it to see whether it is reachable." if goal.status == "draft" else ""
     return (
         f"Your goal: {METRIC_WORDS[goal.metric]} of {{{{F{goal.target_fact_id}}}}} in total "
         f"from {goal.as_of.isoformat()} to {(goal.deadline - timedelta(days=1)).isoformat()} "
-        f"included, the {METRIC_WORDS[goal.metric]} of {{{{E:store}}}} as a whole. Confirm it "
-        "to see whether it is reachable."
+        f"included, the {METRIC_WORDS[goal.metric]} of {{{{E:store}}}} as a whole.{ask}"
     )
 
 
@@ -376,14 +377,14 @@ def _plan_facts(
     without = estimate(
         f"goal.plan.baseline_probability.{m}",
         plan.horizon,
-        Unit.RATIO,
+        Unit.PROBABILITY,
         plan.probability_without,
         "without",
     )
     with_plan = estimate(
         f"goal.plan.probability.{m}",
         plan.horizon,
-        Unit.RATIO,
+        Unit.PROBABILITY,
         plan.probability_with,
         "with",
     )
@@ -976,6 +977,29 @@ def step_superseded(conn: Connection, decision: DecisionView, *, now: datetime) 
     goal = get(conn, decision.store_id, row.goal_id)
     today = data_end(conn, decision.store_id)
     plan = get_plan(conn, decision.store_id, row.plan_id)
+    adherence = _adherence(conn, decision.store_id, plan, today)
+    # A weekly check of the same day was right when written; it now reads the step as superseded,
+    # so no check lists a superseded step as waiting for the owner's approval.
+    still_waiting = adherence["awaiting_approval"] > 0
+    conn.execute(
+        text(
+            "UPDATE goal_progress SET adherence = CAST(:a AS jsonb), "
+            "status = CASE WHEN status = 'waiting_for_approval' AND NOT :w THEN NULL "
+            "ELSE status END, "
+            "reason = CASE WHEN status = 'waiting_for_approval' AND NOT :w THEN NULL "
+            "ELSE reason END "
+            "WHERE store_id = :s AND goal_id = :g AND plan_id = :p AND kind = 'weekly' "
+            "AND as_of = :d"
+        ),
+        {
+            "a": json.dumps(adherence),
+            "w": still_waiting,
+            "s": decision.store_id,
+            "g": goal.goal_id,
+            "p": row.plan_id,
+            "d": today,
+        },
+    )
     _record(
         conn,
         goal,
@@ -988,7 +1012,7 @@ def step_superseded(conn: Connection, decision: DecisionView, *, now: datetime) 
         probability=None,
         status=None,
         verdict=None,
-        adherence=_adherence(conn, decision.store_id, plan, today),
+        adherence=adherence,
         revision=True,
         reason=f"its {row.lever.replace('_', ' ')} step was superseded: "
         f"{decision.superseded_reason}",

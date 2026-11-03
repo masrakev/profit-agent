@@ -229,7 +229,7 @@ def test_a_goal_is_assessed_with_its_facts(app_engine: Engine, store: Any) -> No
     assert last.p90 is not None
     assert last.p10 < last.p90
     assert len(last.lineage.parents) == 1
-    assert done.probability.unit is Unit.RATIO
+    assert done.probability.unit is Unit.PROBABILITY  # a chance, shown as a percentage
     assert done.probability.currency is None
     assert done.probability.value == Decimal("0.0000")
     assert done.gap.value is not None

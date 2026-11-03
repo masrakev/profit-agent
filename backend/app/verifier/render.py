@@ -42,6 +42,8 @@ def format_value(value: Decimal, unit: Unit, currency: str | None) -> str:
         return f"{round_for_display(value, 0):,}"
     if unit is Unit.RATIO:
         return f"{round_for_display(value, 2):,}×"
+    if unit is Unit.PROBABILITY:
+        return f"{round_for_display(value * 100, 0)}%"
     return f"{round_for_display(value, 1):,} days"
 
 
@@ -75,6 +77,8 @@ def _short_magnitude(value: Decimal, unit: Unit, currency: str | None) -> tuple[
             amount = round_for_display(size, 2)  # under one unit: the cents, rather than "$0"
         symbol = CURRENCY_SYMBOLS.get(currency or "")
         return amount, f"{symbol}{amount:,}" if symbol else f"{amount:,} {currency}"
+    if unit is Unit.PROBABILITY:
+        return round_for_display(size * 100, 0), format_value(size, unit, currency)
     places = {Unit.COUNT: 0, Unit.RATIO: 2, Unit.DAYS: 1}[unit]
     amount = round_for_display(size, places)
     return amount, format_value(amount, unit, currency)
@@ -126,13 +130,18 @@ def exact_quantiles(fact: Fact) -> tuple[str, str, str] | None:
 
 
 def display_fact(fact: Fact, *, signed: bool = False) -> str:
-    """A fact's short text: "$17,572"; an estimate as its range, "+$613 to +$654"."""
+    """A fact's short text: "$17,572"; an estimate as its range, "+$613 to +$654"; a chance
+    with its unit once, "48 to 51%"."""
     if not fact.is_defined:
         return UNDEFINED_TEXT
     quantiles = display_quantiles(fact, signed=signed)
     if quantiles is not None:
         low, _, high = quantiles
-        return low if low == high else f"{low} to {high}"
+        if low == high:
+            return low
+        if fact.unit is Unit.PROBABILITY:
+            return f"{low.removesuffix('%')} to {high}"
+        return f"{low} to {high}"
     assert fact.value is not None
     return display_value(fact.value, fact.unit, fact.currency, signed=signed)
 

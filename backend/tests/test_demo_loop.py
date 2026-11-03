@@ -143,6 +143,17 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     revision = before["goal_progress"][1]
     assert revision["revision_proposed"]
     assert revision["reason"].startswith("its reallocate budget step was superseded")
+    # The weekly check of the same day reads the superseded step as superseded, not as waiting.
+    same_day = before["goal_progress"][2]
+    states = {s["lever"]: s["state"] for s in same_day["adherence"]["steps"]}
+    assert states["reallocate_budget"] == "superseded"
+    assert same_day["adherence"]["superseded"] == 1
+    # A planned goal is not asked to be confirmed again; its chances read as percentages.
+    assert not before["goal"]["restatement"].endswith("Confirm it to see whether it is reachable.")
+    chance = same_day["facts"][str(same_day["probability_fact_id"])]
+    assert chance["unit"] == "probability"
+    assert chance["display"].endswith("%")
+    assert "×" not in chance["display"]
     # Every text names what it cites: the campaign the revision is about, the plan's entities.
     assert set(revision["names"]) == entity_references(revision["reason"])
     [plan] = before["goal_plans"]

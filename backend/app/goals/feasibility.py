@@ -206,7 +206,7 @@ def assess_store(
     }
     # Beyond 90 days the probability fact carries the range only, so a citation renders it so.
     probability = estimate(
-        f"goal.probability.{metric}", horizon, Unit.RATIO, feas.probability_range, target
+        f"goal.probability.{metric}", horizon, Unit.PROBABILITY, feas.probability_range, target
     )
     gap = estimate(f"goal.gap.{metric}", horizon, Unit.MONEY, feas.gap, target)
     return Assessment(feas, daily, probability, gap, history)

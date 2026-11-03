@@ -29,6 +29,7 @@ class Unit(StrEnum):
     COUNT = "count"
     RATIO = "ratio"
     DAYS = "days"
+    PROBABILITY = "probability"  # a chance, 0 to 1, shown as a percentage
 
 
 class FactStatus(StrEnum):

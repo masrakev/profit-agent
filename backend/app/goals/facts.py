@@ -35,7 +35,9 @@ def days_value(x: float) -> Decimal:
 
 
 def _quantize(x: float, unit: Unit) -> Decimal:
-    return ratio(x) if unit is Unit.RATIO else days_value(x) if unit is Unit.DAYS else money(x)
+    if unit in (Unit.RATIO, Unit.PROBABILITY):
+        return ratio(x)
+    return days_value(x) if unit is Unit.DAYS else money(x)
 
 
 def estimate(

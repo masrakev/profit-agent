@@ -107,6 +107,26 @@ def test_display_texts_are_short_and_signed_for_changes() -> None:
     assert format_fact(estimate) == "$613.18–$654.33"  # the exact text is unchanged
 
 
+def test_a_chance_reads_as_a_percentage() -> None:
+    chance = fact(
+        "0.4950",
+        Unit.PROBABILITY,
+        kind=FactKind.ESTIMATE,
+        p10=Decimal("0.4810"),
+        p50=Decimal("0.4950"),
+        p90=Decimal("0.5100"),
+        method="bootstrap",
+    )
+    assert display_fact(chance) == "48 to 51%"  # the unit once, never "0.48× to 0.51×"
+    assert display_quantiles(chance, signed=False) == ("48%", "50%", "51%")
+    assert format_fact(chance) == "48%–51%"
+    assert exact_quantiles(chance) == ("48%", "50%", "51%")
+    assert display_fact(fact("0.995", Unit.PROBABILITY)) == "100%"
+    assert display_fact(fact("0.004", Unit.PROBABILITY)) == "0%"
+    narrow = chance.model_copy(update={"p10": Decimal("0.495"), "p90": Decimal("0.499")})
+    assert display_fact(narrow) == "50%"
+
+
 def test_render_rejects_unknown_reference() -> None:
     with pytest.raises(UnknownFactReferenceError):
         render("{{F404}}", {})
