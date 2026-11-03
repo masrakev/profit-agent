@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -249,69 +249,107 @@ describe("the Decisions page", () => {
     return signedInApi()
       .on(`GET ${BASE}/decisions`, decisions())
       .on(`GET ${BASE}/trust`, TRUST)
+      .on(`GET ${BASE}/goals`, [])
       .on(`GET ${BASE}/facts/21`, proofOf(impact))
-      .on(`GET ${BASE}/facts/30`, proofOf(effect));
-  }
-
-  it("lists the decisions by where they stand, with what each expected and measured", async () => {
-    renderApp("/decisions", page().api);
-    const waiting = await screen.findByRole("region", { name: "Waiting for you" });
-    const proposed = within(waiting).getByRole("article", { name: decision("proposed").label });
-    expect(within(proposed).getByText("Waiting for you")).toBeVisible();
-    expect(within(proposed).getByText(/From an alert ·/)).toBeVisible();
-    expect(
-      await within(proposed).findByText("Expected, compared with doing nothing:"),
-    ).toBeVisible();
-    const done = screen.getByRole("region", { name: "Done" });
-    const both = within(done).getAllByRole("article")[1];
-    expect(both).toBeDefined();
-    const measured = within(both!);
-    expect(await measured.findByText("Predicted")).toBeVisible();
-    expect(measured.getByText("Measured")).toBeVisible();
-    expect(measured.getByRole("button", { name: "+$23 to +$1,299, see the proof" })).toBeVisible();
-    expect(measured.getByText(HELD_ABOVE)).toBeVisible(); // the backend's verdict, as written
-    const asked = within(done).getByRole("article", { name: "Raise the daily budget by 20%" });
-    expect(within(asked).getByText(/You asked ·/)).toBeVisible();
-    expect(within(asked).queryByText("Predicted")).toBeNull(); // nothing was predicted as a fact
-    expect(await within(asked).findByText("Measured")).toBeVisible();
-    expect(screen.getByRole("region", { name: "In progress" })).toHaveTextContent(
-      "Approved: starting",
-    );
-    expect(screen.getByRole("region", { name: "Closed" })).toHaveTextContent(
-      "Replaced by a newer decision.",
-    );
-  });
-
-  it("shows how far it may act alone, and offers more only when it is proposed", async () => {
-    renderApp("/decisions", page().api);
-    const autonomy = await screen.findByRole("region", { name: "Earned autonomy" });
-    expect(within(autonomy).getByText("Pausing a campaign")).toBeVisible();
-    expect(within(autonomy).getByText("I ask you first, every time")).toBeVisible();
-    expect(within(autonomy).getByText("I act alone within your caps")).toBeVisible();
-    expect(
-      within(autonomy).getByText("1 of 10 confirmations before I can ask to do this alone"),
-    ).toBeVisible();
-    const allow = within(autonomy).getAllByRole("link", { name: "Always allow" });
-    expect(allow).toHaveLength(1);
-    expect(allow[0]).toHaveAttribute("href", "/settings");
-  });
-
-  it("opens a decision in place: the approval moment, not the conversation", async () => {
-    const fake = page()
-      .on(`GET ${BASE}/briefings`, { items: [], next_cursor: null })
-      .on(`GET ${BASE}/decisions/${DECISION}`, decision("proposed"))
       .on(`GET ${BASE}/facts/22`, proofOf(zero))
+      .on(`GET ${BASE}/facts/30`, proofOf(effect))
       .on(`POST ${BASE}/policy/preview`, { allowed: true, rule: "ok", reason: "ok" });
-    renderApp("/decisions", fake.api);
-    const waiting = await screen.findByRole("region", { name: "Waiting for you" });
-    const review = within(waiting).getByRole("button", { name: "Review" });
-    await userEvent.click(review);
-    expect(review).toHaveAttribute("aria-expanded", "true");
-    expect(await within(waiting).findByRole("button", { name: "Approve" })).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
+  }
+  const measured = () => decisions().items.find((d) => d.decision_id === MEASURED);
+
+  it("files the decisions in folders, the owner's first, each row with its amount", async () => {
+    renderApp("/decisions", page().api);
+    const list = await screen.findByRole("navigation", { name: "Decisions list" });
+    const show = within(list).getByRole("group", { name: "Show" });
+    expect(within(show).getByRole("button", { name: "To decide" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const waiting = within(list).getByRole("list", { name: "To decide" });
+    const row = within(waiting).getByRole("link", { name: /until restock\?/ });
+    expect(row).toHaveTextContent("Waiting for you");
+    expect(row).toHaveTextContent("From an alert");
+    expect(await within(row).findByText("+$613 to +$654")).toBeVisible();
+    expect(screen.getByText("Pick a decision.")).toBeVisible();
+    await userEvent.click(within(show).getByRole("button", { name: "Done" }));
+    const done = within(list).getByRole("list", { name: "Done" });
+    expect(within(done).getAllByRole("link")).toHaveLength(3);
+    expect(await within(done).findAllByText("+$23 to +$1,299")).toHaveLength(2);
+    await userEvent.click(within(show).getByRole("button", { name: "Closed" }));
+    expect(within(list).getByRole("list", { name: "Closed" })).toHaveTextContent("Replaced");
   });
 
-  it("moves an approved decision out of the waiting ones, still open", async () => {
+  it("opens a decision at its own address: why, then the approval card", async () => {
+    const fake = page().on(`GET ${BASE}/decisions/${DECISION}`, decision("proposed"));
+    const { router } = renderApp("/decisions", fake.api);
+    const list = await screen.findByRole("navigation", { name: "Decisions list" });
+    await userEvent.click(within(list).getByRole("link", { name: /until restock\?/ }));
+    expect(router.state.location.pathname).toBe(`/decisions/${DECISION}`);
+    const detail = await screen.findByRole("region", { name: decision("proposed").label });
+    expect(within(detail).getByRole("heading", { level: 2 })).toHaveTextContent("until restock?");
+    expect(within(detail).getAllByRole("heading", { level: 3 }).length).toBeGreaterThan(1);
+    const why = within(detail).getByRole("region", { name: "Why" });
+    expect(why).toHaveTextContent("Ads keep spending on a product that is out of stock.");
+    expect(within(why).getByRole("button", { name: "What I checked" })).toBeVisible();
+    const propose = within(detail).getByRole("region", { name: "What I propose" });
+    expect(await within(propose).findByRole("button", { name: "Approve" })).toBeVisible();
+  });
+
+  it("reads a measured decision top to bottom: proposed, decided, happened, earned", async () => {
+    const fake = page()
+      .on(`GET ${BASE}/decisions/${MEASURED}`, measured())
+      .on(`GET ${BASE}/journal`, {
+        items: [
+          {
+            id: "ap-1",
+            kind: "approval",
+            at: "2026-09-15T08:12:00Z",
+            summary: {
+              decision_id: MEASURED,
+              verdict: "approved",
+              channel: "web",
+              actor: "owner:o@x.io",
+            },
+            entities: [],
+          },
+        ],
+        next_cursor: null,
+        names: {},
+        facts: {},
+      });
+    renderApp(`/decisions/${MEASURED}`, fake.api);
+    const detail = await screen.findByRole("region", { name: /until restock$/ });
+    const proposed = within(detail).getByRole("region", { name: "What I proposed" });
+    expect(within(proposed).getByText("Chosen")).toBeVisible();
+    expect(within(proposed).getByText("Do nothing")).toBeVisible();
+    const decided = await within(detail).findByRole("region", { name: "What was decided" });
+    expect(decided).toHaveTextContent("You approved it in the app.");
+    const happened = within(detail).getByRole("region", { name: "What happened" });
+    expect(await within(happened).findByText("Done and measured")).toBeVisible();
+    const earned = within(detail).getByRole("region", { name: "What it earned" });
+    expect(await within(earned).findByText("Predicted")).toBeVisible();
+    expect(within(earned).getByText("Measured")).toBeVisible();
+    expect(within(earned).getByText(HELD_ABOVE)).toBeVisible(); // the backend's verdict
+    expect(
+      await within(earned).findByText("1 of 10 confirmations before I can ask to do this alone"),
+    ).toBeVisible();
+  });
+
+  it("moves through the list with the arrow keys, as a mail client does", async () => {
+    const fake = page()
+      .on(`GET ${BASE}/decisions/d-done`, decisions().items[1])
+      .on(`GET ${BASE}/decisions/${MEASURED}`, measured());
+    const { router } = renderApp("/decisions/d-done", fake.api);
+    const list = await screen.findByRole("list", { name: "Done" });
+    const rows = within(list).getAllByRole("link");
+    expect(rows[0]).toHaveAttribute("aria-current", "page");
+    rows[0]?.focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(router.state.location.pathname).toBe(`/decisions/${MEASURED}`);
+    expect(rows[1]).toHaveFocus();
+  });
+
+  it("moves an approved decision to In progress, still open", async () => {
     let status = "proposed";
     const listed = () => {
       const all = decisions();
@@ -320,21 +358,29 @@ describe("the Decisions page", () => {
     const fake = page()
       .on(`GET ${BASE}/decisions`, () => json(listed()))
       .on(`GET ${BASE}/decisions/${DECISION}`, () => json(decision(status)))
-      .on(`GET ${BASE}/facts/22`, proofOf(zero))
-      .on(`POST ${BASE}/policy/preview`, { allowed: true, rule: "ok", reason: "ok" })
       .on(`POST ${BASE}/decisions/${DECISION}/approve`, () => {
         status = "approved";
         return json(decision("approved"));
       });
-    renderApp("/decisions", fake.api);
-    const waiting = await screen.findByRole("region", { name: "Waiting for you" });
-    await userEvent.click(within(waiting).getByRole("button", { name: "Review" }));
-    await userEvent.click(await within(waiting).findByRole("button", { name: "Approve" }));
-    // The list is read again: the decision moves to "In progress", and its row stays open.
-    const progress = await screen.findByRole("region", { name: "In progress" });
-    const moved = within(progress).getByRole("button", { name: /Hide details/ });
-    expect(moved).toHaveAttribute("aria-expanded", "true");
-    expect(screen.queryByRole("region", { name: "Waiting for you" })).toBeNull();
+    renderApp(`/decisions/${DECISION}`, fake.api);
+    await userEvent.click(await screen.findByRole("button", { name: "Approve" }));
+    // The list is read again: the decision moves to "In progress"; it stays open on the right.
+    const show = await screen.findByRole("group", { name: "Show" });
+    await waitFor(() => {
+      expect(within(show).getByRole("button", { name: "In progress" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
+    const detail = screen.getByRole("region", { name: /until restock$/ });
+    expect(await within(detail).findByRole("status")).toHaveTextContent("Approved: starting");
+  });
+
+  it("still opens a decision from an old link", async () => {
+    const fake = page().on(`GET ${BASE}/decisions/${DECISION}`, decision("proposed"));
+    const { router } = renderApp(`/decisions?open=${DECISION}`, fake.api);
+    await screen.findByRole("region", { name: decision("proposed").label });
+    expect(router.state.location.pathname).toBe(`/decisions/${DECISION}`);
   });
 
   it("says when there is none, or they cannot be read", async () => {
@@ -343,7 +389,6 @@ describe("the Decisions page", () => {
       .on(`GET ${BASE}/trust`, []);
     const { unmount } = renderApp("/decisions", none.api);
     expect(await screen.findByText("No decision yet.")).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Earned autonomy" })).toBeNull();
     unmount();
     renderApp("/decisions", none.on(`GET ${BASE}/decisions`, () => problem(503, "down")).api);
     expect(await screen.findByText("The decisions could not be loaded.")).toBeVisible();

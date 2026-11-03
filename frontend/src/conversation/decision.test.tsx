@@ -219,7 +219,7 @@ describe("a decision in the conversation", () => {
     await userEvent.click(
       within(old).getByRole("button", { name: "See the decision that replaced it" }),
     );
-    expect(screen.getByTestId("location")).toHaveTextContent("/decisions?open=d-2");
+    expect(screen.getByTestId("location")).toHaveTextContent("/decisions/d-2");
   });
 
   it.each([

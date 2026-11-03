@@ -10,8 +10,8 @@
  *   1. Home opens on the morning brief.
  *   2. A question typed on Home opens Conversations: the Working block streams, then the answer
  *      with its evidence and the Verified seal.
- *   3. The status line leads to Decisions; Review opens the approval card; Approve; executing;
- *      executed, with the platform's confirmation.
+ *   3. The status line leads to the decisions inbox; the decision opens at its address, why and
+ *      then the approval card; Approve; executing; executed, with the platform's confirmation.
  *   4. The Journal (from Settings) records it.
  *   5. Goals: the 90-day goal and its plan; the six-month goal with low evidence and quarterly
  *      checkpoints.
@@ -152,13 +152,15 @@ try {
   step = "Decisions";
   await page.getByRole("link", { name: "Waiting for your decision" }).click();
   await page.getByRole("heading", { name: "Decisions", level: 1 }).waitFor();
-  const waiting = page.getByRole("region", { name: "Waiting for you" });
-  const pause = waiting.getByRole("listitem").filter({ hasText: /Pause ‘Trail Jacket/ });
-  await pause.getByRole("button", { name: "Review" }).click();
+  const waiting = page.getByRole("list", { name: "To decide" });
+  await waiting.getByRole("link", { name: /Pause ‘Trail Jacket/ }).click();
+  await page.waitForURL(/\/decisions\/[0-9a-f-]{36}$/);
+  const pause = page.getByRole("region", { name: /^Pause ‘Trail Jacket/ });
+  await pause.getByRole("region", { name: "Why" }).waitFor();
   const approve = pause.getByRole("button", { name: "Approve" });
   await approve.waitFor();
   await pause.getByText(/^Safety checks passed/).waitFor();
-  holds("Review opens the approval card on the Decisions page");
+  holds("the inbox opens the decision at its address: why, then the approval card");
 
   step = "Approve";
   await approve.click();

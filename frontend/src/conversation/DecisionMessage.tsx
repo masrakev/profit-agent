@@ -68,7 +68,14 @@ function problemText(error: unknown): string {
  * card (each option with its range, "do nothing", the safety checks, Approve and Not now); once
  * answered it follows the decision live, through execution, to the platform's state read back.
  */
-export function DecisionMessage({ decisionId }: { decisionId: string }) {
+export function DecisionMessage({
+  decisionId,
+  headless = false,
+}: {
+  decisionId: string;
+  /** Inside a decision's own page: what happened, without the title the page already shows. */
+  headless?: boolean;
+}) {
   const api = useApi();
   const { storeId } = useStore();
   const queries = useQueryClient();
@@ -197,7 +204,7 @@ export function DecisionMessage({ decisionId }: { decisionId: string }) {
       </div>
     );
   }
-  return <Outcome decision={d} option={recommended} onOpen={open.decision} />;
+  return <Outcome decision={d} option={recommended} onOpen={open.decision} headless={headless} />;
 }
 
 /** A decided decision: what happened to it, and what the platform reports now. */
@@ -205,10 +212,12 @@ function Outcome({
   decision,
   option,
   onOpen,
+  headless,
 }: {
   decision: Decision;
   option: Option | undefined;
   onOpen: (decisionId: string) => void;
+  headless: boolean;
 }) {
   const api = useApi();
   const { storeId } = useStore();
@@ -237,10 +246,18 @@ function Outcome({
   return (
     <article aria-label={decision.label} className="flex flex-col gap-4 rounded-card bg-subtle p-5">
       <header className="flex items-start gap-3">
-        <AgentMark size="sm" className="mt-1" />
-        <h3 className={`flex-1 text-body font-medium text-ink ${superseded ? "line-through" : ""}`}>
-          {chosen && decision.approved_option_id ? chosen.label : decision.label}
-        </h3>
+        {headless ? (
+          <span className="flex-1 text-small font-medium text-ink-muted">Where it stands</span>
+        ) : (
+          <>
+            <AgentMark size="sm" className="mt-1" />
+            <h3
+              className={`flex-1 text-body font-medium text-ink ${superseded ? "line-through" : ""}`}
+            >
+              {chosen && decision.approved_option_id ? chosen.label : decision.label}
+            </h3>
+          </>
+        )}
         <span role="status">
           <StatusPill tone={status.tone}>{status.text}</StatusPill>
         </span>

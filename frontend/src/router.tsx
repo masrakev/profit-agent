@@ -13,6 +13,7 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { AppShell, type RouteHandle } from "@/shell/AppShell";
 
 const conversation: RouteHandle = { composer: true };
+const inbox: RouteHandle = { wide: true };
 
 /** Every page. `dev` adds the component catalogue (`/style-guide`), absent from production. */
 export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
@@ -21,7 +22,8 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
     { path: "chat", element: <ChatPage />, handle: conversation },
     // Today became Home: an old link still lands on the day.
     { path: "today", element: <Navigate to="/" replace /> },
-    { path: "decisions", element: <DecisionsPage /> },
+    { path: "decisions", element: <DecisionsPage />, handle: inbox },
+    { path: "decisions/:decisionId", element: <DecisionsPage />, handle: inbox },
     { path: "goals", element: <GoalsPage /> },
     { path: "journal", element: <JournalPage /> },
     { path: "settings", element: <SettingsPage /> },

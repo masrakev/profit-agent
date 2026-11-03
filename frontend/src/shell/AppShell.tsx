@@ -11,18 +11,24 @@ import { SIDEBAR, useSidebar } from "./sidebar";
 import { TopBar } from "./TopBar";
 import { cx } from "@/ui/cx";
 
-/** A route asks for the composer dock with `handle: { composer: true }` (the conversation). */
+/**
+ * A route asks for the composer dock with `handle: { composer: true }` (Home, Conversations),
+ * and for a wider column with `wide: true` (the decisions inbox: a list beside the decision).
+ */
 export interface RouteHandle {
   composer?: boolean;
+  wide?: boolean;
 }
 
-function wantsComposer(handle: unknown): boolean {
-  return typeof handle === "object" && handle !== null && (handle as RouteHandle).composer === true;
+function asks(handle: unknown, key: keyof RouteHandle): boolean {
+  return typeof handle === "object" && handle !== null && (handle as RouteHandle)[key] === true;
 }
 
 /** The signed-in frame: the rail, the workspace header, the page, and the composer dock. */
 export function AppShell() {
-  const composer = useMatches().some((match) => wantsComposer(match.handle));
+  const matches = useMatches();
+  const composer = matches.some((match) => asks(match.handle, "composer"));
+  const wide = matches.some((match) => asks(match.handle, "wide"));
   const sidebar = useSidebar();
   const beside = sidebar.collapsed ? SIDEBAR.besideCollapsed : SIDEBAR.besideExpanded;
   // On a phone the rail is a drawer, closed again by any navigation.
@@ -72,7 +78,10 @@ export function AppShell() {
           <main
             id="main"
             tabIndex={-1}
-            className="mx-auto flex w-full max-w-[720px] min-w-0 flex-col gap-6 outline-none"
+            className={cx(
+              "mx-auto flex w-full min-w-0 flex-col gap-6 outline-none",
+              wide ? "max-w-[1120px]" : "max-w-[720px]",
+            )}
           >
             <Outlet />
           </main>
