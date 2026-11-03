@@ -46,7 +46,7 @@ describe("the app shell", () => {
       await screen.findByRole("textbox", { name: "Ask anything about your store" }),
     ).toBeVisible();
     expect(screen.getByText(COMPOSER_PROMISE)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("link", { name: "Goals" }));
+    await userEvent.click(screen.getByRole("link", { name: "Journal" }));
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 

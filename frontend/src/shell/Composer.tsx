@@ -11,6 +11,9 @@ interface ComposerProps {
   onVoice?: (recording: Blob) => void;
   /** Makes the recorder (tests give a fake one). */
   recorder?: RecorderFactory;
+  /** What the field is for (its label and placeholder); a question about the store by default. */
+  label?: string;
+  placeholder?: string;
 }
 
 export const COMPOSER_PROMISE =
@@ -23,7 +26,13 @@ type Mode = "typing" | "starting" | "recording";
  * with its waveform while it records; Send sends it, Cancel drops it; it stops by itself at two
  * minutes. What the owner typed or said is theirs, kept as plain text.
  */
-export function Composer({ onSend, onVoice, recorder = createRecorder }: ComposerProps) {
+export function Composer({
+  onSend,
+  onVoice,
+  recorder = createRecorder,
+  label = "Ask anything about your store",
+  placeholder = "Ask anything about your store…",
+}: ComposerProps) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<Mode>("typing");
   const [problem, setProblem] = useState<string | null>(null);
@@ -121,7 +130,7 @@ export function Composer({ onSend, onVoice, recorder = createRecorder }: Compose
             <Icon name="plus" />
           </button>
           <label htmlFor={inputId} className="sr-only">
-            Ask anything about your store
+            {label}
           </label>
           <input
             id={inputId}
@@ -129,7 +138,7 @@ export function Composer({ onSend, onVoice, recorder = createRecorder }: Compose
             onChange={(event) => {
               setText(event.target.value);
             }}
-            placeholder="Ask anything about your store…"
+            placeholder={placeholder}
             autoComplete="off"
             enterKeyHint="send"
             maxLength={2000}

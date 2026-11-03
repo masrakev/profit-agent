@@ -5,6 +5,7 @@ import { RequireSession } from "@/auth/RequireSession";
 import { SignInPage } from "@/auth/SignInPage";
 import { ChatPage } from "@/pages/ChatPage";
 import { DecisionsPage } from "@/pages/DecisionsPage";
+import { GoalsPage } from "@/pages/GoalsPage";
 import { JournalPage } from "@/pages/JournalPage";
 import { NotFoundPage, PendingPage } from "@/pages/placeholders";
 import { TodayPage } from "@/pages/TodayPage";
@@ -18,7 +19,7 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
     { index: true, element: <ChatPage />, handle: conversation },
     { path: "today", element: <TodayPage /> },
     { path: "decisions", element: <DecisionsPage /> },
-    { path: "goals", element: <PendingPage title="Goals" /> },
+    { path: "goals", element: <GoalsPage /> },
     { path: "journal", element: <JournalPage /> },
     { path: "settings", element: <PendingPage title="Settings" /> },
   ];
