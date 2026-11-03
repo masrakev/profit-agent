@@ -8,10 +8,12 @@
    reached about one time in two without a plan). Confirmed, planned, and the plan accepted:
    its first steps are proposed as decisions, left pending (the owner's to approve).
 3. Two past decisions on a campaign that neither promotes the product nor is in the goal's
-   plan, proposed by the owner, approved and executed: a budget cut, then a raise a week
-   later. Each is measured by synthetic control after its 7-day window (measured, or
-   abstained when the fit is weak). After each week, the goal's weekly tracking: its
-   steps wait for the owner's approval.
+   plan, proposed by the agent itself (a budget review, its option simulated by the twin, so it
+   carries its predicted impact), approved by the owner and executed: a budget cut, then a raise
+   a week later. Each is measured by synthetic control after its 7-day window (measured, or
+   abstained when the fit is weak) and judged against its prediction (inside, above or below
+   the predicted range), which the trust ledger counts. After each week, the goal's weekly
+   tracking: its steps wait for the owner's approval.
 4. Fourteen days before the data end, detection raises the critical stockout alert (ads still
    spending on a product out of stock); the alert proposes its decision, left pending. It acts
    on the campaign the goal's budget reallocation step lowers, on more recent data: that step's
@@ -62,7 +64,7 @@ from app.goals import service as goals
 from app.goals.feasibility import seed_of
 from app.goals.forecast import daily_values, forecast
 from app.observability import configure_logging
-from app.twin import Action, ActionKind, fit_twin
+from app.twin import Action, ActionKind, Scenario, TwinModel, fit_twin, simulate
 from bench.generator.config import DisplayNames
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
@@ -75,6 +77,7 @@ CASSETTES = repo_path("backend/tests/cassettes/demo")
 OWNER = "owner@example.com"
 DAYS_BEFORE_END = 28
 PAST = (("budget -30%", Decimal("-0.3")), ("budget +20%", Decimal("0.2")))
+HORIZON_DAYS = 14  # the decisions' horizon, as for an alert's options
 GOAL_DAYS = 90
 GOAL_PERCENTILE = 50
 KINDS = (BriefingKind.DAILY, BriefingKind.WEEKLY, BriefingKind.MONTHLY)
@@ -199,6 +202,7 @@ def _planned(engine: Engine, store: UUID, decisions: list[UUID]) -> set[UUID]:
 
 
 def owner_option(campaign: UUID, change: Decimal) -> OptionSet:
+    """The owner's own budget change on a campaign, not simulated (the WhatsApp tests use it)."""
     kind = OptionKind.REDUCE_BUDGET if change < 0 else OptionKind.INCREASE_BUDGET
     family = (
         ActionFamily.PAUSE_OR_REDUCE_CAMPAIGN if change < 0 else ActionFamily.INCREASE_BUDGET_CAPPED
@@ -223,6 +227,36 @@ def owner_option(campaign: UUID, change: Decimal) -> OptionSet:
     )
 
 
+def review_option(model: TwinModel, campaign: UUID, change: Decimal) -> OptionSet:
+    """The agent's own budget review: one budget change on a campaign, simulated by the twin
+    over the decision horizon, so the decision carries its predicted impact."""
+    kind = OptionKind.REDUCE_BUDGET if change < 0 else OptionKind.INCREASE_BUDGET
+    family = (
+        ActionFamily.PAUSE_OR_REDUCE_CAMPAIGN if change < 0 else ActionFamily.INCREASE_BUDGET_CAPPED
+    )
+    actions = (Action(kind=ActionKind.CHANGE_BUDGET, entity=campaign, change=change),)
+    option = Option(
+        f"system:{kind.value}:{campaign}",
+        kind,
+        family,
+        f"campaign:{campaign}",
+        actions,
+        Reversibility.REVERSIBLE,
+        (),
+        (),
+        simulation=simulate(model, Scenario(actions=actions, horizon_days=HORIZON_DAYS)),
+    )
+    return OptionSet(
+        cause="budget_review",
+        entity=f"campaign:{campaign}",
+        options=(option,),
+        recommended=option.option_id,
+        reason="a budget change the twin expects to pay",
+        floor=Decimal(100),
+        horizon_days=HORIZON_DAYS,
+    )
+
+
 def past_decision(
     engine: Engine,
     store: UUID,
@@ -241,8 +275,8 @@ def past_decision(
             conn,
             FactEngine(conn, store),
             model,
-            owner_option(campaign, change),
-            source="owner",
+            review_option(model, campaign, change),
+            source="system",
             now=when,
         )
         decide(
