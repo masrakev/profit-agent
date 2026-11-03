@@ -121,7 +121,7 @@ export function StyleGuidePage() {
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
-        <Card title="Typography / Figtree">
+        <Card title="Typography / Geist">
           <dl className="grid grid-cols-[32px_1fr] items-baseline gap-x-4 gap-y-3 text-ink">
             <Sample size="28" className="text-title font-semibold">
               Title · A little more clarity

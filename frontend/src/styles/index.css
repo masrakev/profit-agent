@@ -1,31 +1,28 @@
 /*
- * Design tokens: the single source of truth for colour, type, radii and shadows (DESIGN.md).
- * Tailwind v4 has no config file: this CSS is the configuration, and shadcn's components.json
- * points here. Change a token here and nowhere else.
+ * Design tokens: the single source of truth for colour, type, radii, elevation and motion
+ * (docs/design/DESIGN.md). Tailwind v4 has no config file: this CSS is the configuration, and
+ * shadcn's components.json points here. Change a token here and nowhere else.
  *
- * From the Figma frame "Style guide · Profit Agent", light and dark. Components use the semantic
- * utilities below (bg-surface, text-ink, rounded-card…), never raw colours: each token is a CSS
- * variable that `<html data-theme>` swaps, so one class serves both themes. Tailwind's default
- * palette is removed so a colour outside the style guide cannot slip in.
+ * Direction: calm, editorial, dark first. Near-black and white, one accent (iris) used rarely:
+ * the agent's mark, focus, the most likely value on a range, the approval moment. Primary buttons
+ * are ink on canvas, not the accent. Semantic colours (good, warning, danger) appear only as small
+ * dots or as text. Components use the semantic utilities (bg-surface, text-ink, rounded-card…),
+ * never raw values: each token is a CSS variable that `<html data-theme>` swaps. Tailwind's
+ * default palette is removed so a colour outside these cannot slip in.
  *
  * Layers, in order:
  *   1. `--pa-*`: the raw tokens, light then dark.
- *   2. shadcn/ui's semantic names (`--background`, `--primary`…), resolved through the tokens, so
- *      components added with the CLI follow this palette and both themes without edits.
- *   3. `@theme`: the Tailwind utilities (colours, type scale, radii, shadows).
+ *   2. shadcn/ui's semantic names (`--background`, `--primary`…), resolved through the tokens.
+ *   3. `@theme`: the Tailwind utilities (colours, type scale, radii, elevation, motion).
  *
- * WCAG AA (Task 7, adjustment 5). Three Figma pairs fall under 4.5:1, so text uses its own token:
- *   - light blue text #0866FF on the grey boxes (#F0F2F5: 4.30, #F5F6F8: 4.46) → accent-ink #065DE6;
- *   - dark: white on the #4C8DFF button (3.20) → accent-fill #1F6BFA (4.62), and the selected rail
- *     label #4C8DFF on #192A46 (4.49) → accent-ink #5A96FF (4.96);
- *   - red text #E41E3F on light greys (4.11) → danger-ink #D91A3B; on dark (3.89) → #FF6B7D.
- * Marks (brand mark, range marker, dots) keep the Figma blues as `accent-mark`: they are graphics,
- * above 3:1. The border of a control with no other boundary is `input` (3:1 on every surface).
+ * WCAG AA: every text token is at least 4.5:1 on canvas, surface and subtle in its theme.
+ * `accent-mark`, `danger`, `warning` and `good` are graphics (3:1 and above), never text: their
+ * text forms are `accent-ink`, `danger-ink`, `warning-ink` and `good-ink`. `input` is the border
+ * of a control with no other boundary (3:1 on every surface).
  */
 @import "tailwindcss";
-@import "@fontsource/figtree/latin-400.css";
-@import "@fontsource/figtree/latin-500.css";
-@import "@fontsource/figtree/latin-600.css";
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/geist-mono/wght.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -35,51 +32,55 @@
 
 :root,
 [data-theme="light"] {
-  --pa-canvas: #f5f6f8;
+  --pa-canvas: #fafafa;
   --pa-surface: #ffffff;
-  --pa-subtle: #f0f2f5;
-  --pa-line: #e4e6eb;
-  --pa-input: #868a90;
-  --pa-ink: #1c1e21;
-  --pa-ink-muted: #65676b;
-  --pa-accent: #0866ff;
-  --pa-accent-ink: #065de6;
-  --pa-accent-fill: #0866ff;
-  --pa-accent-soft: #edf3ff;
-  --pa-on-accent: #ffffff;
-  --pa-bubble-owner: #dce8ff;
-  --pa-danger: #e41e3f;
-  --pa-danger-ink: #d91a3b;
-  --pa-warning: #f7b928;
-  --pa-good: #31a24c;
-  --pa-shadow-xs: 0 1px 2px 0 rgb(22 37 68 / 0.05);
-  --pa-shadow-sm: 0 2px 6px 0 rgb(22 37 68 / 0.06);
-  --pa-shadow-float: 0 8px 28px 0 rgb(22 37 68 / 0.07);
-  --pa-shadow-sheet: -8px 0 32px 0 rgb(0 0 0 / 0.09);
-  --pa-scrim: rgb(11 11 12 / 0.24);
+  --pa-subtle: #f2f2f3;
+  --pa-line: #e5e5e7;
+  --pa-input: #85858d;
+  --pa-ink: #0f0f10;
+  --pa-ink-muted: #5d5d64;
+  --pa-accent: #4a5ce6;
+  --pa-accent-ink: #3445c4;
+  --pa-accent-fill: #0f0f10;
+  --pa-accent-soft: #eef0fc;
+  --pa-on-accent: #fafafa;
+  --pa-bubble-owner: #f0f0f2;
+  --pa-danger: #d93142;
+  --pa-danger-ink: #be1f30;
+  --pa-warning: #b07a06;
+  --pa-warning-ink: #855600;
+  --pa-good: #1f8f4c;
+  --pa-good-ink: #18793b;
+  --pa-shadow-float: 0 1px 2px 0 rgb(15 15 16 / 0.04), 0 12px 32px -8px rgb(15 15 16 / 0.1);
+  --pa-scrim: rgb(15 15 16 / 0.28);
 }
 
 [data-theme="dark"] {
   --pa-canvas: #0b0b0c;
-  --pa-surface: #16171a;
-  --pa-subtle: #1f2024;
-  --pa-line: #2a2c31;
-  --pa-input: #6b6e75;
-  --pa-ink: #f2f3f5;
-  --pa-ink-muted: #a0a3aa;
-  --pa-accent: #4c8dff;
-  --pa-accent-ink: #5a96ff;
-  --pa-accent-fill: #1f6bfa;
-  --pa-accent-soft: #192a46;
-  --pa-on-accent: #ffffff;
-  --pa-bubble-owner: #1e3a6b;
-  --pa-danger: #e41e3f;
-  --pa-danger-ink: #ff6b7d;
-  --pa-scrim: rgb(0 0 0 / 0.48);
+  --pa-surface: #131315;
+  --pa-subtle: #1b1b1e;
+  --pa-line: #242427;
+  --pa-input: #6c6c74;
+  --pa-ink: #ededef;
+  --pa-ink-muted: #a1a1a8;
+  --pa-accent: #8796ff;
+  --pa-accent-ink: #a5b1ff;
+  --pa-accent-fill: #ededef;
+  --pa-accent-soft: #1a1d33;
+  --pa-on-accent: #0b0b0c;
+  --pa-bubble-owner: #1b1b1e;
+  --pa-danger: #f0525f;
+  --pa-danger-ink: #ff8089;
+  --pa-warning: #e2a72c;
+  --pa-warning-ink: #f0c25e;
+  --pa-good: #3fb862;
+  --pa-good-ink: #5fd283;
+  --pa-shadow-float: 0 0 0 1px rgb(255 255 255 / 0.04), 0 16px 40px -12px rgb(0 0 0 / 0.6);
+  --pa-scrim: rgb(0 0 0 / 0.6);
 }
 
 /* 2. shadcn/ui's names, through the tokens. `accent` is shadcn's neutral hover surface, not the
- * blue (which is accent-mark / accent-ink / accent-fill / accent-soft). */
+ * iris (which is accent-mark / accent-ink / accent-soft). */
 
 :root {
   --background: var(--pa-canvas);
@@ -135,7 +136,9 @@
   --color-danger: var(--pa-danger);
   --color-danger-ink: var(--pa-danger-ink);
   --color-warning: var(--pa-warning);
+  --color-warning-ink: var(--pa-warning-ink);
   --color-good: var(--pa-good);
+  --color-good-ink: var(--pa-good-ink);
   --color-scrim: var(--pa-scrim);
 
   /* shadcn/ui */
@@ -171,74 +174,109 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Elevation: 0 none, 1 xs and sm, 2 float, 3 sheet (DESIGN.md, section 7). */
+  /* Elevation: one level, for what floats over the page (the composer, popovers, the proof
+   * sheet, the approval moment). Everything else sits flat on hairlines. */
   --shadow-*: initial;
-  --shadow-xs: var(--pa-shadow-xs);
-  --shadow-sm: var(--pa-shadow-sm);
-  --shadow-md: var(--pa-shadow-float);
   --shadow-float: var(--pa-shadow-float);
-  --shadow-lg: var(--pa-shadow-sheet);
-  --shadow-sheet: var(--pa-shadow-sheet);
+  --shadow-md: var(--pa-shadow-float);
+  --shadow-lg: var(--pa-shadow-float);
+  --shadow-sheet: var(--pa-shadow-float);
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
 }
 
 @theme {
   --font-*: initial;
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
   --font-heading: var(--font-sans);
 
-  /* Type scale. Running text is set at 1.45; single-line labels at the font's own height.
-   * The t-shirt names (xs, sm, base, lg, xl) alias the named ones so shadcn's components size
-   * correctly; our own code uses the named scale. */
+  /* Type scale: six sizes, no more. 36 display, 24 title, 18 heading, 15 body, 13 small, 12
+   * label. Large sizes are tracked tight. The other names (proof, brand, nav, caption, tiny and
+   * shadcn's xs to xl) alias these six so every class lands on the scale. */
   --text-*: initial;
-  --text-proof: 40px;
-  --text-proof--line-height: 1.2;
-  --text-proof--letter-spacing: -0.7px;
-  --text-title: 28px;
-  --text-title--line-height: 1.45;
-  --text-xl: 28px;
-  --text-xl--line-height: 1.45;
-  --text-heading: 20px; /* card and section titles */
-  --text-heading--line-height: 1.45;
-  --text-lg: 20px;
-  --text-lg--line-height: 1.45;
-  --text-brand: 17px;
-  --text-brand--line-height: normal;
-  --text-nav: 14px; /* the sidebar's rows, and dense controls */
-  --text-nav--line-height: 20px;
-  --text-sm: 14px;
-  --text-sm--line-height: 20px;
+  --text-proof: 36px;
+  --text-proof--line-height: 1.12;
+  --text-proof--letter-spacing: -0.035em;
+  --text-title: 24px;
+  --text-title--line-height: 1.25;
+  --text-title--letter-spacing: -0.025em;
+  --text-xl: 24px;
+  --text-xl--line-height: 1.25;
+  --text-xl--letter-spacing: -0.025em;
+  --text-heading: 18px;
+  --text-heading--line-height: 1.35;
+  --text-heading--letter-spacing: -0.015em;
+  --text-lg: 18px;
+  --text-lg--line-height: 1.35;
+  --text-lg--letter-spacing: -0.015em;
   --text-body: 15px;
-  --text-body--line-height: 1.45;
+  --text-body--line-height: 1.6;
   --text-base: 15px;
-  --text-base--line-height: 1.45;
+  --text-base--line-height: 1.6;
+  --text-brand: 15px;
+  --text-brand--line-height: 1.3;
   --text-small: 13px;
-  --text-small--line-height: 1.45;
+  --text-small--line-height: 1.5;
+  --text-nav: 13px;
+  --text-nav--line-height: 20px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
   --text-label: 12px;
-  --text-label--line-height: normal;
+  --text-label--line-height: 1.4;
   --text-xs: 12px;
-  --text-xs--line-height: normal;
-  --text-caption: 11px;
-  --text-caption--line-height: normal;
-  --text-tiny: 10px;
-  --text-tiny--line-height: normal;
+  --text-xs--line-height: 1.4;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.4;
+  --text-tiny: 12px;
+  --text-tiny--line-height: 1.4;
 
-  /* Radii. The named ones are the Figma shapes; sm to 4xl are the 4px-step ladder shadcn uses. */
+  /* Radii: 2 for bars, 8 for controls and marks, 12 for the few cards, full for pills and the
+   * agent's mark. The other names alias these. */
   --radius-*: initial;
-  --radius-bar: 3px;
-  --radius-mark: 10px;
-  --radius-avatar: 11px;
-  --radius-box: 12px;
-  --radius-destination: 14px;
-  --radius-bubble: 18px;
-  --radius-card: 20px;
+  --radius-bar: 2px;
+  --radius-mark: 8px;
+  --radius-avatar: 8px;
+  --radius-box: 8px;
+  --radius-destination: 8px;
+  --radius-bubble: 12px;
+  --radius-card: 12px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
-  --radius-3xl: 24px;
-  --radius-4xl: 28px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 12px;
   --radius-full: 9999px;
+
+  /* Motion: short and eased out (150 to 250 ms); the agent's mark breathes while it works;
+   * lists reveal in a stagger. All of it stops under prefers-reduced-motion. */
+  --ease-out: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --animate-breathe: breathe 2.4s ease-in-out infinite;
+  --animate-reveal: reveal 250ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
+
+  @keyframes breathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+  }
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 @layer base {
@@ -261,10 +299,37 @@
     border-color: var(--border);
   }
 
+  /* Every amount in tabular figures, so numbers line up. */
+  [data-fact],
+  .tabular-nums,
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
   /* One focus style everywhere: visible on keyboard focus, absent on mouse clicks. */
   :focus-visible {
     outline: 2px solid var(--pa-accent);
     outline-offset: 2px;
+  }
+
+  /* A list that reveals its items one after another (the first six; the rest together). */
+  [data-stagger] > * {
+    animation: var(--animate-reveal);
+  }
+  [data-stagger] > :nth-child(2) {
+    animation-delay: 40ms;
+  }
+  [data-stagger] > :nth-child(3) {
+    animation-delay: 80ms;
+  }
+  [data-stagger] > :nth-child(4) {
+    animation-delay: 120ms;
+  }
+  [data-stagger] > :nth-child(5) {
+    animation-delay: 160ms;
+  }
+  [data-stagger] > :nth-child(n + 6) {
+    animation-delay: 200ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -272,6 +337,8 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
   }
