@@ -56,6 +56,12 @@ async function shoot(page, name, { quick = false, whole = true } = {}) {
     await page.setViewportSize({ width, height: 900 });
     for (const scheme of ["dark", "light"]) {
       await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
+      // The app opens light; the owner's pick (kept in local storage) sets the theme.
+      await page.evaluate((s) => {
+        localStorage.setItem("profit-agent.theme", s);
+        document.documentElement.dataset.theme = s;
+        document.documentElement.style.colorScheme = s;
+      }, scheme);
       if (!quick) await settle(page);
       await page.waitForTimeout(350);
       await page.screenshot({

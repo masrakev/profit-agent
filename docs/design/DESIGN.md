@@ -8,10 +8,11 @@ for. Read it before any interface work and pass its checklist before calling the
 
 1. **Calm, confident, editorial.** The owner reads the app like a good brief: typography and
    whitespace carry the hierarchy, not boxes. Lines of text stay under 65 characters wide.
-2. **Dark first, light as finished.** Near-black and white, monochrome. Every screen is designed in
-   dark, then checked in light with the same care.
-3. **One accent, used rarely.** Iris marks the agent (its mark), keyboard focus, the most likely
-   value of a range and a lit verdict. Primary buttons are ink on canvas, not the accent.
+2. **Light by default, dark as finished.** Near-white and near-black, monochrome. The app opens
+   light (it reads like a report, and holds on a projector); dark is one click away in the rail and
+   remembered, and "system" can be chosen. Every screen is checked in both with the same care.
+3. **One accent, used rarely: Meta blue.** It marks the agent (its mark), keyboard focus, the primary
+   action of a screen, the most likely value of a range and a lit verdict. Nothing else is blue.
 4. **Colour means state, and only as a dot or as words.** Good, warning and danger appear as a
    6 px dot beside words, or as text in their `-ink` form. Never a coloured border, a left stripe,
    a filled badge or a coloured bar.
@@ -19,7 +20,7 @@ for. Read it before any interface work and pass its checklist before calling the
    confirmation are cards. Everything else is lists, rows and sections over hairlines.
 6. **Numbers are the API's.** Every number shown is a fact's own text, opening its proof. The
    frontend never rounds, formats or computes one (Task 7, rule 1). A range reads once.
-7. **The agent is one mark.** The same iris orb wherever the agent appears, with the same status
+7. **The agent is one mark.** The same blue orb wherever the agent appears, with the same status
    line: idle (watching), working (it breathes), waiting for you (a small dot).
 8. **Never a blank page.** Wherever there is a composer, questions drawn from the store's situation
    sit above it. An empty list says what will appear and what to do now.
@@ -40,12 +41,12 @@ the CSS and a line here, in the same change.
 | `subtle`                    | #1b1b1e           | #f2f2f3           | hover, the owner's bubble, skeletons, details panels   |
 | `line`                      | #242427           | #e5e5e7           | hairlines, outlines                                    |
 | `input`                     | #6c6c74           | #85858d           | a control's only boundary (3:1)                        |
-| `ink`                       | #ededef           | #0f0f10           | text, primary buttons                                  |
+| `ink`                       | #ededef           | #0f0f10           | text                                                   |
 | `ink-muted`                 | #a1a1a8           | #5d5d64           | secondary text, labels, icons                          |
-| `accent-mark`               | #8796ff           | #4a5ce6           | iris graphics: the mark, range marks, focus, lit band  |
-| `accent-ink`                | #a5b1ff           | #3445c4           | iris text (rare: the most likely value, "Recommended") |
-| `accent-soft`               | #1a1d33           | #eef0fc           | the track of a range                                   |
-| `accent-fill` / `on-accent` | ink / canvas      | ink / canvas      | primary button                                         |
+| `accent-mark`               | #4c8dff           | #0866ff           | blue graphics: the mark, range marks, focus, lit band  |
+| `accent-ink`                | #6aa1ff           | #065de6           | blue text (rare: the most likely value, "Recommended") |
+| `accent-soft`               | #152238           | #ebf3ff           | the track of a range                                   |
+| `accent-fill` / `on-accent` | #0866ff / #ffffff | #0866ff / #ffffff | the primary action (4.8:1)                             |
 | `good` / `good-ink`         | #3fb862 / #5fd283 | #1f8f4c / #18793b | dot / text                                             |
 | `warning` / `warning-ink`   | #e2a72c / #f0c25e | #b07a06 / #855600 | dot / text                                             |
 | `danger` / `danger-ink`     | #f0525f / #ff8089 | #d93142 / #be1f30 | dot / text                                             |
@@ -103,7 +104,7 @@ One component per concept; check `frontend/src/ui` and `frontend/src/charts` bef
 | Approval moment           | `decisions/PermissionCard`                          | the one strong surface: mark, question, option rows, safety, Approve                                            | more than one primary action             |
 | Empty state               | `ui/EmptyState`                                     | what will appear and what to do now                                                                             | an apology or a mood                     |
 | Loading                   | `ui/Skeleton`                                       | rows in the page's rhythm                                                                                       | a spinner in place of content            |
-| Buttons                   | `ui/Button`                                         | primary (ink), secondary (outlined), ghost (bare)                                                               | the accent as a button colour            |
+| Buttons                   | `ui/Button`                                         | primary (Meta blue), secondary (outlined), ghost (bare)                                                         | the accent as a button colour            |
 
 There is no toast yet: an action's outcome is said in place (the decision's row, the goal's
 status). Add one as a component here first if a flow needs it.
@@ -116,8 +117,8 @@ Before an interface change is done, at 1440 and 390 px, in dark and light
 - [ ] Only the six type sizes; large titles tracked tight; amounts in tabular figures.
 - [ ] Spacing on the 4 px grid; sections separated by space and hairlines, not boxes.
 - [ ] Cards only for what the owner acts on; one elevation; radii from the four.
-- [ ] The accent appears only on the agent's mark, focus, a range's most likely value or a lit
-      verdict; semantic colours only as dots or text.
+- [ ] The accent appears only on the agent's mark, focus, the primary action, a range's most likely
+      value or a lit verdict; semantic colours only as dots or text.
 - [ ] Every number is a fact's text that opens its proof; a range reads once.
 - [ ] Text contrast 4.5:1, graphics 3:1, in both themes.
 - [ ] Every control reachable by keyboard with a visible 2 px focus ring; the approval moment can

@@ -128,7 +128,11 @@ try {
     await mkdir(SHOTS, { recursive: true });
     await working.scrollIntoViewIfNeeded();
     for (const scheme of ["dark", "light"]) {
-      await page.emulateMedia({ colorScheme: scheme });
+      await page.evaluate((s) => {
+        localStorage.setItem("profit-agent.theme", s);
+        document.documentElement.dataset.theme = s;
+        document.documentElement.style.colorScheme = s;
+      }, scheme);
       await page.waitForTimeout(300);
       await page.screenshot({ path: path.join(SHOTS, `ask-working-1440-${scheme}.png`) });
     }

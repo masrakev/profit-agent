@@ -21,21 +21,21 @@ describe("resolveTheme", () => {
 });
 
 describe("the remembered pick", () => {
-  it("reads and writes the pick, and forgets it for the system theme", () => {
+  it("starts light, then reads and writes the pick, the system theme included", () => {
     const storage = new Map<string, string>();
     const fake = {
       getItem: (key: string) => storage.get(key) ?? null,
       setItem: (key: string, value: string) => storage.set(key, value),
       removeItem: (key: string) => storage.delete(key),
     };
-    expect(readPreference(fake)).toBe("system");
+    expect(readPreference(fake)).toBe("light"); // light by default
     writePreference(fake, "dark");
     expect(storage.get(THEME_STORAGE_KEY)).toBe("dark");
     expect(readPreference(fake)).toBe("dark");
     writePreference(fake, "system");
-    expect(storage.has(THEME_STORAGE_KEY)).toBe(false);
+    expect(readPreference(fake)).toBe("system");
     storage.set(THEME_STORAGE_KEY, "sepia");
-    expect(readPreference(fake)).toBe("system"); // unknown values are ignored
+    expect(readPreference(fake)).toBe("light"); // unknown values are ignored
   });
 
   it("survives a storage that refuses", () => {
@@ -50,11 +50,11 @@ describe("the remembered pick", () => {
         throw new Error("denied");
       },
     };
-    expect(readPreference(refusing)).toBe("system");
+    expect(readPreference(refusing)).toBe("light");
     expect(() => {
       writePreference(refusing, "dark");
     }).not.toThrow();
-    expect(readPreference(null)).toBe("system");
+    expect(readPreference(null)).toBe("light");
   });
 });
 
@@ -66,10 +66,10 @@ describe("applying the theme", () => {
     expect(root.style.colorScheme).toBe("dark");
   });
 
-  it("applies the system theme before the first render", () => {
+  it("applies light before the first render, even when the system is dark", () => {
     mockSystemTheme(true);
-    expect(initTheme()).toBe("dark");
-    expect(document.documentElement.dataset["theme"]).toBe("dark");
+    expect(initTheme()).toBe("light");
+    expect(document.documentElement.dataset["theme"]).toBe("light");
   });
 
   it("watches the system theme until unsubscribed", () => {

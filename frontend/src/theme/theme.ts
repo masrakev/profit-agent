@@ -1,5 +1,6 @@
 /**
- * Light and dark themes: the system's by default, or the one the owner picks with the toggle.
+ * Light and dark themes: light by default, or the one the owner picks with the toggle (or, when
+ * asked for, the system's).
  *
  * The resolved theme is written to `<html data-theme>`, which the design tokens key on, and to
  * `color-scheme`, so form controls and scrollbars follow. The owner's pick is remembered in local
@@ -20,9 +21,9 @@ export function resolveTheme(preference: ThemePreference, systemDark: boolean): 
 export function readPreference(storage: Pick<Storage, "getItem"> | null): ThemePreference {
   try {
     const stored = storage?.getItem(THEME_STORAGE_KEY);
-    return stored === "light" || stored === "dark" ? stored : "system";
+    return stored === "light" || stored === "dark" || stored === "system" ? stored : "light";
   } catch {
-    return "system";
+    return "light";
   }
 }
 
@@ -31,8 +32,7 @@ export function writePreference(
   preference: ThemePreference,
 ): void {
   try {
-    if (preference === "system") storage?.removeItem(THEME_STORAGE_KEY);
-    else storage?.setItem(THEME_STORAGE_KEY, preference);
+    storage?.setItem(THEME_STORAGE_KEY, preference);
   } catch {
     // Storage refused: the pick still applies until the page is reloaded.
   }
@@ -68,7 +68,7 @@ export function safeStorage(): Storage | null {
   }
 }
 
-/** Applies the remembered or system theme before React renders, so the first paint is right. */
+/** Applies the remembered theme (light by default) before React renders, so the first paint is right. */
 export function initTheme(): Theme {
   const theme = resolveTheme(readPreference(safeStorage()), systemPrefersDark());
   applyTheme(theme);

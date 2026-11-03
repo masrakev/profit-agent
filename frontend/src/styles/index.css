@@ -3,10 +3,10 @@
  * (docs/design/DESIGN.md). Tailwind v4 has no config file: this CSS is the configuration, and
  * shadcn's components.json points here. Change a token here and nowhere else.
  *
- * Direction: calm, editorial, dark first. Near-black and white, one accent (iris) used rarely:
- * the agent's mark, focus, the most likely value on a range, the approval moment. Primary buttons
- * are ink on canvas, not the accent. Semantic colours (good, warning, danger) appear only as small
- * dots or as text. Components use the semantic utilities (bg-surface, text-ink, rounded-card…),
+ * Direction: calm, editorial, light by default (dark one click away). Near-white and near-black,
+ * one accent, Meta blue, used rarely: the agent's mark, focus, the primary action, the most likely
+ * value on a range. Semantic colours (good, warning, danger) appear only as small dots or as
+ * text. Components use the semantic utilities (bg-surface, text-ink, rounded-card…),
  * never raw values: each token is a CSS variable that `<html data-theme>` swaps. Tailwind's
  * default palette is removed so a colour outside these cannot slip in.
  *
@@ -39,11 +39,11 @@
   --pa-input: #85858d;
   --pa-ink: #0f0f10;
   --pa-ink-muted: #5d5d64;
-  --pa-accent: #4a5ce6;
-  --pa-accent-ink: #3445c4;
-  --pa-accent-fill: #0f0f10;
-  --pa-accent-soft: #eef0fc;
-  --pa-on-accent: #fafafa;
+  --pa-accent: #0866ff;
+  --pa-accent-ink: #065de6;
+  --pa-accent-fill: #0866ff;
+  --pa-accent-soft: #ebf3ff;
+  --pa-on-accent: #ffffff;
   --pa-bubble-owner: #f0f0f2;
   --pa-danger: #d93142;
   --pa-danger-ink: #be1f30;
@@ -63,11 +63,11 @@
   --pa-input: #6c6c74;
   --pa-ink: #ededef;
   --pa-ink-muted: #a1a1a8;
-  --pa-accent: #8796ff;
-  --pa-accent-ink: #a5b1ff;
-  --pa-accent-fill: #ededef;
-  --pa-accent-soft: #1a1d33;
-  --pa-on-accent: #0b0b0c;
+  --pa-accent: #4c8dff;
+  --pa-accent-ink: #6aa1ff;
+  --pa-accent-fill: #0866ff;
+  --pa-accent-soft: #152238;
+  --pa-on-accent: #ffffff;
   --pa-bubble-owner: #1b1b1e;
   --pa-danger: #f0525f;
   --pa-danger-ink: #ff8089;
@@ -80,7 +80,7 @@
 }
 
 /* 2. shadcn/ui's names, through the tokens. `accent` is shadcn's neutral hover surface, not the
- * iris (which is accent-mark / accent-ink / accent-soft). */
+ * blue (which is accent-mark / accent-ink / accent-fill / accent-soft). */
 
 :root {
   --background: var(--pa-canvas);
@@ -344,7 +344,7 @@
   }
 }
 
-/* The agent's mark: a soft iris orb. Idle it rests; working it breathes, with a halo; waiting
+/* The agent's mark: a soft blue orb. Idle it rests; working it breathes, with a halo; waiting
  * for the owner it carries a small warning dot. One mark wherever the agent appears. */
 @layer components {
   .agent-mark {

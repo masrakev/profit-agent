@@ -5,7 +5,7 @@ export type AgentState = "idle" | "working" | "waiting";
 const SIZES = { sm: "size-4", md: "size-6", lg: "size-8" } as const;
 
 /**
- * The agent's mark: an iris orb that rests when the agent is idle, breathes while it works, and
+ * The agent's mark: a blue orb that rests when the agent is idle, breathes while it works, and
  * carries a small dot when something waits for the owner. Decorative: the words beside it (the
  * status line, a label) say the same.
  */

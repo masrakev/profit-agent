@@ -22,19 +22,27 @@ afterEach(() => {
 });
 
 describe("ThemeProvider", () => {
-  it("follows the system theme while nothing is picked", () => {
-    const system = mockSystemTheme(false);
+  it("starts light, and follows the system only once asked to", () => {
+    const system = mockSystemTheme(true);
+    const { unmount } = render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>,
+    );
+    expect(screen.getByRole("button")).toHaveTextContent("light / light");
+    expect(document.documentElement.dataset["theme"]).toBe("light");
+    unmount();
+    window.localStorage.setItem(THEME_STORAGE_KEY, "system");
     render(
       <ThemeProvider>
         <Probe />
       </ThemeProvider>,
     );
-    expect(screen.getByRole("button")).toHaveTextContent("light / system");
-    act(() => {
-      system.change(true);
-    });
     expect(screen.getByRole("button")).toHaveTextContent("dark / system");
-    expect(document.documentElement.dataset["theme"]).toBe("dark");
+    act(() => {
+      system.change(false);
+    });
+    expect(screen.getByRole("button")).toHaveTextContent("light / system");
   });
 
   it("remembers the owner's pick over the system theme", async () => {
