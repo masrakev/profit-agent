@@ -2916,6 +2916,11 @@ export interface components {
             abstained: number;
             /** Action Type */
             action_type: string;
+            /**
+             * Confirmations
+             * @default 0
+             */
+            confirmations: number;
             /** Inside Share */
             inside_share: string | null;
             /** Level */
@@ -2924,10 +2929,19 @@ export interface components {
             mean_abs_error: string | null;
             /** Measured */
             measured: number;
+            /** Progress */
+            progress?: string | null;
             /** Proposal */
             proposal: string | null;
+            /** Proposed Level */
+            proposed_level?: number | null;
             /** Rollbacks */
             rollbacks: number;
+            /**
+             * Threshold
+             * @default 10
+             */
+            threshold: number;
         };
         /** UsageSummary */
         UsageSummary: {

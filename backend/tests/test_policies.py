@@ -10,7 +10,7 @@ from sqlalchemy import Engine
 
 from app.db import tenant_transaction
 from app.policies.engine import ActionRequest, Rule, evaluate, exceeds_caps, set_store_switch
-from app.policies.trust import MIN_OUTCOMES, trust_ledger
+from app.policies.trust import CONFIRMATIONS, entry, progress, trust_ledger
 from app.settings.models import ActionType, AutonomyLevel
 from app.settings.repository import StoreSettingsRepository
 
@@ -69,7 +69,61 @@ def test_the_trust_ledger_only_proposes(
     with tenant_transaction(app_engine, store) as conn:
         ledger = {e.action_type: e for e in trust_ledger(conn, store)}
     assert set(ledger) == {"pause_campaign", "resume_campaign", "change_budget"}
-    for entry in ledger.values():
-        assert entry.measured < MIN_OUTCOMES
-        assert entry.proposal is None
-        assert entry.level == int(AutonomyLevel.RECOMMEND)
+    for e in ledger.values():
+        assert e.confirmations < CONFIRMATIONS
+        assert e.proposal is None
+        assert e.proposed_level is None
+        assert e.threshold == CONFIRMATIONS
+        assert e.level == int(AutonomyLevel.RECOMMEND)
+        assert (
+            e.progress == f"{e.confirmations} of 10 confirmations before I can ask to do this alone"
+        )
+
+
+def held(n: int) -> list[tuple[str, dict[str, Any]]]:
+    """n measured outcomes whose effect fell inside the predicted range."""
+    predicted = {"p10": "10", "p50": "20", "p90": "30"}
+    return [
+        ("measured", {"predicted": predicted, "effect": {"p10": "0", "p50": "21", "p90": "40"}})
+    ] * n
+
+
+def missed(n: int) -> list[tuple[str, dict[str, Any]]]:
+    predicted = {"p10": "10", "p50": "20", "p90": "30"}
+    return [
+        ("measured", {"predicted": predicted, "effect": {"p10": "0", "p50": "-5", "p90": "1"}})
+    ] * n
+
+
+def test_a_promotion_is_proposed_after_ten_confirmations_only() -> None:
+    change = ActionType.CHANGE_BUDGET
+    nine = entry(change, AutonomyLevel.RECOMMEND, held(9), 0)
+    assert (nine.confirmations, nine.threshold, nine.proposal, nine.proposed_level) == (
+        9,
+        10,
+        None,
+        None,
+    )
+    assert nine.progress == "9 of 10 confirmations before I can ask to do this alone"
+    ten = entry(change, AutonomyLevel.RECOMMEND, [*held(10), ("abstained", {})], 0)
+    assert (ten.proposed_level, ten.abstained) == (3, 1)
+    assert ten.proposal == "propose autonomy level 3 for change_budget"
+    assert ten.progress == "My predictions held 10 times: I can ask to do this alone."
+    # Ten held, but too many missed (under 75%), or a rollback: no proposal.
+    assert entry(change, AutonomyLevel.RECOMMEND, held(10) + missed(4), 0).proposal is None
+    assert entry(change, AutonomyLevel.RECOMMEND, held(12), 1).proposal is None
+    # At the top level there is nothing left to ask for.
+    top = entry(change, AutonomyLevel.MANAGE_SCOPE, held(12), 0)
+    assert (top.proposal, top.progress) == (None, None)
+
+
+def test_progress_names_the_next_level() -> None:
+    assert progress(1, AutonomyLevel.RECOMMEND, None) == (
+        "1 of 10 confirmations before I can ask to do this alone"
+    )
+    assert progress(0, AutonomyLevel.OBSERVE, None) == (
+        "0 of 10 confirmations before I can ask to recommend this"
+    )
+    assert progress(3, AutonomyLevel.EXECUTE_CAPPED, None) == (
+        "3 of 10 confirmations before I can ask to manage this within its scope"
+    )

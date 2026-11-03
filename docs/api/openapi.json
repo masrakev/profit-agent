@@ -4580,6 +4580,11 @@
             "title": "Action Type",
             "type": "string"
           },
+          "confirmations": {
+            "default": 0,
+            "title": "Confirmations",
+            "type": "integer"
+          },
           "inside_share": {
             "anyOf": [
               {
@@ -4610,6 +4615,17 @@
             "title": "Measured",
             "type": "integer"
           },
+          "progress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress"
+          },
           "proposal": {
             "anyOf": [
               {
@@ -4621,8 +4637,24 @@
             ],
             "title": "Proposal"
           },
+          "proposed_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed Level"
+          },
           "rollbacks": {
             "title": "Rollbacks",
+            "type": "integer"
+          },
+          "threshold": {
+            "default": 10,
+            "title": "Threshold",
             "type": "integer"
           }
         },
