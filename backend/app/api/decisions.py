@@ -13,12 +13,14 @@ from decimal import Decimal
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.auth import PrincipalDep, StoreDep
 from app.api.deps import EngineDep, OwnerEngineDep, SettingsDep
 from app.api.pagination import Cursor, Limit, Page, paginate
+from app.api.problems import request_id
+from app.auth.service import Principal
 from app.config import Settings
 from app.db import tenant_transaction
 from app.decisions.journal import JournalEntry, journal
@@ -36,6 +38,7 @@ from app.decisions.store import (
     list_decisions,
     read_link,
 )
+from app.domain.audit import Origin
 from app.executor.worker import request_rollback
 from app.policies.engine import (
     ActionRequest,
@@ -144,6 +147,20 @@ def get_decision(store_id: StoreDep, decision_id: UUID, engine: EngineDep) -> De
         return result
 
 
+def _origin(
+    request: Request, principal: Principal | None = None, *, link_id: UUID | None = None
+) -> Origin:
+    """Where a request came from, for its audit entry: the caller's session or API token, the
+    request id the API returns as `X-Request-ID`, the user agent, or the link that carried it."""
+    return Origin(
+        session_id=str(principal.session_id) if principal and principal.session_id else None,
+        token_id=str(principal.token_id) if principal and principal.token_id else None,
+        request_id=request_id(request),
+        user_agent=request.headers.get("user-agent"),
+        link_id=str(link_id) if link_id else None,
+    )
+
+
 def _decide(
     engine: Any,
     settings: Any,
@@ -152,6 +169,7 @@ def _decide(
     option: str | None,
     verdict: Verdict,
     actor: str,
+    origin: Origin,
 ) -> DecisionView:
     with tenant_transaction(engine, store_id) as conn:
         result: DecisionView = _found(
@@ -163,6 +181,7 @@ def _decide(
                 verdict,
                 channel=Channel.API,
                 actor=actor,
+                origin=origin,
                 meta_links=settings.meta_campaign_links,
             )
         )
@@ -181,10 +200,18 @@ def post_approve(
     engine: EngineDep,
     settings: SettingsDep,
     principal: PrincipalDep,
+    request: Request,
 ) -> DecisionView:
     """Approve one option (web channel): its actions are queued in the same transaction."""
     return _decide(
-        engine, settings, store_id, decision_id, body.option_id, Verdict.APPROVED, principal.label
+        engine,
+        settings,
+        store_id,
+        decision_id,
+        body.option_id,
+        Verdict.APPROVED,
+        principal.label,
+        _origin(request, principal),
     )
 
 
@@ -199,8 +226,18 @@ def post_reject(
     engine: EngineDep,
     settings: SettingsDep,
     principal: PrincipalDep,
+    request: Request,
 ) -> DecisionView:
-    return _decide(engine, settings, store_id, decision_id, None, Verdict.REJECTED, principal.label)
+    return _decide(
+        engine,
+        settings,
+        store_id,
+        decision_id,
+        None,
+        Verdict.REJECTED,
+        principal.label,
+        _origin(request, principal),
+    )
 
 
 def _secret(settings: Any) -> str:
@@ -265,7 +302,9 @@ def preview_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkRe
 
 
 @router.post("/approval-links/{token}", response_model=LinkResult, tags=["decisions"])
-def confirm_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkResult:
+def confirm_link(
+    token: str, engine: EngineDep, settings: SettingsDep, request: Request
+) -> LinkResult:
     """Confirm an email approval link: decide, once; above the caps, only a confirmation."""
     claims = _claims(token, settings)
     with tenant_transaction(engine, claims.store_id) as conn:
@@ -292,6 +331,7 @@ def confirm_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkRe
                 claims.verdict,
                 channel=Channel.EMAIL,
                 actor="owner:email",
+                origin=_origin(request, link_id=claims.link_id),
                 meta_links=settings.meta_campaign_links,
             )
         )
@@ -310,12 +350,18 @@ def confirm_link(token: str, engine: EngineDep, settings: SettingsDep) -> LinkRe
     tags=["decisions"],
 )
 def post_rollback(
-    store_id: StoreDep, action_id: UUID, engine: EngineDep, principal: PrincipalDep
+    store_id: StoreDep,
+    action_id: UUID,
+    engine: EngineDep,
+    principal: PrincipalDep,
+    request: Request,
 ) -> RollbackResponse:
     """Queue the inverse of an executed action (pause <-> resume, budget restored)."""
     with tenant_transaction(engine, store_id) as conn:
         try:
-            new = request_rollback(conn, store_id, action_id, actor=principal.label)
+            new = request_rollback(
+                conn, store_id, action_id, actor=principal.label, origin=_origin(request, principal)
+            )
         except LookupError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except ValueError as exc:

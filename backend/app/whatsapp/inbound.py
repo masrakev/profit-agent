@@ -44,6 +44,7 @@ from app.decisions.store import (
     get,
     link_available,
 )
+from app.domain.audit import Origin
 from app.goals import service as goals
 from app.observability import get_logger
 from app.policies.engine import exceeds_caps
@@ -304,6 +305,7 @@ class Inbox:
                                 claims.verdict,
                                 channel=Channel.WHATSAPP,
                                 actor=f"owner:whatsapp:{phone[-4:]}",
+                                origin=Origin(link_id=str(link_id)),
                                 now=now,
                                 meta_links=self.meta_links,
                             )

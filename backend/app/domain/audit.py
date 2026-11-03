@@ -6,7 +6,7 @@ additionally makes any out-of-band edit, deletion or reordering detectable by `v
 Truncating the newest entries is only detectable against an externally anchored head hash.
 """
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -134,3 +134,62 @@ def verify_chain(conn: Connection, store_id: UUID) -> ChainVerification:
             return ChainVerification(False, index - 1, index, "entry_hash does not match content")
         expected_prev = row.entry_hash
     return ChainVerification(True, len(rows))
+
+
+USER_AGENT_CHARS = 300
+
+
+@dataclass(frozen=True)
+class Origin:
+    """Where an owner's decision came from, recorded with it: the session or API token that made
+    the request, the request's id (the `X-Request-ID` the API returns) and user agent, or the
+    single-use link (email, WhatsApp) that carried it. Ids only, never a secret."""
+
+    session_id: str | None = None
+    token_id: str | None = None
+    request_id: str | None = None
+    user_agent: str | None = None
+    link_id: str | None = None
+
+    def payload(self) -> dict[str, str | None]:
+        out = asdict(self)
+        if self.user_agent is not None:
+            out["user_agent"] = self.user_agent[:USER_AGENT_CHARS]
+        return out
+
+
+def authorization(
+    conn: Connection,
+    store_id: UUID,
+    *,
+    decision_id: UUID,
+    rollback_action_id: UUID | None = None,
+) -> dict[str, Any] | None:
+    """The audit entry that authorized an action, as an execution entry cites it: the decision's
+    approval, or for a rollback the owner's request. Its actor, channel, origin and sequence."""
+    if rollback_action_id is not None:
+        row = conn.execute(
+            text(
+                "SELECT seq, actor, payload FROM audit_log WHERE store_id = :s "
+                "AND action = 'action.rollback_requested' "
+                "AND payload->>'rollback_action_id' = :a ORDER BY seq DESC LIMIT 1"
+            ),
+            {"s": store_id, "a": str(rollback_action_id)},
+        ).first()
+    else:
+        row = conn.execute(
+            text(
+                "SELECT seq, actor, payload FROM audit_log WHERE store_id = :s "
+                "AND action = 'decision.approved' AND payload->>'decision_id' = :d "
+                "ORDER BY seq DESC LIMIT 1"
+            ),
+            {"s": store_id, "d": str(decision_id)},
+        ).first()
+    if row is None:
+        return None
+    return {
+        "audit_seq": row.seq,
+        "actor": row.actor,
+        "channel": row.payload.get("channel"),
+        "origin": row.payload.get("origin"),
+    }

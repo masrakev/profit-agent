@@ -40,7 +40,7 @@ from app.channels.render import load_entity_names
 from app.decisions.labels import DO_NOTHING, decision_label, entity_refs, option_label
 from app.decisions.options import OptionSet
 from app.delivery.queue import Subject, notify
-from app.domain.audit import append_audit
+from app.domain.audit import Origin, append_audit
 from app.domain.hashing import canonical_json, sha256_hex
 from app.facts.engine import FactEngine
 from app.facts.model import Fact, FactKind, FactStatus, Lineage, ParentRef, Scope, Unit
@@ -543,11 +543,13 @@ def decide(
     *,
     channel: Channel,
     actor: str,
+    origin: Origin | None = None,
     now: datetime | None = None,
     meta_links: dict[str, str] | None = None,
 ) -> DecisionView:
     """Approve an option, or reject the decision, exactly once. Approval queues the option's
-    actions (actions and outbox rows) in the same transaction."""
+    actions (actions and outbox rows) in the same transaction. The audit entry records who, by
+    which channel and from where (`origin`: session or token, request, user agent, link)."""
     now = now or datetime.now(UTC)
     decision = get(conn, store_id, decision_id, lock=True)
     if _expire_if_due(conn, decision, now):
@@ -618,6 +620,7 @@ def decide(
             "decision_id": str(decision_id),
             "option_id": option_id,
             "channel": channel.value,
+            "origin": (origin or Origin()).payload(),
         },
         occurred_at=now,
     )

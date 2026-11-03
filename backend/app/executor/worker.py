@@ -35,7 +35,7 @@ from app.agent.tools.base import data_end
 from app.db import tenant_transaction
 from app.decisions.store import DecisionStatus, transition
 from app.delivery.queue import Subject, notify_whatsapp
-from app.domain.audit import append_audit
+from app.domain.audit import Origin, append_audit, authorization
 from app.executor.adapters import Adapter, AdapterError, CampaignRef, CampaignState, Change
 from app.policies.engine import ActionRequest, evaluate
 
@@ -278,6 +278,12 @@ class Executor:
                     "already_applied": already,
                     "attempt": job.attempts,
                     "rollback_of": str(job.rollback_of) if job.rollback_of else None,
+                    "authorized_by": authorization(
+                        conn,
+                        store,
+                        decision_id=job.decision_id,
+                        rollback_action_id=job.action_id if job.rollback_of else None,
+                    ),
                 },
                 occurred_at=now,
             )
@@ -378,7 +384,16 @@ class Executor:
             store_id,
             actor="system:executor",
             action=f"action.{status}",
-            payload={"action_id": str(row.action_id), "error": error[:500]},
+            payload={
+                "action_id": str(row.action_id),
+                "error": error[:500],
+                "authorized_by": authorization(
+                    conn,
+                    store_id,
+                    decision_id=row.decision_id,
+                    rollback_action_id=row.action_id if row.rollback_of else None,
+                ),
+            },
             occurred_at=now,
         )
 
@@ -389,6 +404,7 @@ def request_rollback(
     action_id: UUID,
     *,
     actor: str,
+    origin: Origin | None = None,
     now: datetime | None = None,
 ) -> UUID:
     """Queue the inverse of an executed action: pause <-> resume, budget restored to its value
@@ -433,7 +449,12 @@ def request_rollback(
         store_id,
         actor=actor,
         action="action.rollback_requested",
-        payload={"action_id": str(action_id), "rollback_action_id": str(new), "kind": inverse},
+        payload={
+            "action_id": str(action_id),
+            "rollback_action_id": str(new),
+            "kind": inverse,
+            "origin": (origin or Origin()).payload(),
+        },
         occurred_at=now,
     )
     return new
