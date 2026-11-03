@@ -8,6 +8,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Connection, text
 
+from app.causal.verdict import consistency, verdict_text
+
 
 class JournalEntry(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -45,14 +47,26 @@ QUERIES = {
         "SELECT created_at AS at, outcome_id::text AS id, jsonb_build_object('decision_id', "
         "decision_id, 'action_id', action_id, 'status', status, 'method', method, "
         "'window_start', window_start, 'window_end', window_end, 'effect_fact_id', "
-        "effect_fact_id, 'reason', payload->>'reason') AS summary FROM outcomes WHERE store_id = :s"
+        "effect_fact_id, 'predicted_fact_id', payload->'predicted_fact_id', 'reason', "
+        "payload->>'reason', 'predicted', payload->'predicted', 'effect', payload->'effect') "
+        "AS summary FROM outcomes WHERE store_id = :s"
     ),
 }
 
 
+def _summary(kind: str, summary: dict[str, Any]) -> dict[str, Any]:
+    """An outcome says whether its prediction held (`verdict`, in words in `verdict_text`); the
+    quantiles it was judged on stay in the outcome (facts carry the numbers)."""
+    if kind != "outcome":
+        return summary
+    found = consistency(summary)
+    out = {k: v for k, v in summary.items() if k not in ("predicted", "effect")}
+    return {**out, "verdict": found.value if found else None, "verdict_text": verdict_text(found)}
+
+
 def journal(conn: Connection, store_id: UUID, limit: int = 500) -> list[JournalEntry]:
     entries = [
-        JournalEntry(at=row.at, kind=kind, id=row.id, summary=dict(row.summary))
+        JournalEntry(at=row.at, kind=kind, id=row.id, summary=_summary(kind, dict(row.summary)))
         for kind, sql in QUERIES.items()
         for row in conn.execute(text(sql), {"s": store_id})
     ]

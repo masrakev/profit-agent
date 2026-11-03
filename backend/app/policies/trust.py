@@ -13,6 +13,7 @@ from uuid import UUID
 
 from sqlalchemy import Connection, text
 
+from app.causal.verdict import Consistency, consistency
 from app.policies.engine import ACTION_TYPES
 from app.settings.models import AutonomyLevel
 from app.settings.repository import StoreSettingsRepository
@@ -60,13 +61,11 @@ def trust_ledger(conn: Connection, store_id: UUID) -> list[TrustEntry]:
         errors: list[Decimal] = []
         inside = 0
         for p in measured:
-            predicted, effect = p.get("predicted"), p.get("effect")
-            if not predicted or not effect:
+            found = consistency(p)
+            if found is None:
                 continue
-            errors.append(abs(Decimal(effect["p50"]) - Decimal(predicted["p50"])))
-            inside += (
-                Decimal(predicted["p10"]) <= Decimal(effect["p50"]) <= Decimal(predicted["p90"])
-            )
+            errors.append(abs(Decimal(p["effect"]["p50"]) - Decimal(p["predicted"]["p50"])))
+            inside += found is Consistency.INSIDE
         level = settings.autonomy[action_type]
         share = (Decimal(inside) / len(errors)).quantize(Decimal("0.0001")) if errors else None
         mae = (sum(errors, Decimal(0)) / len(errors)).quantize(Decimal("0.01")) if errors else None

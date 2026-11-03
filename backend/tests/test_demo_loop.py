@@ -104,6 +104,13 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     assert sorted(b["kind"] for b in briefings) == ["daily", "monthly", "weekly"]
     journal = {e["kind"] for e in before["journal"]["items"]}
     assert {"incident", "decision", "approval", "action", "outcome"} <= journal
+    # A measured outcome says whether its prediction held, in words; no raw quantile leaks.
+    outcomes = [e["summary"] for e in before["journal"]["items"] if e["kind"] == "outcome"]
+    for o in (o for o in outcomes if o["status"] == "measured"):
+        assert o["verdict"] in ("inside", "above", "below")
+        assert o["verdict_text"]
+        assert "predicted" not in o
+        assert "effect" not in o
     assert seeded.counts["briefings"] == 3
     assert before["goal"]["status"] == "planned"
     assert [w["day"] for w in goal.progress] == [7, 14]  # a week, then another
