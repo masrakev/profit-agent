@@ -11,6 +11,9 @@ interface RangeBarProps {
   interactive?: boolean;
   /** Short texts on screens; exact ones in the proof sheet. */
   precision?: Precision;
+  /** False where the sentence above already reads the range: the bar then shows the most
+   * likely value only, so the range is not repeated. */
+  range?: boolean;
 }
 
 const pct = (fraction: number) => `${String(fraction * 100)}%`;
@@ -27,6 +30,7 @@ export function RangeBar({
   title,
   interactive = true,
   precision = "display",
+  range = true,
 }: RangeBarProps) {
   const proof = useProof();
   const estimate = estimateOf(fact);
@@ -79,10 +83,17 @@ export function RangeBar({
         proof.open(fact, title);
       }}
     >
-      <span className="flex w-full flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="text-body font-medium text-ink underline decoration-line decoration-1 underline-offset-[5px] group-hover:decoration-ink-muted">
-          {fact.display}
-        </span>
+      <span
+        className={cx(
+          "flex w-full flex-wrap items-baseline gap-x-4 gap-y-1",
+          range ? "justify-between" : "justify-end",
+        )}
+      >
+        {range && (
+          <span className="text-body font-medium text-ink underline decoration-line decoration-1 underline-offset-[5px] group-hover:decoration-ink-muted">
+            {fact.display}
+          </span>
+        )}
         <span className="text-label text-ink-muted">
           <span>Most likely</span> <span className="font-medium text-accent-ink">{texts.p50}</span>
         </span>

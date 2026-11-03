@@ -6,8 +6,6 @@ import { estimateOf } from "@/facts/facts";
 import { VerifiedSeal } from "@/facts/VerifiedSeal";
 import { Button } from "@/ui/Button";
 import { cx } from "@/ui/cx";
-import { Icon } from "@/ui/Icon";
-import { StatusPill } from "@/ui/StatusPill";
 
 type Document = Schemas["DocumentOut"];
 type Section = Document["sections"][number];
@@ -23,8 +21,10 @@ const KNOWN = new Set([
 ]);
 
 /**
- * A document assembled by code from facts (a briefing, today's overview): the picture, what needs
- * the owner, the pending decisions, then any other section as it comes.
+ * A document assembled by code from facts (a briefing, today's overview), read top to bottom like
+ * an editorial brief: what needs the owner first, then the picture and the money at stake, then
+ * the pending decisions as rows, then any other section as it comes. No cards: sections and
+ * hairlines carry the order.
  */
 export function DocumentSections({
   document,
@@ -35,8 +35,16 @@ export function DocumentSections({
 }) {
   const { facts, names } = document;
   const section = (key: string) => document.sections.find((s) => s.key === key);
+  const attention = section("top_items")?.items ?? [];
   return (
-    <>
+    <div className="flex flex-col gap-10">
+      {attention.length > 0 && (
+        <ul className="flex flex-col border-t border-line" data-stagger>
+          {attention.map((item, index) => (
+            <Attention key={index} item={item} facts={facts} names={names} />
+          ))}
+        </ul>
+      )}
       <Picture
         title={pictureTitle}
         health={section("health")}
@@ -45,16 +53,13 @@ export function DocumentSections({
         facts={facts}
         names={names}
       />
-      {section("top_items")?.items.map((item, index) => (
-        <Attention key={index} item={item} facts={facts} names={names} />
-      ))}
       <Pending section={section("pending_decisions")} facts={facts} names={names} />
       {document.sections
         .filter((s) => !KNOWN.has(s.key))
         .map((s) => (
           <Generic key={s.key} section={s} facts={facts} names={names} />
         ))}
-    </>
+    </div>
   );
 }
 
@@ -68,7 +73,7 @@ function firstFact(text: string, facts: Facts) {
   return id ? facts[id] : undefined;
 }
 
-/** The picture: the health line, the money at stake with its range, the data notice. */
+/** The picture: the health line, the money at stake (its range read once), the data notice. */
 function Picture({
   title,
   health,
@@ -82,12 +87,9 @@ function Picture({
   const stakeFact = stakeText ? firstFact(stakeText, facts) : undefined;
   const sealed = (health?.items[0] && firstFact(health.items[0].text, facts)) ?? stakeFact;
   return (
-    <section
-      aria-label={title}
-      className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-float"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-small font-semibold text-ink">{title}</h2>
+    <section aria-label={title} className="flex flex-col gap-4">
+      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-2.5">
+        <h2 className="text-small font-medium text-ink-muted">{title}</h2>
         {sealed && <VerifiedSeal fact={sealed} />}
       </div>
       {health?.items.map((item, index) => (
@@ -102,64 +104,74 @@ function Picture({
             <RichText text={stakeText} facts={facts} names={names} />
           </p>
           {stakeFact && estimateOf(stakeFact) && (
-            <RangeBar fact={stakeFact} title="Money at stake" />
+            <RangeBar fact={stakeFact} title="Money at stake" range={false} />
           )}
         </div>
       )}
       {notice?.items.map((item, index) => (
-        <p key={index} className="self-start">
-          <StatusPill tone="warning">{item.text}</StatusPill>
+        <p key={index} className="flex items-start gap-2 text-small text-ink-muted">
+          <span aria-hidden="true" className="mt-[7px] size-1.5 shrink-0 rounded-full bg-warning" />
+          {item.text}
         </p>
       ))}
     </section>
   );
 }
 
-/** "Worth your attention": one problem, its options one click away, its evidence another. */
+const LEVELS: Record<string, { dot: string; word: string }> = {
+  critical: { dot: "bg-danger", word: "Critical" },
+  warning: { dot: "bg-warning", word: "Worth watching" },
+};
+
+/** One problem worth the owner's attention, as a row: its options and its evidence a click away. */
 function Attention({ item, facts, names }: Parts & { item: Item }) {
   const open = useOpenInChat();
-  const critical = item.level === "critical";
   const decision = item.decision_id;
   const incident = item.incident_id;
+  const level = item.level ? LEVELS[item.level] : undefined;
   return (
-    <section
-      aria-label="Worth your attention"
-      className={cx(
-        "flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-float",
-        critical && "border-l-4 border-l-danger",
-      )}
-    >
-      <p className="flex items-center gap-2 text-label text-ink-muted">
-        <Icon name="flag" size={16} />
-        Worth your attention
-        {item.level && <span className="sr-only">: {item.level}</span>}
-      </p>
-      <p className="text-body text-ink">
-        <RichText text={item.text} facts={facts} names={names} />
-      </p>
-      <div className="flex flex-wrap items-center gap-2.5">
-        {decision && (
-          <Button
-            onClick={() => {
-              open.decision(decision);
-            }}
-          >
-            See options
-          </Button>
-        )}
-        {incident && (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              open.investigation(incident);
-            }}
-          >
-            What I checked
-          </Button>
-        )}
-        <span className="ml-auto text-label text-ink-muted">No changes made</span>
-      </div>
-    </section>
+    <li>
+      <section
+        aria-label="Worth your attention"
+        className="flex flex-col gap-3 border-b border-line py-5"
+      >
+        <p className="flex items-center gap-2 text-label text-ink-muted">
+          <span
+            aria-hidden="true"
+            className={cx("size-1.5 rounded-full", level?.dot ?? "bg-ink-muted")}
+          />
+          {level?.word ?? "Worth your attention"}
+          <span className="sr-only">: {item.level ?? "info"}</span>
+        </p>
+        <p className="text-body text-ink">
+          <RichText text={item.text} facts={facts} names={names} />
+        </p>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {decision && (
+            <Button
+              className="h-9 px-4 text-small"
+              onClick={() => {
+                open.decision(decision);
+              }}
+            >
+              See options
+            </Button>
+          )}
+          {incident && (
+            <Button
+              variant="secondary"
+              className="h-9 px-4 text-small"
+              onClick={() => {
+                open.investigation(incident);
+              }}
+            >
+              What I checked
+            </Button>
+          )}
+          <span className="ml-auto text-label text-ink-muted">No changes made</span>
+        </div>
+      </section>
+    </li>
   );
 }
 
@@ -167,23 +179,25 @@ function Pending({ section, facts, names }: Parts & { section?: Section }) {
   const open = useOpenInChat();
   if (!section || section.items.length === 0) return null;
   return (
-    <section aria-label={section.title} className="flex flex-col gap-3">
-      <h2 className="text-small font-semibold text-ink">{section.title}</h2>
-      <ul className="flex flex-col gap-2">
+    <section aria-label={section.title} className="flex flex-col">
+      <h2 className="border-b border-line pb-2.5 text-small font-medium text-ink-muted">
+        {section.title}
+      </h2>
+      <ul className="flex flex-col" data-stagger>
         {section.items.map((item, index) => {
           const decision = item.decision_id;
           return (
             <li
               key={index}
-              className="flex items-center justify-between gap-4 rounded-box border border-line bg-surface px-4 py-3 text-small text-ink"
+              className="flex items-center justify-between gap-4 border-b border-line py-3.5 text-body text-ink"
             >
-              <span>
+              <span className="min-w-0">
                 <RichText text={item.text} facts={facts} names={names} />
               </span>
               {decision && (
                 <Button
-                  variant="ghost"
-                  className="h-9 px-3"
+                  variant="secondary"
+                  className="h-9 shrink-0 px-4 text-small"
                   onClick={() => {
                     open.decision(decision);
                   }}
@@ -201,13 +215,15 @@ function Pending({ section, facts, names }: Parts & { section?: Section }) {
 
 function Generic({ section, facts, names }: Parts & { section: Section }) {
   return (
-    <section aria-label={section.title} className="flex flex-col gap-2">
-      <h2 className="text-small font-semibold text-ink">{section.title}</h2>
+    <section aria-label={section.title} className="flex flex-col gap-3">
+      <h2 className="border-b border-line pb-2.5 text-small font-medium text-ink-muted">
+        {section.title}
+      </h2>
       {section.items.length === 0 && section.empty && (
         <p className="text-small text-ink-muted">{section.empty}</p>
       )}
       {section.items.map((item, index) => (
-        <p key={index} className="text-small text-ink">
+        <p key={index} className="text-body text-ink">
           <RichText text={item.text} facts={facts} names={names} />
         </p>
       ))}

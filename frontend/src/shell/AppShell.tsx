@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Outlet, useLocation, useMatches } from "react-router";
 
 import { Composer } from "./Composer";
+import { Suggestions } from "./Suggestions";
+import { suggestedQuestions, useMorningBrief } from "@/conversation/morningBrief";
 import { useConversation } from "@/conversation/context";
 import { ConversationProvider } from "@/conversation/ConversationProvider";
 import { NavRail } from "./NavRail";
@@ -58,7 +60,7 @@ export function AppShell() {
         <div
           className={cx(
             "flex min-h-dvh flex-col gap-8 px-4 pt-4 transition-[padding] duration-200 ease-out md:pt-6 md:pr-10",
-            composer ? "pb-[200px]" : "pb-24",
+            composer ? "pb-[240px]" : "pb-24",
             beside,
           )}
         >
@@ -92,8 +94,18 @@ export function AppShell() {
   );
 }
 
-/** The composer of the conversation: a question typed or said goes into it. */
+/**
+ * The composer of the conversation: a question typed or said goes into it. Until the first one,
+ * questions drawn from the morning brief sit above it.
+ */
 function ConversationComposer() {
-  const { ask, askByVoice } = useConversation();
-  return <Composer onSend={ask} onVoice={askByVoice} />;
+  const { ask, askByVoice, messages } = useConversation();
+  const { brief } = useMorningBrief();
+  const asked = messages.some((m) => m.kind === "question");
+  return (
+    <div className="flex flex-col gap-3">
+      {!asked && <Suggestions questions={suggestedQuestions(brief)} onPick={ask} />}
+      <Composer onSend={ask} onVoice={askByVoice} />
+    </div>
+  );
 }

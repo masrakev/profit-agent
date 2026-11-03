@@ -103,7 +103,8 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
     }
   };
 
-  if (incident.isPending) return <p className="h-16 animate-pulse rounded-card bg-subtle" />;
+  if (incident.isPending)
+    return <p aria-busy="true" className="h-16 animate-pulse rounded-md bg-subtle" />;
   if (incident.isError) {
     return <p className="text-body text-ink-muted">This problem could not be loaded.</p>;
   }
@@ -118,7 +119,7 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
 
   return (
     <section aria-label="What I checked" className="flex flex-col gap-4">
-      <h2 className="text-title font-semibold text-ink">Here’s what I checked.</h2>
+      <h2 className="text-heading font-semibold text-ink">Here’s what I checked.</h2>
       {live !== null && <Working steps={live} names={names} live />}
       {live === null && steps.data && (
         <Working
@@ -135,13 +136,13 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
         </p>
       )}
       {!investigationId && live === null && (
-        <div className="flex flex-col items-start gap-3 rounded-card border border-line bg-surface p-6">
+        <div className="flex flex-col items-start gap-3 border-t border-line pt-4">
           <p className="text-body text-ink">This problem has not been investigated yet.</p>
           <Button onClick={() => void investigate()}>Investigate now</Button>
         </div>
       )}
       {top && (
-        <article className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-float">
+        <article className="flex flex-col gap-4 border-t border-line pt-5">
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-heading font-semibold text-ink">
               {top.entities.map((entity, index) => (
@@ -163,7 +164,10 @@ export function InvestigationMessage({ incidentId }: { incidentId: string }) {
             .
           </p>
           {top.tests_performed.length > 0 && (
-            <ul className="flex list-disc flex-col gap-1 pl-5 text-small text-ink-muted">
+            <ul
+              className="ml-[3px] flex flex-col gap-1.5 border-l border-line pl-4 text-small text-ink-muted"
+              data-stagger
+            >
               {top.tests_performed.map((test, index) => (
                 <li key={index}>{test.charAt(0).toUpperCase() + test.slice(1)}</li>
               ))}

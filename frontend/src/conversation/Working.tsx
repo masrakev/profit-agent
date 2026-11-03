@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import type { AgentStep } from "./model";
 import type { Names } from "./RichText";
 import { stepFailed, stepText, visibleSteps } from "./steps";
+import { AgentMark } from "@/ui/AgentMark";
 import { cx } from "@/ui/cx";
 import { Icon } from "@/ui/Icon";
 
@@ -19,7 +20,8 @@ interface WorkingProps {
 
 /**
  * The agent's work, step by step, as it happens: what it read and checked, in plain words. While
- * it works the block is open and live; once the answer is there it folds into one line.
+ * it works the mark breathes and each step appears under a thin rule; once the answer is there it
+ * folds into one line.
  */
 export function Working({
   steps,
@@ -34,10 +36,7 @@ export function Working({
   const expanded = live || open;
 
   return (
-    <section
-      aria-label={live ? "Working" : title}
-      className="flex flex-col gap-2 rounded-box border border-line bg-surface px-4 py-3"
-    >
+    <section aria-label={live ? "Working" : title} className="flex flex-col gap-3">
       <button
         type="button"
         aria-expanded={expanded}
@@ -46,27 +45,28 @@ export function Working({
         onClick={() => {
           setOpen((was) => !was);
         }}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 text-small font-semibold text-ink disabled:cursor-default"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md text-small font-medium text-ink disabled:cursor-default"
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2.5">
           {live ? (
-            <span
-              aria-hidden="true"
-              className="size-2 animate-pulse rounded-full bg-accent-mark"
-              data-part="live"
-            />
+            <AgentMark state="working" size="sm" />
           ) : (
-            <Icon name="circle-check" size={16} className="text-accent-ink" />
+            <Icon name="circle-check" size={16} className="text-ink-muted" />
           )}
           {live ? "Working…" : title}
           {!live && duration && (
-            <span className="font-normal text-ink-muted">· took {duration}</span>
+            <span className="font-mono text-label font-normal text-ink-muted">
+              · took {duration}
+            </span>
           )}
         </span>
         {!live && (
           <Icon
             name="chevron-up"
-            className={cx("text-ink-muted transition-transform", !open && "rotate-180")}
+            className={cx(
+              "text-ink-muted transition-transform duration-200",
+              !open && "rotate-180",
+            )}
           />
         )}
       </button>
@@ -74,7 +74,8 @@ export function Working({
         id={listId}
         hidden={!expanded}
         aria-live={live ? "polite" : undefined}
-        className="flex-col gap-1.5 [&:not([hidden])]:flex"
+        data-stagger
+        className="ml-[7px] flex-col gap-2 border-l border-line pl-4 [&:not([hidden])]:flex"
       >
         {shown.length === 0 && live && (
           <li className="text-small text-ink-muted">Reading your question…</li>
@@ -82,12 +83,8 @@ export function Working({
         {shown.map((step, index) => (
           <li
             key={index}
-            className={cx(
-              "flex items-start gap-2 text-small",
-              stepFailed(step) ? "text-danger-ink" : "text-ink-muted",
-            )}
+            className={cx("text-small", stepFailed(step) ? "text-danger-ink" : "text-ink-muted")}
           >
-            <span aria-hidden="true" className="mt-[7px] size-1 shrink-0 rounded-full bg-current" />
             {stepText(step, names)}
             {stepFailed(step) && <span className="sr-only"> (it failed)</span>}
           </li>

@@ -182,7 +182,11 @@ describe("asking", () => {
     expect(answer).toHaveTextContent(/it spent/);
     const sent = fake.requests.find((r) => r.url.endsWith("/ask/stream"));
     expect(await sent?.json()).toEqual({ question: "What should I do about the jacket?" });
-    expect(within(answer).getByRole("button", { name: "$1,235, see the proof" })).toBeVisible();
+    expect(within(answer).getAllByRole("button", { name: "$1,235, see the proof" })).toHaveLength(
+      2,
+    );
+    const evidence = within(answer).getByRole("region", { name: "Evidence" });
+    expect(within(evidence).getByText("Net profit")).toBeVisible(); // each fact named, with its value
     expect(within(answer).getByText("Trail Jacket — Prospecting")).toBeInTheDocument();
     expect(within(answer).getByText(/Next step:/).parentElement).toHaveTextContent(
       "Pause until restock, expected +$613 to +$654",

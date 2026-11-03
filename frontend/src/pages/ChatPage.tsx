@@ -19,7 +19,7 @@ export function ChatPage() {
   }, [count]);
 
   return (
-    <section aria-label="Conversation" className="flex flex-col gap-8">
+    <section aria-label="Conversation" className="flex flex-col gap-12">
       <h1 className="sr-only">Chat</h1>
       <Brief />
       {messages.map((message, index) => (
