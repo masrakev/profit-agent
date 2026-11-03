@@ -107,7 +107,7 @@ def test_a_web_approval_and_its_execution_say_who_and_from_where(
     assert (approval.action, approval.actor, approval.channel) == (
         "decision.approved",
         OWNER,
-        "api",
+        "web",  # the signed-in web app: a session, not an API token
     )
     assert approval.origin == origin
     assert (executed.action, executed.actor, executed.decided_by) == (
@@ -115,7 +115,7 @@ def test_a_web_approval_and_its_execution_say_who_and_from_where(
         "system:executor",
         OWNER,
     )
-    assert (executed.channel, executed.origin) == ("api", origin)
+    assert (executed.channel, executed.origin) == ("web", origin)
 
     # Undone from the app: the rollback names its own request, and its execution cites it.
     with tenant_transaction(app_engine, sim["id"]) as conn:
@@ -141,6 +141,29 @@ def test_a_web_approval_and_its_execution_say_who_and_from_where(
             {"a": rollback},
         ).scalar_one()
     assert (cited["actor"], cited["origin"]["request_id"]) == (OWNER, "req-web-rollback-01")
+
+
+def test_an_api_token_approval_is_the_api_channel(
+    app_engine: Engine, sim: dict[str, Any], client: TestClient
+) -> None:
+    token = uuid4()
+    script = Principal(kind="token", store_ids=AnyStore(), label="token:reports", token_id=token)
+    app.dependency_overrides[get_principal] = lambda: script
+    d = proposed(app_engine, sim["id"], sim["campaigns"][2], "token")
+    approved = client.post(
+        f"/api/v1/stores/{sim['id']}/decisions/{d.decision_id}/approve",
+        json={"option_id": d.recommended_option_id},
+        headers={"User-Agent": "reports-script/1.0", "X-Request-ID": "req-token-approve-01"},
+    )
+    assert approved.status_code == 200, approved.text
+    approval = who(app_engine, sim["id"], d.decision_id)[0]
+    assert (approval.actor, approval.channel) == ("token:reports", "api")
+    assert (approval.origin["token_id"], approval.origin["session_id"]) == (str(token), None)
+    with tenant_transaction(app_engine, sim["id"]) as conn:
+        channels = conn.execute(
+            text("SELECT channel FROM approvals WHERE decision_id = :d"), {"d": d.decision_id}
+        ).scalars()
+        assert list(channels) == ["api"]
 
 
 def test_an_email_approval_names_its_link_and_request(

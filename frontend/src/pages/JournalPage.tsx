@@ -34,8 +34,8 @@ const CATEGORIES: Record<string, string> = {
   operations: "in operations",
 };
 const CHANNELS: Record<string, string> = {
-  api: "in the app",
   web: "in the app",
+  api: "with an API token",
   email: "by email",
   whatsapp: "on WhatsApp",
 };

@@ -7568,7 +7568,7 @@
     },
     "/api/v1/stores/{store_id}/decisions/{decision_id}/approve": {
       "post": {
-        "description": "Approve one option (web channel): its actions are queued in the same transaction.",
+        "description": "Approve one option: its actions are queued in the same transaction.",
         "operationId": "post_approve_api_v1_stores__store_id__decisions__decision_id__approve_post",
         "parameters": [
           {

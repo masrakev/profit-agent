@@ -437,7 +437,7 @@ export interface paths {
         put?: never;
         /**
          * Post Approve
-         * @description Approve one option (web channel): its actions are queued in the same transaction.
+         * @description Approve one option: its actions are queued in the same transaction.
          */
         post: operations["post_approve_api_v1_stores__store_id__decisions__decision_id__approve_post"];
         delete?: never;

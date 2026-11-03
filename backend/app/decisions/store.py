@@ -80,7 +80,8 @@ TRANSITIONS: frozenset[tuple[DecisionStatus, DecisionStatus]] = frozenset(
 
 
 class Channel(StrEnum):
-    API = "api"
+    WEB = "web"  # the signed-in web app (a session)
+    API = "api"  # an API token
     EMAIL = "email"
     WHATSAPP = "whatsapp"  # a reply button carrying a signed approval link (app.whatsapp.buttons)
 

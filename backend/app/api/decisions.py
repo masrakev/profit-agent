@@ -171,9 +171,11 @@ def _decide(
     decision_id: UUID,
     option: str | None,
     verdict: Verdict,
-    actor: str,
+    principal: Principal,
     origin: Origin,
 ) -> DecisionView:
+    """The owner's answer, from the signed-in web app (channel `web`) or an API token (`api`)."""
+    channel = Channel.WEB if principal.kind == "session" else Channel.API
     with tenant_transaction(engine, store_id) as conn:
         result: DecisionView = _found(
             lambda: decide(
@@ -182,8 +184,8 @@ def _decide(
                 decision_id,
                 option,
                 verdict,
-                channel=Channel.API,
-                actor=actor,
+                channel=channel,
+                actor=principal.label,
                 origin=origin,
                 meta_links=settings.meta_campaign_links,
             )
@@ -205,7 +207,7 @@ def post_approve(
     principal: PrincipalDep,
     request: Request,
 ) -> DecisionView:
-    """Approve one option (web channel): its actions are queued in the same transaction."""
+    """Approve one option: its actions are queued in the same transaction."""
     return _decide(
         engine,
         settings,
@@ -213,7 +215,7 @@ def post_approve(
         decision_id,
         body.option_id,
         Verdict.APPROVED,
-        principal.label,
+        principal,
         _origin(request, principal),
     )
 
@@ -238,7 +240,7 @@ def post_reject(
         decision_id,
         None,
         Verdict.REJECTED,
-        principal.label,
+        principal,
         _origin(request, principal),
     )
 
