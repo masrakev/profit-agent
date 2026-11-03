@@ -22,4 +22,5 @@ export const SOURCES: Record<string, string> = {
   incident: "From an alert",
   goal: "From your goal’s plan",
   owner: "You asked",
+  system: "From my budget review",
 };

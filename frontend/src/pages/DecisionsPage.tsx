@@ -16,6 +16,7 @@ import { StatusPill } from "@/ui/StatusPill";
 
 type Decision = Schemas["DecisionView"];
 type Trust = Schemas["TrustEntry"];
+type Outcome = Decision["outcomes"][number];
 
 /** The decisions by where they stand, the owner's first. */
 const GROUPS: { title: string; statuses: string[] }[] = [
@@ -58,35 +59,18 @@ export function DecisionsPage() {
         }),
       ),
   });
-  // A measured decision's effect is its outcome's fact, which the journal lists.
-  const outcomes = useQuery({
-    queryKey: ["journal", storeId, "outcomes"],
-    queryFn: () =>
-      unwrap(
-        api.GET("/api/v1/stores/{store_id}/journal", { params: { path, query: { limit: 200 } } }),
-      ),
-    select: (page) =>
-      new Map(
-        page.items
-          .filter((e) => e.kind === "outcome")
-          .flatMap((e) => {
-            const s = e.summary as { decision_id?: unknown; effect_fact_id?: unknown };
-            return typeof s.decision_id === "string" && typeof s.effect_fact_id === "number"
-              ? [[s.decision_id, s.effect_fact_id] as const]
-              : [];
-          }),
-      ),
-  });
   const trust = useQuery({
     queryKey: ["trust", storeId],
     queryFn: () => unwrap(api.GET("/api/v1/stores/{store_id}/trust", { params: { path } })),
   });
 
   const items = decisions.data?.items ?? [];
-  const ids = [
-    ...items.map((d) => predicted(d)),
-    ...items.map((d) => outcomes.data?.get(d.decision_id) ?? null),
-  ].flatMap((id) => (id == null ? [] : [id]));
+  const ids = items
+    .flatMap((d) => {
+      const o = outcomeOf(d);
+      return [o?.predicted_fact_id ?? predicted(d), o?.effect_fact_id];
+    })
+    .flatMap((id) => (id == null ? [] : [id]));
   const factQueries = useQueries({
     queries: [...new Set(ids)].map((factId) => ({
       queryKey: factKey(storeId, factId),
@@ -133,8 +117,8 @@ export function DecisionsPage() {
               <DecisionRow
                 key={d.decision_id}
                 decision={d}
-                expected={facts.get(predicted(d) ?? -1)}
-                measured={facts.get(outcomes.data?.get(d.decision_id) ?? -1)}
+                expected={facts.get(outcomeOf(d)?.predicted_fact_id ?? predicted(d) ?? -1)}
+                measured={facts.get(outcomeOf(d)?.effect_fact_id ?? -1)}
               />
             ))}
           </section>
@@ -142,6 +126,11 @@ export function DecisionsPage() {
       })}
     </section>
   );
+}
+
+/** Its latest measured outcome, else its latest one (an abstention says why). */
+function outcomeOf(d: Decision): Outcome | undefined {
+  return d.outcomes.findLast((o) => o.status === "measured") ?? d.outcomes.at(-1);
 }
 
 /** The impact the decision expects: its chosen option's, or the recommended one's. */
@@ -181,12 +170,17 @@ function DecisionRow({
         <StatusPill tone={status.tone}>{status.text}</StatusPill>
       </header>
       {measured ? (
-        <CompareRanges
-          rows={[
-            ...(expected ? [{ label: "Predicted", fact: expected }] : []),
-            { label: "Measured", fact: measured },
-          ]}
-        />
+        <div className="flex flex-col gap-2">
+          <CompareRanges
+            rows={[
+              ...(expected ? [{ label: "Predicted", fact: expected }] : []),
+              { label: "Measured", fact: measured },
+            ]}
+          />
+          {outcomeOf(decision)?.verdict_text && (
+            <p className="text-small text-ink">{outcomeOf(decision)?.verdict_text}</p>
+          )}
+        </div>
       ) : (
         expected && (
           <p className="text-small text-ink">
@@ -245,6 +239,9 @@ function Autonomy({ entries }: { entries: Trust[] }) {
               <span className="text-label text-ink-muted">
                 {LEVELS[entry.level] ?? "Its level is not known"}
               </span>
+              {entry.progress && (
+                <span className="text-label text-ink-muted">{entry.progress}</span>
+              )}
             </div>
             {entry.proposal && (
               <Link

@@ -1,11 +1,12 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
 import { useOpenInChat } from "@/conversation/open";
+import type { Names } from "@/conversation/RichText";
 import { statusOf } from "@/decisions/status";
 import { FactValue } from "@/facts/FactValue";
-import { factKey, type Fact } from "@/facts/facts";
+import type { Fact } from "@/facts/facts";
 import { formatTime, localDay } from "@/format/dates";
 import { useStore } from "@/stores/store";
 import { Icon } from "@/ui/Icon";
@@ -58,6 +59,8 @@ export function JournalPage() {
     queryKey: ["journal", storeId, "all"],
     queryFn: async () => {
       const entries: Entry[] = [];
+      const names: Names = {};
+      const cited: Record<string, Fact> = {};
       let cursor: string | null = null;
       for (let page = 0; page < PAGES; page += 1) {
         const query: { limit: number; cursor?: string } = { limit: 200 };
@@ -66,10 +69,13 @@ export function JournalPage() {
           api.GET("/api/v1/stores/{store_id}/journal", { params: { path, query } }),
         );
         entries.push(...found.items);
+        Object.assign(names, found.names);
+        Object.assign(cited, found.facts);
         cursor = found.next_cursor ?? null;
         if (!cursor) break;
       }
-      return entries; // newest first, as the API lists them
+      // Newest first, as the API lists them, with the names and facts the entries cite.
+      return { entries, names, facts: cited };
     },
   });
   const decisions = useQuery({
@@ -82,26 +88,6 @@ export function JournalPage() {
       ),
   });
   const byId = new Map((decisions.data?.items ?? []).map((d) => [d.decision_id, d]));
-
-  const effects = (journal.data ?? []).flatMap((e) => {
-    const id = (e.summary as { effect_fact_id?: unknown }).effect_fact_id;
-    return e.kind === "outcome" && typeof id === "number" ? [id] : [];
-  });
-  const factQueries = useQueries({
-    queries: effects.map((factId) => ({
-      queryKey: factKey(storeId, factId),
-      staleTime: Infinity,
-      queryFn: () =>
-        unwrap(
-          api.GET("/api/v1/stores/{store_id}/facts/{fact_id}", {
-            params: { path: { ...path, fact_id: factId } },
-          }),
-        ),
-    })),
-  });
-  const facts = new Map<number, Fact>(
-    factQueries.flatMap((q) => (q.data ? [[q.data.fact.fact_id, q.data.fact] as const] : [])),
-  );
 
   return (
     <section aria-labelledby="journal-title" className="flex flex-col gap-8">
@@ -119,23 +105,32 @@ export function JournalPage() {
       {journal.isError && (
         <p className="text-body text-ink-muted">The journal could not be loaded.</p>
       )}
-      {journal.data?.length === 0 && (
+      {journal.data?.entries.length === 0 && (
         <p className="text-body text-ink-muted">Nothing has happened yet.</p>
       )}
-      {journal.data && <Days entries={journal.data} decisions={byId} facts={facts} />}
+      {journal.data && (
+        <Days
+          entries={journal.data.entries}
+          decisions={byId}
+          facts={journal.data.facts}
+          names={journal.data.names}
+        />
+      )}
     </section>
   );
+}
+
+interface Cited {
+  facts: Record<string, Fact>;
+  names: Names;
 }
 
 function Days({
   entries,
   decisions,
   facts,
-}: {
-  entries: Entry[];
-  decisions: Map<string, Decision>;
-  facts: Map<number, Fact>;
-}) {
+  names,
+}: Cited & { entries: Entry[]; decisions: Map<string, Decision> }) {
   const { timezone } = useStore();
   const days: { key: string; label: string; entries: Entry[] }[] = [];
   for (const entry of entries) {
@@ -158,6 +153,7 @@ function Days({
                 entry={entry}
                 decisions={decisions}
                 facts={facts}
+                names={names}
               />
             ))}
           </ol>
@@ -180,6 +176,9 @@ interface Summary {
   error?: unknown;
   rollback_of?: unknown;
   effect_fact_id?: unknown;
+  verdict_text?: unknown;
+  budget_before_fact_id?: unknown;
+  budget_after_fact_id?: unknown;
 }
 
 const text = (value: unknown): string | null => (typeof value === "string" ? value : null);
@@ -188,11 +187,8 @@ function JournalLine({
   entry,
   decisions,
   facts,
-}: {
-  entry: Entry;
-  decisions: Map<string, Decision>;
-  facts: Map<number, Fact>;
-}) {
+  names,
+}: Cited & { entry: Entry; decisions: Map<string, Decision> }) {
   const { timezone } = useStore();
   const open = useOpenInChat();
   const s = entry.summary as Summary;
@@ -203,7 +199,12 @@ function JournalLine({
   );
   const what = option?.label ?? decision?.label ?? "a decision";
   const platform = s.provider === "meta" ? "Meta Ads" : "The ad platform";
-  const effect = typeof s.effect_fact_id === "number" ? facts.get(s.effect_fact_id) : undefined;
+  const fact = (id: unknown) => (typeof id === "number" ? facts[String(id)] : undefined);
+  const effect = fact(s.effect_fact_id);
+  const before = fact(s.budget_before_fact_id);
+  const after = fact(s.budget_after_fact_id);
+  // What the entry is about, by name (merchant text, rendered as text).
+  const about = entry.entities.map((ref) => names[ref]).filter((n): n is string => Boolean(n));
 
   let line: string;
   let detail: string | null = null;
@@ -214,6 +215,7 @@ function JournalLine({
       line = `${ALERTS[text(s.alert) ?? ""] ?? "A problem was found"} ${
         CATEGORIES[text(s.category) ?? ""] ?? ""
       }`.trim();
+      detail = about.length > 0 ? `About ${about.join(", ")}.` : null;
       break;
     case "decision":
       line = decision?.source === "owner" ? `You asked: ${what}` : `I proposed: ${what}`;
@@ -240,6 +242,7 @@ function JournalLine({
     }
     case "outcome":
       line = s.status === "measured" ? `Measured: ${what}` : `Could not be measured: ${what}`;
+      detail = text(s.verdict_text);
       break;
     default:
       line = entry.kind;
@@ -255,6 +258,12 @@ function JournalLine({
       <div className="flex flex-1 flex-col gap-1">
         <p className="text-small text-ink">{line}</p>
         {detail && <p className="text-label text-ink-muted">{detail}</p>}
+        {before && after && (
+          <p className="text-label text-ink-muted">
+            Daily budget: <FactValue fact={before} title={before.name} className="text-ink" />{" "}
+            before, <FactValue fact={after} title={after.name} className="text-ink" /> after
+          </p>
+        )}
         {effect && (
           <p className="text-label text-ink-muted">
             Its measured effect on net profit:{" "}

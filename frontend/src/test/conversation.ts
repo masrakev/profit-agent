@@ -160,6 +160,7 @@ export function decision(status: string, extra: Record<string, unknown> = {}) {
     ],
     superseded_by: null,
     superseded_reason: null,
+    outcomes: [],
     ...extra,
   };
 }

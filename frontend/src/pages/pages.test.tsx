@@ -7,6 +7,7 @@ import {
   CAMPAIGN,
   DECISION,
   INCIDENT,
+  PRODUCT,
   NAMES,
   decision,
   impact,
@@ -126,6 +127,7 @@ describe("Today", () => {
 });
 
 const MEASURED = "d-measured";
+const HELD_ABOVE = "Better than predicted: the measured effect is above the predicted range.";
 const OWNER = "d-owner";
 const effect = estimateFact(
   30,
@@ -140,7 +142,24 @@ function decisions() {
     items: [
       decision("proposed"),
       decision("executed", { decision_id: "d-done" }),
-      decision("measured", { decision_id: MEASURED }),
+      decision("measured", {
+        decision_id: MEASURED,
+        outcomes: [
+          {
+            outcome_id: "o-1",
+            action_id: "a-1",
+            status: "measured",
+            method: "synthetic_control_v2",
+            window_start: "2026-09-15",
+            window_end: "2026-09-22",
+            effect_fact_id: 30,
+            predicted_fact_id: 21,
+            verdict: "above",
+            verdict_text: HELD_ABOVE,
+            reason: "measured",
+          },
+        ],
+      }),
       decision("measured", {
         decision_id: OWNER,
         source: "owner",
@@ -148,6 +167,21 @@ function decisions() {
         approved_option_id: "owner",
         label: "Raise the daily budget of ‘Trail Jacket — Prospecting’ by 20%?",
         options: [option("owner", "Raise the daily budget by 20%", null)],
+        outcomes: [
+          {
+            outcome_id: "o-2",
+            action_id: "a-2",
+            status: "measured",
+            method: "synthetic_control_v2",
+            window_start: "2026-09-08",
+            window_end: "2026-09-15",
+            effect_fact_id: 30,
+            predicted_fact_id: null,
+            verdict: null,
+            verdict_text: null,
+            reason: "measured",
+          },
+        ],
       }),
       decision("superseded", { decision_id: "d-old", approved_option_id: null }),
       decision("approved", { decision_id: "d-going" }),
@@ -156,24 +190,28 @@ function decisions() {
   };
 }
 
-function outcome(decisionId: string, factId: number) {
-  return {
-    id: `o-${decisionId}`,
-    kind: "outcome",
-    at: "2026-10-26T10:00:00Z",
-    summary: { decision_id: decisionId, status: "measured", effect_fact_id: factId },
-  };
-}
-
 const TRUST = [
-  { action_type: "pause_campaign", level: 2, measured: 0, abstained: 0, rollbacks: 0 },
+  {
+    action_type: "pause_campaign",
+    level: 2,
+    measured: 1,
+    abstained: 0,
+    rollbacks: 0,
+    confirmations: 1,
+    threshold: 10,
+    progress: "1 of 10 confirmations before I can ask to do this alone",
+  },
   {
     action_type: "change_budget",
     level: 3,
     measured: 10,
     abstained: 0,
     rollbacks: 0,
+    confirmations: 10,
+    threshold: 10,
     proposal: "propose autonomy level 4 for change_budget",
+    proposed_level: 4,
+    progress: "My predictions held 10 times: I can ask to manage this within its scope.",
   },
 ];
 
@@ -181,10 +219,6 @@ describe("the Decisions page", () => {
   function page() {
     return signedInApi()
       .on(`GET ${BASE}/decisions`, decisions())
-      .on(`GET ${BASE}/journal`, {
-        items: [outcome(MEASURED, 30), outcome(OWNER, 30)],
-        next_cursor: null,
-      })
       .on(`GET ${BASE}/trust`, TRUST)
       .on(`GET ${BASE}/facts/21`, proofOf(impact))
       .on(`GET ${BASE}/facts/30`, proofOf(effect));
@@ -206,6 +240,7 @@ describe("the Decisions page", () => {
     expect(await measured.findByText("Predicted")).toBeVisible();
     expect(measured.getByText("Measured")).toBeVisible();
     expect(measured.getByRole("button", { name: "+$23 to +$1,299, see the proof" })).toBeVisible();
+    expect(measured.getByText(HELD_ABOVE)).toBeVisible(); // the backend's verdict, as written
     const asked = within(done).getByRole("article", { name: "Raise the daily budget by 20%" });
     expect(within(asked).getByText(/You asked ·/)).toBeVisible();
     expect(within(asked).queryByText("Predicted")).toBeNull(); // nothing was predicted as a fact
@@ -224,6 +259,9 @@ describe("the Decisions page", () => {
     expect(within(autonomy).getByText("Pausing a campaign")).toBeVisible();
     expect(within(autonomy).getByText("I ask you first, every time")).toBeVisible();
     expect(within(autonomy).getByText("I act alone within your caps")).toBeVisible();
+    expect(
+      within(autonomy).getByText("1 of 10 confirmations before I can ask to do this alone"),
+    ).toBeVisible();
     const allow = within(autonomy).getAllByRole("link", { name: "Always allow" });
     expect(allow).toHaveLength(1);
     expect(allow[0]).toHaveAttribute("href", "/settings");
@@ -244,7 +282,6 @@ describe("the Decisions page", () => {
   it("says when there is none, or they cannot be read", async () => {
     const none = signedInApi()
       .on(`GET ${BASE}/decisions`, { items: [], next_cursor: null })
-      .on(`GET ${BASE}/journal`, { items: [], next_cursor: null })
       .on(`GET ${BASE}/trust`, []);
     const { unmount } = renderApp("/decisions", none.api);
     expect(await screen.findByText("No decision yet.")).toBeVisible();
@@ -257,6 +294,8 @@ describe("the Decisions page", () => {
 
 describe("the Journal", () => {
   const at = (day: string, time: string) => `2026-${day}T${time}:00Z`;
+  const BEFORE = { ...exact, fact_id: 41, display: "$68.57", name: "Daily budget before" };
+  const AFTER = { ...exact, fact_id: 42, display: "$82.28", name: "Daily budget after" };
   const ENTRIES = [
     {
       id: "a-1",
@@ -270,6 +309,7 @@ describe("the Journal", () => {
         status: "executed",
         after: { status: "PAUSED" },
       },
+      entities: [`campaign:${CAMPAIGN}`],
     },
     {
       id: "ap-1",
@@ -283,12 +323,19 @@ describe("the Journal", () => {
       kind: "incident",
       at: at("11-02", "19:34"),
       summary: { alert: "critical", category: "profitability" },
+      entities: [`product:${PRODUCT}`, `campaign:${CAMPAIGN}`],
     },
     {
       id: "o-1",
       kind: "outcome",
       at: at("10-26", "10:00"),
-      summary: { decision_id: OWNER, status: "measured", effect_fact_id: 30 },
+      summary: {
+        decision_id: OWNER,
+        status: "measured",
+        effect_fact_id: 30,
+        verdict: "above",
+        verdict_text: HELD_ABOVE,
+      },
     },
     {
       id: "o-2",
@@ -309,6 +356,18 @@ describe("the Journal", () => {
       summary: { decision_id: OWNER, status: "executed", rollback_of: "a-0", provider: "meta" },
     },
     {
+      id: "a-4",
+      kind: "action",
+      at: at("10-25", "07:00"),
+      summary: {
+        decision_id: OWNER,
+        kind: "change_budget",
+        status: "executed",
+        budget_before_fact_id: 41,
+        budget_after_fact_id: 42,
+      },
+    },
+    {
       id: "ap-2",
       kind: "approval",
       at: at("10-24", "08:00"),
@@ -324,7 +383,12 @@ describe("the Journal", () => {
       .on(`GET ${BASE}/journal`, () => {
         const items = pages[call] ?? [];
         call += 1;
-        return json({ items, next_cursor: call < pages.length ? `c${String(call)}` : null });
+        return json({
+          items: items.map((e) => ({ entities: [], ...e })),
+          next_cursor: call < pages.length ? `c${String(call)}` : null,
+          names: NAMES,
+          facts: { "30": effect, "41": BEFORE, "42": AFTER },
+        });
       })
       .on(`GET ${BASE}/decisions`, decisions())
       .on(`GET ${BASE}/facts/30`, proofOf(effect));
@@ -345,15 +409,19 @@ describe("the Journal", () => {
     expect(lines[2]).toHaveTextContent("I proposed: Pause ‘Trail Jacket — Prospecting’ until");
     expect(lines[2]).toHaveTextContent("Waiting for you"); // its status now
     expect(lines[3]).toHaveTextContent("A critical problem was found in profitability");
+    expect(lines[3]).toHaveTextContent("About Trail Jacket, Trail Jacket — Prospecting.");
     const measured = screen.getByRole("region", { name: "Mon, Oct 26" });
     expect(
       await within(measured).findByRole("button", { name: "+$23 to +$1,299, see the proof" }),
     ).toBeVisible();
     expect(measured).toHaveTextContent("Could not be measured: Raise the daily budget by 20%");
+    expect(measured).toHaveTextContent(HELD_ABOVE);
     const older = screen.getByRole("region", { name: "Sun, Oct 25" });
     expect(older).toHaveTextContent("Could not be carried out: Raise the daily budget by 20%");
     expect(older).toHaveTextContent("the token expired");
     expect(older).toHaveTextContent("Undone: Raise the daily budget by 20%");
+    expect(within(older).getByRole("button", { name: "$68.57, see the proof" })).toBeVisible();
+    expect(older).toHaveTextContent(/Daily budget: \$68\.57.* before, \$82\.28.* after/);
     const first = screen.getByRole("region", { name: "Sat, Oct 24" });
     expect(first).toHaveTextContent("You said not now on WhatsApp:");
     expect(first).toHaveTextContent("You asked: Raise the daily budget by 20%");
