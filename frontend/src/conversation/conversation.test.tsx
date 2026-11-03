@@ -142,9 +142,20 @@ describe("the morning brief", () => {
     expect(within(brief).getByText("Nothing to watch.")).toBeInTheDocument();
   });
 
-  it("says when there is none yet, or when it cannot be read", async () => {
-    renderApp("/", signedInApi().on(`GET ${BASE}/briefings`, { items: [], next_cursor: null }).api);
-    expect(await screen.findByText(/No morning brief yet/)).toBeInTheDocument();
+  it("gives way to the store's day as assembled now while there is none", async () => {
+    const fake = signedInApi()
+      .on(`GET ${BASE}/briefings`, { items: [], next_cursor: null })
+      .on(`GET ${BASE}/overview`, {
+        headline: "Nothing urgent today.",
+        sections: [],
+        facts: {},
+        names: {},
+      });
+    renderApp("/", fake.api);
+    expect(
+      await screen.findByRole("heading", { name: "Nothing urgent today.", level: 1 }),
+    ).toBeVisible();
+    expect(screen.queryByRole("article", { name: "Morning brief" })).toBeNull();
   });
 
   it("says when it cannot be read", async () => {

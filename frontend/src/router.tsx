@@ -1,4 +1,4 @@
-import type { RouteObject } from "react-router";
+import { Navigate, type RouteObject } from "react-router";
 
 import { ApprovalPage } from "@/approval/ApprovalPage";
 import { RequireSession } from "@/auth/RequireSession";
@@ -6,10 +6,10 @@ import { SignInPage } from "@/auth/SignInPage";
 import { ChatPage } from "@/pages/ChatPage";
 import { DecisionsPage } from "@/pages/DecisionsPage";
 import { GoalsPage } from "@/pages/GoalsPage";
+import { HomePage } from "@/pages/HomePage";
 import { JournalPage } from "@/pages/JournalPage";
 import { NotFoundPage } from "@/pages/placeholders";
 import { SettingsPage } from "@/pages/SettingsPage";
-import { TodayPage } from "@/pages/TodayPage";
 import { AppShell, type RouteHandle } from "@/shell/AppShell";
 
 const conversation: RouteHandle = { composer: true };
@@ -17,8 +17,10 @@ const conversation: RouteHandle = { composer: true };
 /** Every page. `dev` adds the component catalogue (`/style-guide`), absent from production. */
 export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
   const signedIn: RouteObject[] = [
-    { index: true, element: <ChatPage />, handle: conversation },
-    { path: "today", element: <TodayPage /> },
+    { index: true, element: <HomePage />, handle: conversation },
+    { path: "chat", element: <ChatPage />, handle: conversation },
+    // Today became Home: an old link still lands on the day.
+    { path: "today", element: <Navigate to="/" replace /> },
     { path: "decisions", element: <DecisionsPage /> },
     { path: "goals", element: <GoalsPage /> },
     { path: "journal", element: <JournalPage /> },

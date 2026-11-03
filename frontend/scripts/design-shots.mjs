@@ -107,7 +107,6 @@ try {
 
   if (part("pages")) {
     for (const [route, name, heading] of [
-      ["/today", "today", "Today"],
       ["/decisions", "decisions", "Decisions"],
       ["/goals", "goals", "Goals"],
       ["/journal", "journal", "Journal"],

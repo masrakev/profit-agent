@@ -7,12 +7,12 @@
  * Mailpit) and ports 8000 and 3000 free. E2E_SHOTS=<dir> also writes the live Working block at
  * 1440 px, dark and light, there. Exits 0 when every step held, 1 otherwise.
  *
- *   1. The morning brief opens the conversation.
- *   2. A typed question: the Working block streams, then the answer with its evidence and the
- *      Verified seal.
+ *   1. Home opens on the morning brief.
+ *   2. A question typed on Home opens Conversations: the Working block streams, then the answer
+ *      with its evidence and the Verified seal.
  *   3. The status line leads to Decisions; Review opens the approval card; Approve; executing;
  *      executed, with the platform's confirmation.
- *   4. The Journal records it.
+ *   4. The Journal (from Settings) records it.
  *   5. Goals: the 90-day goal and its plan; the six-month goal with low evidence and quarterly
  *      checkpoints.
  */
@@ -115,7 +115,7 @@ try {
   const brief = page.getByRole("article", { name: "Morning brief" });
   await brief.waitFor({ timeout: 30_000 });
   await brief.getByRole("heading", { level: 1 }).waitFor();
-  holds("the morning brief opens the conversation");
+  holds("Home opens on the morning brief");
 
   step = "a typed question";
   await page.getByRole("textbox", { name: "Ask anything about your store" }).fill(QUESTION);
@@ -170,7 +170,8 @@ try {
   holds("executed, with the platform's confirmation");
 
   step = "the Journal";
-  await page.getByRole("link", { name: "Journal" }).click();
+  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("link", { name: "Open the journal" }).click();
   await page.getByRole("heading", { name: "Journal", level: 1 }).waitFor();
   await page
     .getByText(/^Carried out: Pause ‘Trail Jacket/)

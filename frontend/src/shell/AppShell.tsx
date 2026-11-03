@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, useLocation, useMatches } from "react-router";
+import { Outlet, useLocation, useMatches, useNavigate } from "react-router";
 
 import { Composer } from "./Composer";
 import { Suggestions } from "./Suggestions";
@@ -95,17 +95,31 @@ export function AppShell() {
 }
 
 /**
- * The composer of the conversation: a question typed or said goes into it. Until the first one,
- * questions drawn from the morning brief sit above it.
+ * The composer of the conversation: a question typed or said goes into it, and from Home it opens
+ * Conversations to follow the answer. Until the first one, questions drawn from the morning brief
+ * sit above it.
  */
 function ConversationComposer() {
   const { ask, askByVoice, messages } = useConversation();
   const { brief } = useMorningBrief();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const asked = messages.some((m) => m.kind === "question");
+  const follow = () => {
+    if (pathname !== "/chat") void navigate("/chat");
+  };
+  const typed = (question: string) => {
+    ask(question);
+    follow();
+  };
+  const said = (recording: Blob) => {
+    askByVoice(recording);
+    follow();
+  };
   return (
     <div className="flex flex-col gap-3">
-      {!asked && <Suggestions questions={suggestedQuestions(brief)} onPick={ask} />}
-      <Composer onSend={ask} onVoice={askByVoice} />
+      {!asked && <Suggestions questions={suggestedQuestions(brief)} onPick={typed} />}
+      <Composer onSend={typed} onVoice={said} />
     </div>
   );
 }

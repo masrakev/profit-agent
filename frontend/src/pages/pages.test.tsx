@@ -66,17 +66,20 @@ const BRIDGE = {
   ],
 };
 
-describe("Today", () => {
+describe("Home", () => {
+  // A store with no morning brief yet: Home shows its day as assembled now.
   function today(extra: (fake: FakeApi) => FakeApi = (f) => f) {
     return extra(
-      signedInApi().on(`GET ${BASE}/overview`, OVERVIEW).on(`GET ${BASE}/profit-bridge`, BRIDGE),
+      signedInApi()
+        .on(`GET ${BASE}/briefings`, { items: [], next_cursor: null })
+        .on(`GET ${BASE}/overview`, OVERVIEW)
+        .on(`GET ${BASE}/profit-bridge`, BRIDGE),
     );
   }
 
   it("shows the store's day and what moved its net profit, every number a proof", async () => {
-    renderApp("/today", today().api);
-    expect(await screen.findByRole("heading", { name: "Today", level: 1 })).toBeVisible();
-    expect(await screen.findByText(OVERVIEW.headline)).toBeVisible();
+    renderApp("/today", today().api); // Today's old address lands on Home
+    expect(await screen.findByRole("heading", { name: OVERVIEW.headline, level: 1 })).toBeVisible();
     const store = await screen.findByRole("region", { name: "Your store" });
     expect(within(store).getByRole("button", { name: "$1,235, see the proof" })).toBeVisible();
     const bridge = screen.getByRole("region", { name: "What moved your net profit" });
@@ -107,7 +110,7 @@ describe("Today", () => {
     );
     renderApp("/today", fake.api);
     expect(await screen.findByText(/No driver stands out/)).toBeVisible();
-    await userEvent.click(screen.getByRole("button", { name: "See options" }));
+    await userEvent.click(await screen.findByRole("button", { name: "See options" }));
     // The decision opens on the Decisions page, its row expanded into the approval moment.
     expect(await screen.findByRole("heading", { name: "Decisions", level: 1 })).toBeVisible();
   });

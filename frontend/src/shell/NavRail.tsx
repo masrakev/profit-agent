@@ -10,14 +10,14 @@ import { cx } from "@/ui/cx";
 import { Icon } from "@/ui/Icon";
 import type { IconName } from "@/ui/icons";
 
+/** Four places: the day, the questions, the decisions, the goals. Settings sits at the foot. */
 const DESTINATIONS: { to: string; label: string; icon: IconName }[] = [
-  { to: "/", label: "Chat", icon: "message-circle" },
-  { to: "/today", label: "Today", icon: "sun" },
+  { to: "/", label: "Home", icon: "sun" },
+  { to: "/chat", label: "Conversations", icon: "message-circle" },
   { to: "/decisions", label: "Decisions", icon: "circle-check" },
   { to: "/goals", label: "Goals", icon: "flag" },
-  { to: "/journal", label: "Journal", icon: "book-open" },
-  { to: "/settings", label: "Settings", icon: "settings" },
 ];
+const SETTINGS = { to: "/settings", label: "Settings", icon: "settings" } as const;
 
 interface SidebarProps {
   collapsed: boolean;
@@ -116,6 +116,18 @@ export function NavRail({ collapsed: chosen, onToggle, drawer = false, onClose }
         ))}
       </ul>
       <div className="mt-auto flex flex-col gap-px">
+        <span className="group/tip relative">
+          <NavLink
+            to={SETTINGS.to}
+            className={({ isActive }) =>
+              cx(ROW, isActive ? "bg-subtle font-medium text-ink" : "hover:bg-subtle")
+            }
+          >
+            <Icon name={SETTINGS.icon} />
+            <span className={cx(collapsed && "sr-only")}>{SETTINGS.label}</span>
+          </NavLink>
+          <Tip show={collapsed}>{SETTINGS.label}</Tip>
+        </span>
         <ThemeToggle collapsed={collapsed} />
         <StoreMenu collapsed={collapsed} />
       </div>

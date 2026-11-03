@@ -5,7 +5,7 @@ import { useConversation } from "./context";
 /**
  * Where things open. A decision always opens on the Decisions page, its row expanded (everything
  * that asks the owner to decide lives there, not in the conversation). An investigation opens in
- * the conversation; from another page, the owner is taken there to see it.
+ * Conversations; from another page, the owner is taken there to see it.
  */
 export function useOpen() {
   const { openInvestigation } = useConversation();
@@ -17,7 +17,7 @@ export function useOpen() {
     },
     investigation: (incidentId: string) => {
       openInvestigation(incidentId);
-      if (pathname !== "/") void navigate("/");
+      if (pathname !== "/chat") void navigate("/chat");
     },
   };
 }

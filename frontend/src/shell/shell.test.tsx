@@ -20,34 +20,36 @@ afterEach(() => {
 });
 
 describe("the app shell", () => {
-  it("has the rail's six destinations, the current one marked", async () => {
+  it("has four places and Settings at its foot, the current one marked", async () => {
     renderApp("/", signedInApi().api);
     const rail = await screen.findByRole("navigation", { name: "Main" });
     const links = within(within(rail).getByRole("list")).getAllByRole("link");
     expect(links.map((link) => link.textContent)).toEqual([
-      "Chat",
-      "Today",
+      "Home",
+      "Conversations",
       "Decisions",
       "Goals",
-      "Journal",
-      "Settings",
     ]);
-    expect(within(rail).getByRole("link", { name: "Chat" })).toHaveAttribute(
+    expect(within(rail).getByRole("link", { name: "Home" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    await userEvent.click(within(rail).getByRole("link", { name: "Today" }));
-    expect(screen.getByRole("heading", { name: "Today" })).toBeInTheDocument();
-    expect(within(rail).getByRole("link", { name: "Chat" })).not.toHaveAttribute("aria-current");
+    await userEvent.click(within(rail).getByRole("link", { name: "Conversations" }));
+    expect(screen.getByRole("heading", { name: "Conversations" })).toBeInTheDocument();
+    expect(within(rail).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
+    await userEvent.click(within(rail).getByRole("link", { name: "Settings" }));
+    expect(await screen.findByRole("heading", { name: "Settings", level: 1 })).toBeVisible();
   });
 
-  it("docks the composer in the conversation only", async () => {
+  it("docks the composer on Home and in Conversations only", async () => {
     renderApp("/", signedInApi().api);
     expect(
       await screen.findByRole("textbox", { name: "Ask anything about your store" }),
     ).toBeVisible();
     expect(screen.getByText(COMPOSER_PROMISE)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("link", { name: "Journal" }));
+    await userEvent.click(screen.getByRole("link", { name: "Conversations" }));
+    expect(screen.getByRole("textbox", { name: "Ask anything about your store" })).toBeVisible();
+    await userEvent.click(screen.getByRole("link", { name: "Settings" }));
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 

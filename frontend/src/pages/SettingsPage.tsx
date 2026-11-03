@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router";
 
 import { unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
@@ -105,6 +106,19 @@ export function SettingsPage() {
                 );
               })}
             </ul>
+          </Section>
+          <Section title="History">
+            <p className="flex items-center justify-between gap-3 border-b border-line py-4">
+              <span className="text-body text-ink">
+                Everything that happened: what I found, what you decided, what changed.
+              </span>
+              <Link
+                to="/journal"
+                className="shrink-0 rounded-md text-small font-medium text-ink underline decoration-line underline-offset-4 hover:decoration-ink-muted"
+              >
+                Open the journal
+              </Link>
+            </p>
           </Section>
           <Section title="Where I reach you">
             <ul className="flex flex-col">
