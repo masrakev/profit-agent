@@ -105,6 +105,28 @@ try {
       console.log(`console ${m.type()}:`, m.text());
   });
 
+  if (part("ask")) {
+    // A typed question, asked first: its recorded exchange is the fresh store's (the pages below
+    // compute facts of their own, which would change the question's prompt).
+    await page.goto(`${BASE}/`);
+    await page.getByRole("article", { name: "Morning brief" }).waitFor();
+    await page
+      .getByRole("textbox", { name: "Ask anything about your store" })
+      .fill("What is hurting my profit the most this week, and what should I do about it?");
+    await page.keyboard.press("Enter");
+    // At the recorded pace (`make demo-api`) the work streams; replayed at once, it is gone.
+    const working = page.getByRole("region", { name: "Working" });
+    const live = await working
+      .getByRole("listitem")
+      .nth(1)
+      .waitFor({ timeout: 60_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (live) await shoot(page, "ask-working", { quick: true });
+    await page.getByRole("article", { name: "Answer" }).waitFor({ timeout: 240_000 });
+    await settle(page);
+    await shoot(page, "ask-answer");
+  }
   if (part("pages")) {
     for (const [route, name, heading] of [
       ["/decisions", "decisions", "Decisions"],
@@ -156,28 +178,6 @@ try {
     await page.unrouteAll();
   }
 
-  if (part("ask")) {
-    // A typed question, asked before the approval below: its recorded exchange is the fresh
-    // store's.
-    await page.goto(`${BASE}/`);
-    await page.getByRole("article", { name: "Morning brief" }).waitFor();
-    await page
-      .getByRole("textbox", { name: "Ask anything about your store" })
-      .fill("What is hurting my profit the most this week, and what should I do about it?");
-    await page.keyboard.press("Enter");
-    // At the recorded pace (`make demo-api`) the work streams; replayed at once, it is gone.
-    const working = page.getByRole("region", { name: "Working" });
-    const live = await working
-      .getByRole("listitem")
-      .nth(1)
-      .waitFor({ timeout: 60_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (live) await shoot(page, "ask-working", { quick: true });
-    await page.getByRole("article", { name: "Answer" }).waitFor({ timeout: 240_000 });
-    await settle(page);
-    await shoot(page, "ask-answer");
-  }
   if (part("conversation")) {
     await page.goto(`${BASE}/`);
     const brief = page.getByRole("article", { name: "Morning brief" });
