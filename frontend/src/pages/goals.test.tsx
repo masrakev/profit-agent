@@ -319,6 +319,20 @@ describe("Goals", () => {
     expect(within(thePlan).getByText(/over 14 days/)).toBeVisible();
   });
 
+  it("leads with the goal being followed, the newer ones listed after it", async () => {
+    const longer = goal("confirmed", {
+      goal_id: "g-six-months",
+      restatement:
+        "Your goal: net profit of {{F1}} in total from 2026-09-01 to 2027-02-27 included.",
+    });
+    renderApp("/goals", goals((f) => f.on(`GET ${BASE}/goals`, [longer, goal()])).api);
+    const yours = await screen.findByRole("article", { name: "Your goal" });
+    expect(within(yours).getByText("Following its plan")).toBeVisible();
+    const others = screen.getByRole("region", { name: "Other goals" });
+    expect(others).toHaveTextContent("2027-02-27");
+    expect(within(others).getByText("Confirmed")).toBeVisible();
+  });
+
   it("strikes the superseded step through and names what replaced it", async () => {
     renderApp("/goals", goals().api);
     const first = await screen.findByRole("listitem", { name: "Step 1" });

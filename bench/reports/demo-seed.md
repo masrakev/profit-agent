@@ -1,12 +1,13 @@
 # Demo store
 
-Seeded 2026-11-03T12:25:41+00:00 by `make demo-seed` from `golden-stockout_on_promoted` (simulator, 28 days before the data end, then two windows of 7 days).
+Seeded 2026-11-03T13:26:55+00:00 by `make demo-seed` from `golden-stockout_on_promoted` (simulator, 28 days before the data end, then two windows of 7 days).
 
 - Store `ed68bb6d-1d14-5b04-af2b-e272de12e862`, owner `owner@example.com` with an API token (printed by the seed).
-- Alert `inc-0806cd14e96b`, level **critical** (profitability); its decision `8567065f-5754-433d-b917-dda22578046b` is pending.
-- Investigation `b9006261-7202-4513-9f2b-26ef0a6a87d7`, with its step trace.
-- Briefings: daily `839b09be-aa09-4969-a97e-ea69d95f4085`, weekly `d84b254a-98df-49ad-af2b-7d6e9f456a43`, monthly `e6fa2652-a5d1-4e70-aa88-7f3681a46983`.
-- Goal `df7dffcc-8312-4a38-a593-8d1deaaa2850`: net profit over the next 90 days; plan `964483bb-d084-437b-92bd-e3a2538fce1b` accepted (`scale_profitable`, `reallocate_budget`); its due steps' decisions: `07951cdd` proposed, `5ea881ed` superseded (superseded: the alert's decision acts on the same campaign, on more recent data); revisions proposed: 1.
+- Alert `inc-0806cd14e96b`, level **critical** (profitability); its decision `a297dbd1-9791-4a6d-8567-ac9e82964dcf` is pending.
+- Investigation `f120835b-20b5-4aaf-bb3b-0d685935e36b`, with its step trace.
+- Briefings: daily `62259df8-20f1-4740-a5b7-201116fd283c`, weekly `86afe247-3b8a-40a0-9d07-4ff77b1cdb9f`, monthly `65e42537-6aed-4fc6-bff8-0893b97e9194`.
+- Goal `08f49b0e-074f-4cd0-98d5-adabadeb9387`: net profit over the next 90 days; plan `bb27d2a4-7ee7-4141-a9b9-a226c9409c71` accepted (`scale_profitable`, `reallocate_budget`); its due steps' decisions: `9b7c47ef` proposed, `35c0740c` superseded (superseded: the alert's decision acts on the same campaign, on more recent data); revisions proposed: 1.
+- Goal `267331b5-1322-43e0-ae9b-eaca06484418`: net profit over the next 180 days, confirmed (beyond 90 days: a band of verdicts and quarterly checkpoints).
 
 Goal tracking:
 
@@ -19,8 +20,8 @@ Past decisions:
 
 | Decision | Action | Outcome | Effect P10 / P50 / P90 | Relative error |
 | --- | --- | --- | --- | --- |
-| `88a8954b` | budget -30% | measured (measured) | 22.66 / 637.23 / 1298.77 | 0.3910 |
-| `21c5d9e3` | budget +20% | measured (measured) | -773.37 / -203.15 / 383.68 | 0.3716 |
+| `b6da889b` | budget -30% | measured (measured) | 22.66 / 637.23 / 1298.77 | 0.3910 |
+| `b57ce69e` | budget +20% | measured (measured) | -773.37 / -203.15 / 383.68 | 0.3716 |
 
 Rows:
 
@@ -30,7 +31,7 @@ Rows:
 | alerts | 1 |
 | decisions | 5 |
 | actions | 2 |
-| goals | 1 |
+| goals | 2 |
 | goal_plans | 1 |
 | goal_steps | 2 |
 | goal_progress | 3 |
@@ -38,5 +39,5 @@ Rows:
 | investigations | 1 |
 | investigation_steps | 20 |
 | briefings | 3 |
-| facts | 4520 |
-| audit_log | 24 |
+| facts | 4703 |
+| audit_log | 26 |

@@ -1,4 +1,4 @@
-.PHONY: up down migrate test lint format web web-install web-lint web-test web-audit eval eval-dev scenarios smoke-live smoke-whatsapp api demo-api openapi worker scheduler demo-seed demo demo-whatsapp
+.PHONY: up down migrate test lint format web web-install web-lint web-test web-audit eval eval-dev scenarios smoke-live smoke-whatsapp api demo-api e2e openapi worker scheduler demo-seed demo demo-whatsapp
 
 up:
 	docker compose up -d --wait
@@ -42,9 +42,14 @@ smoke-whatsapp:
 api:
 	uv run uvicorn app.api.main:app --app-dir backend
 
-# The API for a demo: the demo store's recorded model exchanges, replayed at their recorded pace.
+# The API on the demo store: its recorded model exchanges, replayed at their recorded pace.
 demo-api:
-	LLM_MODE=replay LLM_REPLAY_PACE=true LLM_CASSETTE_DIR=backend/tests/cassettes/demo 		uv run uvicorn app.api.main:app --app-dir backend
+	uv run python -m bench.demo_serve api
+
+# The demo script end to end in a real browser, on a fresh demo seed (needs `make up`, and
+# ports 8000 and 3000 free: it starts its own API, executor and dev server).
+e2e: demo-seed
+	cd frontend && node e2e/demo.mjs
 
 openapi:
 	uv run python -m app.api.openapi

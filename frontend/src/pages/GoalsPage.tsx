@@ -65,6 +65,9 @@ const GOAL_STATUS: Record<string, { tone: Tone; text: string }> = {
   cancelled: { tone: "neutral", text: "Cancelled" },
 };
 
+/** Which goal leads the page when none was picked: the one being followed first. */
+const LEAD = ["planned", "confirmed", "draft"];
+
 const VERDICTS: Record<string, string> = {
   likely: "Likely",
   possible: "Possible",
@@ -124,9 +127,11 @@ export function GoalsPage() {
 
   const items = goals.data ?? [];
   const drafted = ask.state === "drafted" ? ask.goalId : null;
+  // The goal shown first: the one picked or just said, else the one being followed (its plan
+  // accepted), else a confirmed one, else a draft.
   const current =
     items.find((g) => g.goal_id === (chosen ?? drafted)) ??
-    items.find((g) => ["draft", "confirmed", "planned"].includes(g.status)) ??
+    LEAD.map((status) => items.find((g) => g.status === status)).find((g) => g) ??
     items[0];
   const others = items.filter((g) => g !== current);
 

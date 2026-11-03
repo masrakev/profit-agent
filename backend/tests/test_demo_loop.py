@@ -65,6 +65,7 @@ def demo(database_urls: tuple[str, str]) -> dict[str, Any]:
             "goal": f"/goals/{seeded.goal.goal_id}",
             "goal_progress": f"/goals/{seeded.goal.goal_id}/progress",
             "goal_plans": f"/goals/{seeded.goal.goal_id}/plans",
+            "long_goal": f"/goals/{seeded.long_goal_id}/feasibility",
             "weekly": f"/briefings/{seeded.briefings['weekly']}",
         },
     )
@@ -167,9 +168,15 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
     for w in goal.progress:  # its steps wait for the owner: no verdict drop, no revision
         assert (w["status"], w["revision"]) == ("waiting_for_approval", False)
         assert w["adherence"]["awaiting_approval"] == len(goal.decisions)
-    assert (seeded.counts["goals"], seeded.counts["goal_progress"]) == (1, 3)
+    assert (seeded.counts["goals"], seeded.counts["goal_progress"]) == (2, 3)
+    # The six-month goal: beyond 90 days, a band, why the evidence is thin, quarterly checkpoints.
+    far = before["long_goal"]
+    assert (far["horizon_days"], far["probability"], far["verdict"]) == (180, None, None)
+    assert len(far["verdict_band"]) == 2
+    assert far["low_evidence"]
+    assert [c["day"] for c in far["checkpoints"]] == [90, 180]
     [section] = [s for s in before["weekly"]["sections"] if s["key"] == "goals"]
-    [goal_item] = section["items"]
+    [goal_item] = [i for i in section["items"] if "revision" in i["text"]]
     assert "A revision of the plan is proposed" in goal_item["text"]  # the superseded step
     assert "waiting for your approval" in goal_item["text"]
     assert goal_item["decision_id"] == statuses_before["proposed"]  # approve the pending step

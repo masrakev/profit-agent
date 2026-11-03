@@ -19,7 +19,9 @@
    on the campaign the goal's budget reallocation step lowers, on more recent data: that step's
    decision is superseded, and the goal's plan proposes a revision.
 5. The alert is investigated; its step trace is kept.
-6. The daily brief, the weekly report (with the goal's progress) and the monthly review.
+6. The daily brief, the weekly report (with the goal's progress) and the monthly review. Then
+   a second goal, over the next six months, confirmed: beyond 90 days it shows a band of
+   verdicts, why the evidence is thin and quarterly checkpoints, with no point probability.
 7. An owner and an API token (printed once, never written to the report).
 
 Model calls replay the exchanges recorded under `backend/tests/cassettes/demo/` (no key, no
@@ -79,6 +81,7 @@ DAYS_BEFORE_END = 28
 PAST = (("budget -30%", Decimal("-0.3")), ("budget +20%", Decimal("0.2")))
 HORIZON_DAYS = 14  # the decisions' horizon, as for an alert's options
 GOAL_DAYS = 90
+LONG_GOAL_DAYS = 180  # beyond 90 days: a band and checkpoints
 GOAL_PERCENTILE = 50
 KINDS = (BriefingKind.DAILY, BriefingKind.WEEKLY, BriefingKind.MONTHLY)
 COUNTED = (
@@ -123,6 +126,7 @@ class Seeded:
     store_id: UUID
     manifest: ScenarioManifest
     goal: DemoGoal
+    long_goal_id: UUID  # the six-month goal, confirmed
     incident: Incident  # the critical stockout alert
     decision_id: UUID  # its decision, pending: the owner's to approve
     investigation_id: UUID
@@ -330,6 +334,30 @@ def set_goal(engine: Engine, store: UUID) -> tuple[UUID, UUID, list[str], list[U
     return goal.goal_id, plan.plan_id, [s.lever for s in plan.steps], proposed
 
 
+def set_long_goal(engine: Engine, store: UUID) -> UUID:
+    """A second goal, net profit over the next six months at the forecast's median, confirmed:
+    beyond 90 days its feasibility is a band with quarterly checkpoints."""
+    now = datetime.now(UTC)
+    with tenant_transaction(engine, store) as conn:
+        today = goals.data_end(conn, store)
+        series = load_series(conn, store)
+        values = np.array([float(v) for v in daily_values(series, "net_profit")])
+        seed = seed_of(store, "net_profit", today, LONG_GOAL_DAYS)
+        paths = forecast(values, series.start, "net_profit", LONG_GOAL_DAYS, seed).paths
+        target = round(float(np.percentile(paths[:, -1], GOAL_PERCENTILE)), -3)
+        goal = goals.create(
+            conn,
+            store,
+            "net_profit",
+            Decimal(target),
+            today + timedelta(days=LONG_GOAL_DAYS),
+            now=now,
+            question=f"I want {target:,.0f} in net profit over the next six months.",
+        )
+        goals.confirm(conn, store, goal.goal_id, now=now)
+    return goal.goal_id
+
+
 def track_goal(engine: Engine, store: UUID, goal_id: UUID) -> dict[str, Any]:
     """The weekly tracking job's work for the goal."""
     with tenant_transaction(engine, store) as conn:
@@ -409,11 +437,14 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
             raise RuntimeError(f"the {kind.value} briefing has no narrative")
         briefings[kind.value] = record.briefing_id
     owner = add_owner(engine, OWNER, store)
+    # The owner sets a second goal once the briefings are written: they stay as recorded.
+    long_goal_id = set_long_goal(engine, store)
     _, api_token = create_api_token(engine, store, "demo", owner, datetime.now(UTC))
     return Seeded(
         store_id=store,
         manifest=manifest,
         goal=DemoGoal(goal_id, plan_id, levers, proposed, weeks, states, revisions),
+        long_goal_id=long_goal_id,
         incident=incident,
         decision_id=alert.decision_id,
         investigation_id=investigation_id,
@@ -451,6 +482,8 @@ def markdown(s: Seeded, started: datetime) -> str:
             if "superseded" in s.goal.states.values()
             else "."
         ),
+        f"- Goal `{s.long_goal_id}`: net profit over the next {LONG_GOAL_DAYS} days, confirmed "
+        "(beyond 90 days: a band of verdicts and quarterly checkpoints).",
         "",
         "Goal tracking:",
         "",

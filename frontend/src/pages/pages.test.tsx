@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -280,9 +280,14 @@ describe("the Decisions page", () => {
     expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
   });
 
-  it("moves an approved decision out of the waiting ones", async () => {
+  it("moves an approved decision out of the waiting ones, still open", async () => {
     let status = "proposed";
+    const listed = () => {
+      const all = decisions();
+      return { ...all, items: all.items.map((d, i) => (i === 0 ? decision(status) : d)) };
+    };
     const fake = page()
+      .on(`GET ${BASE}/decisions`, () => json(listed()))
       .on(`GET ${BASE}/decisions/${DECISION}`, () => json(decision(status)))
       .on(`GET ${BASE}/facts/22`, proofOf(zero))
       .on(`POST ${BASE}/policy/preview`, { allowed: true, rule: "ok", reason: "ok" })
@@ -293,13 +298,12 @@ describe("the Decisions page", () => {
     renderApp("/decisions", fake.api);
     const waiting = await screen.findByRole("region", { name: "Waiting for you" });
     await userEvent.click(within(waiting).getByRole("button", { name: "Review" }));
-    const lists = () =>
-      fake.requests.filter((r) => new URL(r.url).pathname === `${BASE}/decisions`).length;
-    const before = lists();
     await userEvent.click(await within(waiting).findByRole("button", { name: "Approve" }));
-    await waitFor(() => {
-      expect(lists()).toBeGreaterThan(before);
-    });
+    // The list is read again: the decision moves to "In progress", and its row stays open.
+    const progress = await screen.findByRole("region", { name: "In progress" });
+    const moved = within(progress).getByRole("button", { name: /Hide details/ });
+    expect(moved).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByRole("region", { name: "Waiting for you" })).toBeNull();
   });
 
   it("says when there is none, or they cannot be read", async () => {

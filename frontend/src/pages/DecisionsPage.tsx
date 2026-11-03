@@ -60,6 +60,19 @@ export function DecisionsPage() {
   const { storeId } = useStore();
   const [params] = useSearchParams();
   const asked = params.get("open");
+  // The rows the owner opened, kept here: a row that moves to another group (approved, then
+  // done) stays open, so what happens to it stays in sight.
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set(asked ? [asked] : []));
+  useEffect(() => {
+    if (asked) setOpened((was) => new Set([...was, asked]));
+  }, [asked]);
+  const toggle = (id: string) => {
+    setOpened((was) => {
+      const next = new Set(was);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  };
   const decisions = useDecisions();
   const trust = useQuery({
     queryKey: ["trust", storeId],
@@ -122,7 +135,11 @@ export function DecisionsPage() {
                 <DecisionRow
                   key={d.decision_id}
                   decision={d}
-                  opened={asked === d.decision_id}
+                  open={opened.has(d.decision_id)}
+                  asked={asked === d.decision_id}
+                  onToggle={() => {
+                    toggle(d.decision_id);
+                  }}
                   expected={facts.get(outcomeOf(d)?.predicted_fact_id ?? predicted(d) ?? -1)}
                   measured={facts.get(outcomeOf(d)?.effect_fact_id ?? -1)}
                 />
@@ -149,17 +166,21 @@ function predicted(d: Decision): number | null {
 
 function DecisionRow({
   decision,
-  opened,
+  open,
+  asked,
+  onToggle,
   expected,
   measured,
 }: {
   decision: Decision;
-  opened: boolean;
+  open: boolean;
+  /** Opened from elsewhere ("See options", "Review"): brought into view. */
+  asked: boolean;
+  onToggle: () => void;
   expected: Fact | undefined;
   measured: Fact | undefined;
 }) {
   const { timezone } = useStore();
-  const [open, setOpen] = useState(opened);
   const row = useRef<HTMLLIElement>(null);
   const detailsId = useId();
   const chosen = decision.options.find((o) => o.option_id === decision.approved_option_id);
@@ -169,10 +190,8 @@ function DecisionRow({
   const verdict = outcomeOf(decision)?.verdict_text;
 
   useEffect(() => {
-    if (!opened) return;
-    setOpen(true);
-    row.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, [opened]);
+    if (asked) row.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [asked]);
 
   return (
     <li ref={row} className="scroll-mt-6 border-b border-line">
@@ -227,7 +246,7 @@ function DecisionRow({
             aria-controls={detailsId}
             className={cx("h-9 text-small", waiting && !open ? "px-4" : "-ml-3 px-3")}
             onClick={() => {
-              setOpen((was) => !was);
+              onToggle();
             }}
           >
             {waiting ? (open ? "Hide" : "Review") : open ? "Hide details" : "Details"}
