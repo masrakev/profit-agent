@@ -11,6 +11,8 @@ import { formatTime, localDay } from "@/format/dates";
 import { useStore } from "@/stores/store";
 import { Icon } from "@/ui/Icon";
 import type { IconName } from "@/ui/icons";
+import { EmptyState } from "@/ui/EmptyState";
+import { Skeleton } from "@/ui/Skeleton";
 import { StatusPill } from "@/ui/StatusPill";
 
 type Entry = Schemas["JournalEntry"];
@@ -90,7 +92,7 @@ export function JournalPage() {
   const byId = new Map((decisions.data?.items ?? []).map((d) => [d.decision_id, d]));
 
   return (
-    <section aria-labelledby="journal-title" className="flex flex-col gap-8">
+    <section aria-labelledby="journal-title" className="flex flex-col gap-12">
       <header className="flex flex-col gap-2">
         <h1 id="journal-title" className="text-title font-semibold text-ink">
           Journal
@@ -99,14 +101,15 @@ export function JournalPage() {
           Everything that happened, newest first: what I found, what you decided, what changed.
         </p>
       </header>
-      {journal.isPending && (
-        <p className="h-40 animate-pulse rounded-card bg-subtle" aria-busy="true" />
-      )}
+      {journal.isPending && <Skeleton rows={4} />}
       {journal.isError && (
         <p className="text-body text-ink-muted">The journal could not be loaded.</p>
       )}
       {journal.data?.entries.length === 0 && (
-        <p className="text-body text-ink-muted">Nothing has happened yet.</p>
+        <EmptyState title="Nothing has happened yet.">
+          What I find, what you decide and what changes on your store will be written here, newest
+          first.
+        </EmptyState>
       )}
       {journal.data && (
         <Days
@@ -142,11 +145,11 @@ function Days({
   return (
     <>
       {days.map((day) => (
-        <section key={day.key} aria-label={day.label} className="flex flex-col gap-3">
-          <h2 className="text-caption font-medium tracking-[1.4px] text-ink-muted uppercase">
+        <section key={day.key} aria-label={day.label} className="flex flex-col">
+          <h2 className="border-b border-line pb-2.5 text-small font-medium text-ink-muted">
             {day.label}
           </h2>
-          <ol className="flex flex-col gap-2">
+          <ol className="flex flex-col" data-stagger>
             {day.entries.map((entry) => (
               <JournalLine
                 key={`${entry.kind}:${entry.id}`}
@@ -249,14 +252,19 @@ function JournalLine({
   }
 
   return (
-    <li className="flex items-start gap-3 rounded-box border border-line bg-surface px-4 py-3">
-      <Icon
-        name={ICONS[entry.kind] ?? "circle-check"}
-        size={16}
-        className="mt-1 shrink-0 text-accent-ink"
-      />
-      <div className="flex flex-1 flex-col gap-1">
-        <p className="text-small text-ink">{line}</p>
+    <li className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 border-b border-line py-3.5 sm:grid-cols-[5.5rem_minmax(0,1fr)_auto] sm:gap-x-4">
+      <time dateTime={entry.at} className="pt-0.5 font-mono text-label text-ink-muted">
+        {formatTime(entry.at, timezone)}
+      </time>
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="flex items-start gap-2 text-body text-ink">
+          <Icon
+            name={ICONS[entry.kind] ?? "circle-check"}
+            size={16}
+            className="mt-1 shrink-0 text-ink-muted"
+          />
+          <span className="min-w-0">{line}</span>
+        </p>
         {detail && <p className="text-label text-ink-muted">{detail}</p>}
         {before && after && (
           <p className="text-label text-ink-muted">
@@ -276,18 +284,17 @@ function JournalLine({
             onClick={() => {
               open.investigation(entry.id);
             }}
-            className="cursor-pointer self-start text-label font-semibold text-accent-ink hover:underline"
+            className="cursor-pointer self-start rounded-md text-small text-ink underline decoration-line underline-offset-4 hover:decoration-ink-muted"
           >
             What I checked
           </button>
         )}
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <time dateTime={entry.at} className="text-label text-ink-muted">
-          {formatTime(entry.at, timezone)}
-        </time>
-        {pill && <StatusPill tone={pill.tone}>{pill.text}</StatusPill>}
-      </div>
+      {pill && (
+        <div className="col-start-2 pt-1 sm:col-start-3 sm:pt-0.5">
+          <StatusPill tone={pill.tone}>{pill.text}</StatusPill>
+        </div>
+      )}
     </li>
   );
 }
