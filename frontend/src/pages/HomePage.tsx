@@ -94,7 +94,11 @@ function GoalsInProgress() {
         api.GET("/api/v1/stores/{store_id}/goals", { params: { path: { store_id: storeId } } }),
       ),
   });
-  const active = (goals.data ?? []).filter((g) => g.status in GOAL_STATUS);
+  // The goal being followed first, then confirmed ones, then drafts.
+  const order = Object.keys(GOAL_STATUS).reverse();
+  const active = (goals.data ?? [])
+    .filter((g) => g.status in GOAL_STATUS)
+    .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
   if (active.length === 0) return null;
   return (
     <Section

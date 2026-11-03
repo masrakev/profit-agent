@@ -146,6 +146,28 @@ try {
     await page.unrouteAll();
   }
 
+  if (part("ask")) {
+    // A typed question, asked before the approval below: its recorded exchange is the fresh
+    // store's.
+    await page.goto(`${BASE}/`);
+    await page.getByRole("article", { name: "Morning brief" }).waitFor();
+    await page
+      .getByRole("textbox", { name: "Ask anything about your store" })
+      .fill("What is hurting my profit the most this week, and what should I do about it?");
+    await page.keyboard.press("Enter");
+    // Replayed answers arrive at once: the live work is taken only if it is still on screen.
+    const working = page.getByRole("region", { name: "Working" });
+    const live = await working
+      .getByRole("listitem")
+      .nth(2)
+      .waitFor({ timeout: 4_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (live) await shoot(page, "ask-working", { quick: true });
+    await page.getByRole("article", { name: "Answer" }).waitFor({ timeout: 240_000 });
+    await settle(page);
+    await shoot(page, "ask-answer");
+  }
   if (part("conversation")) {
     await page.goto(`${BASE}/`);
     const brief = page.getByRole("article", { name: "Morning brief" });
@@ -191,27 +213,6 @@ try {
     await shoot(page, "approval-executed");
   }
 
-  if (part("ask")) {
-    // A typed question (its model exchange recorded once, replayed after).
-    await page.goto(`${BASE}/`);
-    await page.getByRole("article", { name: "Morning brief" }).waitFor();
-    await page
-      .getByRole("textbox", { name: "Ask anything about your store" })
-      .fill("What is hurting my profit the most this week, and what should I do about it?");
-    await page.keyboard.press("Enter");
-    // Replayed answers arrive at once: the live work is taken only if it is still on screen.
-    const working = page.getByRole("region", { name: "Working" });
-    const live = await working
-      .getByRole("listitem")
-      .nth(2)
-      .waitFor({ timeout: 4_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (live) await shoot(page, "ask-working", { quick: true });
-    await page.getByRole("article", { name: "Answer" }).waitFor({ timeout: 240_000 });
-    await settle(page);
-    await shoot(page, "ask-answer");
-  }
   await owner.close();
 } finally {
   await browser.close();

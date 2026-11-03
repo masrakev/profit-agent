@@ -94,6 +94,34 @@ describe("Home", () => {
     expect(within(bridge).queryByText(/No driver stands out/)).toBeNull();
   });
 
+  it("lists the goals in progress, the one being followed first", async () => {
+    const goal = (id: string, status: string, restatement: string) => ({
+      goal_id: id,
+      status,
+      restatement,
+      facts: {},
+      names: {},
+    });
+    const fake = today((f) =>
+      f.on(`GET ${BASE}/goals`, [
+        goal("g-long", "confirmed", "Your goal: six months."),
+        goal("g-done", "achieved", "Your goal: last quarter."),
+        goal("g-plan", "planned", "Your goal: three months."),
+      ]),
+    );
+    renderApp("/", fake.api);
+    const goals = await screen.findByRole("region", { name: "Your goals" });
+    const rows = within(goals).getAllByRole("listitem");
+    expect(rows.map((r) => r.textContent)).toEqual([
+      "Your goal: three months.Following its plan",
+      "Your goal: six months.Confirmed",
+    ]);
+    expect(within(goals).getByRole("link", { name: "All goals" })).toHaveAttribute(
+      "href",
+      "/goals",
+    );
+  });
+
   it("says when no driver stands out, and opens a problem in the conversation", async () => {
     const quiet = {
       ...BRIDGE,
