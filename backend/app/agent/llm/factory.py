@@ -47,7 +47,8 @@ def _wiring(
     )
     if mode is LLMMode.REPLAY:
         guard = BudgetGuard(caps, InMemorySpendLedger())
-        return _Wiring(mode, ReplayTransport(store), REPLAY_KEY, guard)
+        replay = ReplayTransport(store, pace=settings.llm_replay_pace)
+        return _Wiring(mode, replay, REPLAY_KEY, guard)
     if settings.model_api_key is None or not settings.model_api_key.get_secret_value():
         raise MissingApiKeyError(f"LLM_MODE={mode.value} needs MODEL_API_KEY")
     inner = live_transport or httpx2.HTTPTransport(retries=0)

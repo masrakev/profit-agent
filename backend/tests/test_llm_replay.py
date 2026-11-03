@@ -13,14 +13,17 @@ from pydantic import SecretStr
 from app.agent.llm import DataOrigin, ModelId
 from app.agent.llm import fake as f
 from app.agent.llm.cassette import (
+    MAX_PACE_MS,
+    Cassette,
     CassetteStore,
     LLMMode,
     RecordTransport,
     ReplayTransport,
     cassette_key,
+    normalized_request,
 )
 from app.agent.llm.errors import CassetteMissError, MissingApiKeyError, RecordingForbiddenError
-from app.agent.llm.factory import build_provider
+from app.agent.llm.factory import _wiring, build_provider
 from app.agent.llm.smoke import SmokeAnswer, run, run_model
 from app.config import REPO_ROOT, Settings, get_settings, repo_path
 from scripts import smoke_live
@@ -262,3 +265,54 @@ def test_only_ciphertext_is_left_out_of_the_pattern_scan() -> None:
     readable = json.dumps(without_ciphertext(cassette))
     assert "sk-AAAA" in readable
     assert "sk-BBBB" not in readable
+
+
+def test_a_recording_keeps_how_long_the_model_took(tmp_path: Path) -> None:
+    store = CassetteStore(tmp_path)
+    inner = httpx2.MockTransport(lambda r: httpx2.Response(200, json={"ok": True}))
+    recorder = RecordTransport(inner, store)
+    recorder.handle_request(
+        httpx2.Request("POST", "https://api.example/v1/responses", json={"a": 1})
+    )
+    [(_, cassette)] = store.all()
+    assert cassette.elapsed_ms is not None
+    assert cassette.elapsed_ms >= 0
+    assert Cassette.from_json(cassette.to_json()).elapsed_ms == cassette.elapsed_ms
+
+
+def test_a_paced_replay_waits_as_long_as_the_recording_took(tmp_path: Path) -> None:
+    store = CassetteStore(tmp_path)
+    slow = httpx2.Request("POST", "https://api.example/v1/responses", json={"slow": 1})
+    long = httpx2.Request("POST", "https://api.example/v1/responses", json={"long": 1})
+    old = httpx2.Request("POST", "https://api.example/v1/responses", json={"old": 1})
+    for request_, elapsed in ((slow, 4200), (long, 95_000), (old, None)):
+        normalized = normalized_request(request_)
+        store.save(
+            Cassette(
+                key=cassette_key(normalized),
+                synthetic=False,
+                note="",
+                request=normalized,
+                status=200,
+                headers={},
+                body={"ok": True},
+                elapsed_ms=elapsed,
+            )
+        )
+    waits: list[float] = []
+    paced = ReplayTransport(store, pace=True, sleep=waits.append)
+    for request_ in (slow, long, old):
+        assert paced.handle_request(request_).status_code == 200
+    assert waits == [4.2, MAX_PACE_MS / 1000]  # capped; nothing recorded, no wait
+    instant: list[float] = []
+    ReplayTransport(store, sleep=instant.append).handle_request(slow)
+    assert instant == []  # tests and CI replay at once
+
+
+def test_the_paced_replay_is_a_setting_of_replay_mode(tmp_path: Path) -> None:
+    paced = _wiring(settings(tmp_path, llm_replay_pace=True), None, None, None).transport
+    assert isinstance(paced, ReplayTransport)
+    assert paced.pace
+    plain = _wiring(settings(tmp_path), None, None, None).transport
+    assert isinstance(plain, ReplayTransport)
+    assert not plain.pace

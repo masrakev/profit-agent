@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # replay: committed cassettes only, never the network (the default, and the only CI mode).
     llm_mode: Literal["live", "record", "replay"] = "replay"
     llm_cassette_dir: str = "backend/tests/cassettes"
+    # Demos only: replay at the recorded pace, so the agent's work streams on screen.
+    llm_replay_pace: bool = False
     # Muse Voice Transcribe (ADR 0026): same key, modes, caps and spend ledger as the models.
     voice_timeout_s: float = 60.0
     # Recordings in other formats are converted to WAV by ffmpeg (on the PATH, or a full path).

@@ -12,11 +12,17 @@ JSON, its audio as a hash, never the audio itself. Cassettes are committed under
 
 Modes: `live` (network), `record` (network, then write the cassette), `replay` (cassettes only;
 a miss raises `CassetteMissError`, so CI fails instead of calling a model).
+
+A recorded exchange keeps how long the model took (`elapsed_ms`). For demos only, a paced replay
+(`LLM_REPLAY_PACE=true`, honoured in replay mode alone) waits that long before answering, so the
+agent's work streams on screen as it did when recorded; tests and CI replay at once.
 """
 
 import hashlib
 import json
 import re
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -28,6 +34,7 @@ from app.agent.llm.errors import CassetteMissError
 from app.domain.hashing import canonical_json, sha256_hex
 
 KEPT_RESPONSE_HEADERS = ("content-type", "retry-after")
+MAX_PACE_MS = 30_000  # a paced replay never waits longer than this for one exchange
 KEPT_HEADER_PREFIX = "x-ratelimit-"
 
 
@@ -102,15 +109,19 @@ class Cassette:
     status: int
     headers: dict[str, str]
     body: Any
+    elapsed_ms: int | None = None  # how long the model took, when recorded
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        out = {
             "key": self.key,
             "synthetic": self.synthetic,
             "note": self.note,
             "request": self.request,
             "response": {"status": self.status, "headers": self.headers, "body": self.body},
         }
+        if self.elapsed_ms is not None:
+            out["elapsed_ms"] = self.elapsed_ms
+        return out
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "Cassette":
@@ -123,6 +134,7 @@ class Cassette:
             status=int(response["status"]),
             headers=dict(response.get("headers", {})),
             body=response["body"],
+            elapsed_ms=int(data["elapsed_ms"]) if data.get("elapsed_ms") is not None else None,
         )
 
 
@@ -163,8 +175,19 @@ class CassetteStore:
 
 
 class ReplayTransport(httpx2.BaseTransport):
-    def __init__(self, store: CassetteStore) -> None:
+    """Serves cassettes; with `pace`, after waiting as long as the recorded exchange took
+    (at most `MAX_PACE_MS`; not at all when no duration was recorded)."""
+
+    def __init__(
+        self,
+        store: CassetteStore,
+        *,
+        pace: bool = False,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
         self.store = store
+        self.pace = pace
+        self.sleep = sleep
         self.served: list[str] = []
 
     def handle_request(self, request: httpx2.Request) -> httpx2.Response:
@@ -174,6 +197,8 @@ class ReplayTransport(httpx2.BaseTransport):
         if cassette is None:
             raise CassetteMissError(key, _summary(normalized))
         self.served.append(key)
+        if self.pace and cassette.elapsed_ms:
+            self.sleep(min(cassette.elapsed_ms, MAX_PACE_MS) / 1000)
         return httpx2.Response(
             cassette.status, headers=cassette.headers, json=cassette.body, request=request
         )
@@ -201,8 +226,10 @@ class RecordTransport(httpx2.BaseTransport):
 
     def handle_request(self, request: httpx2.Request) -> httpx2.Response:
         normalized = normalized_request(request)
+        started = time.monotonic()
         response = self.inner.handle_request(request)
         content = response.read()
+        elapsed_ms = round((time.monotonic() - started) * 1000)
         headers = {
             k.lower(): v
             for k, v in response.headers.items()
@@ -217,6 +244,7 @@ class RecordTransport(httpx2.BaseTransport):
             status=response.status_code,
             headers=headers,
             body=body,
+            elapsed_ms=elapsed_ms,
         )
         self.written.append(self.store.save(cassette))
         # `content` is already decoded: drop the headers that describe the wire encoding.
