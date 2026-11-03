@@ -109,4 +109,4 @@ def test_an_invalid_cursor(client: TestClient) -> None:
     bad = client.get(f"/api/v1/stores/{store}/journal", params={"cursor": "%%%"})
     assert (bad.status_code, bad.json()["code"]) == (422, "invalid_cursor")
     page = client.get(f"/api/v1/stores/{store}/journal", params={"limit": 1}).json()
-    assert page == {"items": [], "next_cursor": None}
+    assert page == {"items": [], "next_cursor": None, "names": {}, "facts": {}}

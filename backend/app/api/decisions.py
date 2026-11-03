@@ -20,7 +20,9 @@ from app.api.auth import PrincipalDep, StoreDep
 from app.api.deps import EngineDep, OwnerEngineDep, SettingsDep
 from app.api.pagination import Cursor, Limit, Page, paginate
 from app.api.problems import request_id
+from app.api.views import FactOut, fact_out
 from app.auth.service import Principal
+from app.channels.render import load_entity_names
 from app.config import Settings
 from app.db import tenant_transaction
 from app.decisions.journal import JournalEntry, journal
@@ -40,6 +42,7 @@ from app.decisions.store import (
 )
 from app.domain.audit import Origin
 from app.executor.worker import request_rollback
+from app.facts.repository import get_facts
 from app.policies.engine import (
     ActionRequest,
     PolicyResult,
@@ -369,15 +372,41 @@ def post_rollback(
     return RollbackResponse(action_id=new)
 
 
-@router.get("/stores/{store_id}/journal", response_model=Page[JournalEntry], tags=["journal"])
+class JournalPage(Page[JournalEntry]):
+    """A page of the journal, with the names of what its entries are about and the facts they
+    cite (a budget change's amounts): render every entity by name, every fact as a number."""
+
+    names: dict[str, str]  # entity reference -> raw merchant name (escape it)
+    facts: dict[str, FactOut]  # by fact id
+
+
+FACT_FIELDS = ("budget_before_fact_id", "budget_after_fact_id", "effect_fact_id")
+
+
+@router.get("/stores/{store_id}/journal", response_model=JournalPage, tags=["journal"])
 def get_journal(
     store_id: StoreDep, engine: EngineDep, limit: Limit = 50, cursor: Cursor = None
-) -> Page[JournalEntry]:
+) -> JournalPage:
     """Incidents, decisions, approvals, actions and outcomes, newest first."""
     with tenant_transaction(engine, store_id) as conn:
         entries = journal(conn, store_id, limit=10_000)
-    return paginate(
-        entries, key=lambda e: (e.at.isoformat(), e.kind, e.id), limit=limit, cursor=cursor
+        page = paginate(
+            entries, key=lambda e: (e.at.isoformat(), e.kind, e.id), limit=limit, cursor=cursor
+        )
+        refs = {r for e in page.items for r in e.entities}
+        ids = {
+            int(e.summary[f])
+            for e in page.items
+            for f in FACT_FIELDS
+            if isinstance(e.summary.get(f), int)
+        }
+        found = get_facts(conn, store_id, ids)
+        names = load_entity_names(conn, store_id, refs)
+    return JournalPage(
+        items=page.items,
+        next_cursor=page.next_cursor,
+        names=names,
+        facts={str(i): fact_out(f) for i, f in sorted(found.items())},
     )
 
 

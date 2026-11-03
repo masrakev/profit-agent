@@ -209,6 +209,16 @@ EXACT: dict[str, Family] = {
         "A calculation over the numbers it is built from, made by code for an answer.",
     ),
     "derived.sum": Family("Sum", "sum of the parts", "The parts it is built from, added up."),
+    "action.budget.before": Family(
+        "Daily budget before the change",
+        "daily budget the ad platform reported before the action (minor units / 100)",
+        "The campaign's daily budget, as the ad platform reported it just before the change.",
+    ),
+    "action.budget.after": Family(
+        "Daily budget after the change",
+        "daily budget the ad platform reported after the action (minor units / 100)",
+        "The campaign's daily budget, as the ad platform reported it just after the change.",
+    ),
     "derived.mean": Family(
         "Daily average",
         "mean of the defined days of a daily series",

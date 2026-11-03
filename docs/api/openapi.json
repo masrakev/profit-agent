@@ -2637,6 +2637,14 @@
             "title": "At",
             "type": "string"
           },
+          "entities": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Entities",
+            "type": "array"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -2658,6 +2666,50 @@
           "summary"
         ],
         "title": "JournalEntry",
+        "type": "object"
+      },
+      "JournalPage": {
+        "description": "A page of the journal, with the names of what its entries are about and the facts they\ncite (a budget change's amounts): render every entity by name, every fact as a number.",
+        "properties": {
+          "facts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FactOut"
+            },
+            "title": "Facts",
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/JournalEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "names": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Names",
+            "type": "object"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "names",
+          "facts"
+        ],
+        "title": "JournalPage",
         "type": "object"
       },
       "LinkResponse": {
@@ -3169,33 +3221,6 @@
           "items"
         ],
         "title": "Page[IncidentOut]",
-        "type": "object"
-      },
-      "Page_JournalEntry_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/JournalEntry"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          }
-        },
-        "required": [
-          "items"
-        ],
-        "title": "Page[JournalEntry]",
         "type": "object"
       },
       "Page_SourceRowOut_": {
@@ -10080,7 +10105,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page_JournalEntry_"
+                  "$ref": "#/components/schemas/JournalPage"
                 }
               }
             },

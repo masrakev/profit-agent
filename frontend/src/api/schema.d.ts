@@ -2122,6 +2122,11 @@ export interface components {
              * Format: date-time
              */
             at: string;
+            /**
+             * Entities
+             * @default []
+             */
+            entities: string[];
             /** Id */
             id: string;
             /** Kind */
@@ -2130,6 +2135,25 @@ export interface components {
             summary: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * JournalPage
+         * @description A page of the journal, with the names of what its entries are about and the facts they
+         *     cite (a budget change's amounts): render every entity by name, every fact as a number.
+         */
+        JournalPage: {
+            /** Facts */
+            facts: {
+                [key: string]: components["schemas"]["FactOut"];
+            };
+            /** Items */
+            items: components["schemas"]["JournalEntry"][];
+            /** Names */
+            names: {
+                [key: string]: string;
+            };
+            /** Next Cursor */
+            next_cursor?: string | null;
         };
         /** LinkResponse */
         LinkResponse: {
@@ -2320,13 +2344,6 @@ export interface components {
         Page_IncidentOut_: {
             /** Items */
             items: components["schemas"]["IncidentOut"][];
-            /** Next Cursor */
-            next_cursor?: string | null;
-        };
-        /** Page[JournalEntry] */
-        Page_JournalEntry_: {
-            /** Items */
-            items: components["schemas"]["JournalEntry"][];
             /** Next Cursor */
             next_cursor?: string | null;
         };
@@ -6844,7 +6861,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Page_JournalEntry_"];
+                    "application/json": components["schemas"]["JournalPage"];
                 };
             };
             /** @description Not signed in, or the token is not valid */

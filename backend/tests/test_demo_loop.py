@@ -111,6 +111,28 @@ def test_the_demo_store_is_seeded(demo: dict[str, Any]) -> None:
         assert o["verdict_text"]
         assert "predicted" not in o
         assert "effect" not in o
+    # Every entry names what it is about; a budget change carries its amounts as exact facts.
+    page = before["journal"]
+    for e in page["items"]:
+        assert all(ref in page["names"] for ref in e["entities"]), e
+    budgets = [
+        e["summary"]
+        for e in page["items"]
+        if e["kind"] == "action" and e["summary"]["kind"] == "change_budget"
+    ]
+    assert budgets
+    for b in budgets:
+        assert "daily_budget_minor" not in (b["before"] or {})
+        assert "daily_budget_minor" not in (b["after"] or {})
+        before_fact = page["facts"][str(b["budget_before_fact_id"])]
+        after_fact = page["facts"][str(b["budget_after_fact_id"])]
+        assert (before_fact["metric"], after_fact["metric"]) == (
+            "action.budget.before",
+            "action.budget.after",
+        )
+        assert {before_fact["kind"], after_fact["kind"]} == {"exact"}
+        assert before_fact["value"] != after_fact["value"]
+        assert before_fact["name"] == "Daily budget before the change"
     assert seeded.counts["briefings"] == 3
     assert before["goal"]["status"] == "planned"
     assert [w["day"] for w in goal.progress] == [7, 14]  # a week, then another
