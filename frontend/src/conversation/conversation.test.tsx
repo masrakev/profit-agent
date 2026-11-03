@@ -243,6 +243,108 @@ describe("asking", () => {
   });
 });
 
+describe("kept conversations", () => {
+  const KEPT = {
+    conversation_id: "c-9",
+    title: "What should I do about the jacket?",
+    questions: 1,
+    created_at: "2026-11-02T09:00:00Z",
+    updated_at: "2026-11-02T09:01:00Z",
+  };
+  function kept() {
+    return store()
+      .on(`GET ${BASE}/conversations`, {
+        items: [KEPT, { ...KEPT, conversation_id: "c-8", title: "Why did refunds rise?" }],
+        next_cursor: null,
+      })
+      .on(`GET ${BASE}/conversations/c-9`, {
+        ...KEPT,
+        turns: [
+          {
+            turn_id: "t-1",
+            position: 1,
+            question: "What should I do about the jacket?",
+            via: "text",
+            topic: null,
+            asked_at: "2026-11-02T09:01:00Z",
+            answer: ANSWER,
+          },
+        ],
+      })
+      .on(`POST ${BASE}/ask/stream`, () =>
+        sse(["conversation", { conversation_id: "c-9" }], ["answer", ANSWER], ["done", {}]),
+      );
+  }
+
+  it("opens one at its address, read again, and continues it", async () => {
+    const fake = kept();
+    renderApp("/chat/c-9", fake.api);
+    expect(await screen.findByText("What should I do about the jacket?")).toBeVisible();
+    const answer = await screen.findByRole("article", { name: "Answer" });
+    expect(answer).toHaveTextContent(/it spent/);
+    expect(screen.queryByRole("region", { name: "Working" })).toBeNull(); // no live steps kept
+    await userEvent.type(screen.getByRole("textbox"), "And the boots?{Enter}");
+    const sent = fake.requests.find((r) => r.url.endsWith("/ask/stream"));
+    expect(await sent?.json()).toEqual({ question: "And the boots?", conversation_id: "c-9" });
+    expect(await screen.findAllByRole("article", { name: "Answer" })).toHaveLength(2);
+  });
+
+  it("lists them, the latest first, and starts a new one", async () => {
+    const { router } = renderApp("/chat/c-9", kept().api);
+    await screen.findByRole("article", { name: "Answer" });
+    await userEvent.click(screen.getByRole("button", { name: "History" }));
+    const history = await screen.findByRole("navigation", { name: "Past conversations" });
+    const rows = await within(history).findAllByRole("link");
+    expect(rows.map((r) => r.textContent)).toEqual([
+      expect.stringMatching(/^What should I do about the jacket\?/),
+      expect.stringMatching(/^Why did refunds rise\?/),
+    ]);
+    expect(rows[0]).toHaveAttribute("aria-current", "page");
+    expect(rows[1]).toHaveAttribute("href", "/chat/c-8");
+    await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
+    expect(router.state.location.pathname).toBe("/chat");
+    expect(screen.queryByRole("article", { name: "Answer" })).toBeNull();
+    expect(screen.getByText("Ask anything about your store.")).toBeVisible();
+  });
+
+  it("takes the address the API gives the conversation it starts", async () => {
+    const { router } = renderApp("/chat", kept().api);
+    await userEvent.type(await screen.findByRole("textbox"), "Why?{Enter}");
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/chat/c-9");
+    });
+    expect(await screen.findByRole("article", { name: "Answer" })).toBeVisible();
+  });
+
+  it("says when one cannot be read", async () => {
+    const fake = kept().on(`GET ${BASE}/conversations/c-0`, () => problem(404, "not_found"));
+    renderApp("/chat/c-0", fake.api);
+    expect(await screen.findByText("This conversation could not be loaded.")).toBeVisible();
+  });
+});
+
+describe("asking from anywhere", () => {
+  it("opens from the header or the shortcut, starts a new conversation, closes on Escape", async () => {
+    const fake = store()
+      .on(`GET ${BASE}/decisions`, { items: [], next_cursor: null })
+      .on(`GET ${BASE}/trust`, [])
+      .on(`POST ${BASE}/ask/stream`, () => sse(["answer", ANSWER], ["done", {}]));
+    const { router } = renderApp("/decisions", fake.api);
+    await userEvent.click(await screen.findByRole("button", { name: /^Ask/ }));
+    const palette = screen.getByRole("dialog", { name: "Ask" });
+    expect(within(palette).queryByRole("button", { name: /^About this/ })).toBeNull();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.keyboard("{Meta>}k{/Meta}");
+    const again = screen.getByRole("dialog", { name: "Ask" });
+    await userEvent.type(within(again).getByRole("textbox"), "Why did refunds rise?{Enter}");
+    expect(router.state.location.pathname).toBe("/chat");
+    expect(await screen.findByRole("article", { name: "Answer" })).toBeVisible();
+    const sent = fake.requests.find((r) => r.url.endsWith("/ask/stream"));
+    expect(await sent?.json()).toEqual({ question: "Why did refunds rise?" });
+  });
+});
+
 describe("asking by voice", () => {
   // jsdom's Blob cannot travel in a fetch body: these tests send Node's own, as a browser would.
   beforeEach(async () => {

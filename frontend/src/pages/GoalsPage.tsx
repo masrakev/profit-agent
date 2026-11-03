@@ -18,6 +18,7 @@ import type { Fact } from "@/facts/facts";
 import { formatDay, formatLastDay } from "@/format/dates";
 import { useGoalAsk } from "@/goals/ask";
 import { Composer } from "@/shell/Composer";
+import { useHere } from "@/shell/here";
 import { useStore } from "@/stores/store";
 import { AgentMark } from "@/ui/AgentMark";
 import { Button } from "@/ui/Button";
@@ -233,6 +234,7 @@ function AskState({ ask }: { ask: ReturnType<typeof useGoalAsk>["ask"] }) {
 function GoalView({ goal }: { goal: Goal }) {
   const api = useApi();
   const open = useOpen();
+  useHere({ kind: "goal", id: goal.goal_id, label: goalLabel(goal) });
   const queries = useQueryClient();
   const { storeId } = useStore();
   const path = { store_id: storeId, goal_id: goal.goal_id };

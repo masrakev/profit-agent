@@ -9,12 +9,12 @@
  *
  *   1. Home opens on the morning brief.
  *   2. A question typed on Home opens Conversations: the Working block streams, then the answer
- *      with its evidence and the Verified seal.
+ *      with its evidence and the Verified seal; the conversation kept, in the history.
  *   3. The status line leads to the decisions inbox; the decision opens at its address, why and
  *      then the approval card; Approve; executing; executed, with the platform's confirmation.
  *   4. The Journal (from Settings) records it.
- *   5. Goals: the 90-day goal, its plan and its thread; the six-month goal with low evidence and
- *      quarterly checkpoints ahead.
+ *   5. Goals: the 90-day goal, its plan and its thread, and Ctrl+K about it; the six-month goal
+ *      with low evidence and quarterly checkpoints ahead.
  */
 import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
@@ -148,6 +148,13 @@ try {
   await answer.getByRole("button", { name: "Verified", exact: true }).click();
   await answer.getByRole("button", { name: "See the proof", exact: true }).waitFor();
   holds("the answer, with its evidence and the Verified seal");
+  await page.waitForURL(/\/chat\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "History" }).click();
+  await page
+    .getByRole("navigation", { name: "Past conversations" })
+    .getByRole("link", { name: /^What is hurting my profit/ })
+    .waitFor();
+  holds("the conversation is kept, at its own address, in the history");
 
   step = "Decisions";
   await page.getByRole("link", { name: "Waiting for your decision" }).click();
@@ -209,6 +216,13 @@ try {
     .first()
     .waitFor();
   holds("the 90-day goal: within reach as a percentage, its plan and its thread");
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("dialog", { name: "Ask" });
+  await palette.getByRole("button", { name: /^About this goal/, pressed: true }).waitFor();
+  await palette.getByRole("button", { name: "Am I on track?" }).waitFor();
+  await page.keyboard.press("Escape");
+  await palette.waitFor({ state: "detached" });
+  holds("Ctrl+K asks from anywhere, about the goal on screen");
   const others = page.getByRole("region", { name: "Other goals" });
   await others
     .getByRole("listitem")

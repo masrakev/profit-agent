@@ -420,20 +420,58 @@ describe("Goals", () => {
     expect(yours).toHaveTextContent("2027-02-27");
   });
 
-  it("asks about the goal in the conversation, the goal named above the composer", async () => {
-    const fake = goals((f) => f.on(`POST ${BASE}/ask/stream`, () => sse(["done", {}])));
+  it("asks about the goal in a new conversation, the goal named above the composer", async () => {
+    const fake = goals((f) =>
+      f.on(`POST ${BASE}/ask/stream`, () =>
+        sse(["conversation", { conversation_id: "c-1" }], ["done", {}]),
+      ),
+    );
     const { router } = renderApp(`/goals/${GOAL}`, fake.api);
     await userEvent.click(await screen.findByRole("button", { name: "Ask about this goal" }));
     expect(router.state.location.pathname).toBe("/chat");
     expect(screen.getByText(/^Net profit of \$225,000 in total from 2026-09-01/)).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Am I on track?" }));
     const sent = fake.requests.find((r) => r.url.endsWith("/ask/stream"));
-    expect(((await sent?.json()) as { question: string }).question).toMatch(
-      /^About the goal “Net profit of \$225,000 in total .*Northwind Outdoor as a whole”: Am I on track\?$/,
+    // The owner's words, and the goal they are about: the API frames them for the agent.
+    const body = (await sent?.json()) as {
+      question: string;
+      topic: { kind: string; id: string; label: string };
+    };
+    expect(body.question).toBe("Am I on track?");
+    expect(body.topic).toMatchObject({ kind: "goal", id: GOAL });
+    expect(body.topic.label).toMatch(
+      /^Net profit of \$225,000 in total .*Northwind Outdoor as a whole$/,
     );
     expect(await screen.findByText(/^About Net profit of/)).toBeVisible();
+    // The API named the conversation: it takes its address.
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/chat/c-1");
+    });
     await userEvent.click(screen.getByRole("button", { name: "Ask about the store as a whole" }));
     expect(screen.queryByRole("button", { name: "Am I on track?" })).toBeNull();
+  });
+
+  it("asks from anywhere with Ctrl+K, about the goal on screen unless turned off", async () => {
+    const fake = goals((f) =>
+      f.on(`POST ${BASE}/ask/stream`, () =>
+        sse(["conversation", { conversation_id: "c-2" }], ["done", {}]),
+      ),
+    );
+    const { router } = renderApp(`/goals/${GOAL}`, fake.api);
+    await screen.findByRole("button", { name: "Ask about this goal" });
+    await userEvent.keyboard("{Control>}k{/Control}");
+    const palette = screen.getByRole("dialog", { name: "Ask" });
+    const about = within(palette).getByRole("button", { name: /^About this goal/ });
+    expect(about).toHaveAttribute("aria-pressed", "true");
+    expect(within(palette).getByRole("textbox")).toHaveFocus();
+    await userEvent.click(within(palette).getByRole("button", { name: "What if I aim higher?" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(router.state.location.pathname).toMatch(/^\/chat/);
+    const sent = fake.requests.find((r) => r.url.endsWith("/ask/stream"));
+    expect(await sent?.json()).toMatchObject({
+      question: "What if I aim higher?",
+      topic: { kind: "goal", id: GOAL },
+    });
   });
 
   it("beyond 90 days shows a band, why the evidence is thin, and quarterly checkpoints", async () => {

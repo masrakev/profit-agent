@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 
-import { ConversationContext, type Topic, type Conversation } from "./context";
-import { extension, reduce, type AgentStep, type AskAnswer } from "./model";
+import { ConversationContext, type Conversation, type Topic, type Turn } from "./context";
+import { extension, reduce, type AgentStep, type AskAnswer, type Message } from "./model";
 import { ApiError, unwrap } from "@/api/client";
 import { useApi } from "@/api/context";
 import { readEvents } from "@/api/sse";
@@ -26,6 +26,8 @@ function problemText(error: unknown): string {
  * Holds the conversation for the signed-in pages, so it survives a visit to another page.
  * Questions stream their answers: each `step` is shown as it arrives, then `answer` (the answer
  * contract with the facts and names it cites); a recorded question first shows what was heard.
+ * The API keeps each answer in a conversation it names first (`conversation`): the next
+ * question continues it, until a new one starts or a kept one is resumed.
  */
 export function ConversationProvider({ children }: { children: ReactNode }) {
   const api = useApi();
@@ -34,6 +36,13 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   const nextId = useRef(1);
   const opened = useRef(new Set<string>());
   const id = () => nextId.current++;
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  // The conversation the next question goes into, as soon as the API names it.
+  const continues = useRef<string | null>(null);
+  const kept = useCallback((named: string | null) => {
+    continues.current = named;
+    setConversationId(named);
+  }, []);
 
   const run = useCallback(
     async (
@@ -44,7 +53,10 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
       try {
         let ended = false;
         for await (const event of readEvents(await open())) {
-          if (event.event === "step") {
+          if (event.event === "conversation") {
+            const named = (event.data as { conversation_id?: unknown }).conversation_id;
+            if (typeof named === "string") kept(named);
+          } else if (event.event === "step") {
             dispatch({ type: "step", id: answerId, step: event.data as AgentStep });
           } else if (event.event === "transcript") {
             const heard = event.data as { transcript?: unknown };
@@ -69,7 +81,7 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "listened", id: questionId });
       }
     },
-    [],
+    [kept],
   );
 
   const start = useCallback(
@@ -110,12 +122,10 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
 
   const [topic, setTopic] = useState<Topic | null>(null);
 
-  // A question about a decision or a goal carries it, in words, so the agent knows what "this" is.
+  // A question about a decision or a goal carries it: the agent reads it with its label first.
   const ask = useCallback(
-    (question: string) => {
-      const sent = topic
-        ? `About the ${topic.kind} \u201c${topic.label}\u201d: ${question}`
-        : question;
+    (question: string, about?: Topic | null) => {
+      const subject = about === undefined ? topic : about;
       start(
         question,
         "text",
@@ -123,20 +133,31 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
           unwrap(
             api.POST("/api/v1/stores/{store_id}/ask/stream", {
               params: { path: { store_id: storeId } },
-              body: { question: sent },
+              body: {
+                question,
+                conversation_id: continues.current ?? undefined,
+                topic: subject ?? undefined,
+              },
               parseAs: "stream",
             }),
           ) as Promise<ReadableStream<Uint8Array>>,
-        topic?.label ?? null,
+        subject?.label ?? null,
       );
     },
     [api, storeId, start, topic],
   );
 
   const askByVoice = useCallback(
-    (recording: Blob) => {
+    (recording: Blob, about?: Topic | null) => {
+      const subject = about === undefined ? topic : about;
       const form = new FormData();
       form.append("audio", recording, `question.${extension(recording.type)}`);
+      if (continues.current) form.append("conversation_id", continues.current);
+      if (subject) {
+        form.append("topic_kind", subject.kind);
+        form.append("topic_id", subject.id);
+        form.append("topic_label", subject.label);
+      }
       start(
         null,
         "voice",
@@ -148,9 +169,48 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
               parseAs: "stream",
             }),
           ) as Promise<ReadableStream<Uint8Array>>,
+        subject?.label ?? null,
       );
     },
-    [api, storeId, start],
+    [api, storeId, start, topic],
+  );
+
+  const newConversation = useCallback(
+    (about: Topic | null = null) => {
+      dispatch({ type: "load", messages: [] });
+      opened.current.clear();
+      kept(null);
+      setTopic(about);
+    },
+    [kept],
+  );
+
+  const resume = useCallback(
+    (named: string, turns: Turn[]) => {
+      const loaded = turns.flatMap((turn): Message[] => [
+        {
+          id: id(),
+          kind: "question",
+          text: turn.question,
+          via: turn.via,
+          listening: false,
+          about: turn.topic?.label ?? null,
+        },
+        {
+          id: id(),
+          kind: "answer",
+          status: "answered",
+          steps: [],
+          result: turn.answer,
+          problem: null,
+        },
+      ]);
+      dispatch({ type: "load", messages: loaded });
+      opened.current.clear();
+      kept(named);
+      setTopic(null);
+    },
+    [kept],
   );
 
   const openOnce = useCallback((key: string, add: (messageId: number) => void) => {
@@ -178,8 +238,29 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Conversation>(
-    () => ({ messages, topic, setTopic, ask, askByVoice, openDecision, openInvestigation }),
-    [messages, topic, ask, askByVoice, openDecision, openInvestigation],
+    () => ({
+      messages,
+      conversationId,
+      newConversation,
+      resume,
+      topic,
+      setTopic,
+      ask,
+      askByVoice,
+      openDecision,
+      openInvestigation,
+    }),
+    [
+      messages,
+      conversationId,
+      newConversation,
+      resume,
+      topic,
+      ask,
+      askByVoice,
+      openDecision,
+      openInvestigation,
+    ],
   );
   return <ConversationContext.Provider value={value}>{children}</ConversationContext.Provider>;
 }

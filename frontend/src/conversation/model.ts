@@ -39,6 +39,7 @@ export type Message =
 
 export type Action =
   | { type: "add"; message: Message }
+  | { type: "load"; messages: Message[] } // a kept conversation, read again; [] for a new one
   | { type: "step"; id: number; step: AgentStep }
   | { type: "heard"; id: number; text: string }
   | { type: "listened"; id: number }
@@ -48,6 +49,7 @@ export type Action =
 
 export function reduce(messages: Message[], action: Action): Message[] {
   if (action.type === "add") return [...messages, action.message];
+  if (action.type === "load") return action.messages;
   return messages.map((message) => {
     if (message.id !== action.id) return message;
     if (message.kind === "question" && action.type === "heard") {

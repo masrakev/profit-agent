@@ -20,6 +20,7 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
   const signedIn: RouteObject[] = [
     { index: true, element: <HomePage />, handle: conversation },
     { path: "chat", element: <ChatPage />, handle: conversation },
+    { path: "chat/:conversationId", element: <ChatPage />, handle: conversation },
     // Today became Home: an old link still lands on the day.
     { path: "today", element: <Navigate to="/" replace /> },
     { path: "decisions", element: <DecisionsPage />, handle: inbox },

@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 
 import { outcomeOf, predicted, useFacts } from "./facts";
@@ -15,6 +15,7 @@ import { FactValue } from "@/facts/FactValue";
 import { estimateOf } from "@/facts/facts";
 import { VerifiedSeal } from "@/facts/VerifiedSeal";
 import { formatDay, formatTime, localDay } from "@/format/dates";
+import { useHere } from "@/shell/here";
 import { useStore } from "@/stores/store";
 import { AgentMark } from "@/ui/AgentMark";
 import { Button } from "@/ui/Button";
@@ -68,6 +69,8 @@ export function DecisionDetail({ decisionId }: { decisionId: string }) {
       ),
   });
   const d = decision.data;
+  const titled = d?.options.find((o) => o.option_id === d.approved_option_id)?.label ?? d?.label;
+  useHere(d && titled ? { kind: "decision", id: d.decision_id, label: titled } : null);
   if (decision.isPending) return <Skeleton rows={4} />;
   if (!d) {
     return <p className="text-body text-ink-muted">This decision could not be loaded.</p>;
@@ -298,7 +301,7 @@ function Earned({ decision: d }: { decision: Decision }) {
 
 /** What the decision is tied to: its goal's step, the decision that replaced it. */
 function Linked({ decision: d }: { decision: Decision }) {
-  const step = useGoalStep(d.decision_id);
+  const step = useGoalStep(d.goal_step);
   const replacement = d.superseded_by;
   if (!step && !replacement) return null;
   return (
@@ -306,12 +309,18 @@ function Linked({ decision: d }: { decision: Decision }) {
       <ul className="flex flex-col">
         {step && (
           <li className="flex flex-col gap-1 border-b border-line py-4">
-            <span className="text-label text-ink-muted">A step of your goal&apos;s plan</span>
+            <span className="text-label text-ink-muted">
+              Step {step.position} of your goal&apos;s plan
+            </span>
             <Link
-              to="/goals"
+              to={`/goals/${step.goal_id}`}
               className="rounded-md text-body text-ink underline decoration-line underline-offset-4 hover:decoration-ink-muted"
             >
-              <RichText text={step.summary} facts={step.facts} names={step.names} />
+              {step.summary ? (
+                <RichText text={step.summary} facts={step.facts} names={step.names} />
+              ) : (
+                "Open the goal"
+              )}
             </Link>
           </li>
         )}
@@ -349,33 +358,27 @@ function useDecisionJournal(decisionId: string): Entry[] | undefined {
   );
 }
 
-/** The goal step this decision carries out, if any: read from the goals' plans. */
-function useGoalStep(decisionId: string) {
+/** The goal step this decision carries out (the API names it): its words, from its plan. */
+function useGoalStep(link: Decision["goal_step"]) {
   const api = useApi();
   const { storeId } = useStore();
-  const goals = useQuery({
-    queryKey: ["goals", storeId],
+  const plans = useQuery({
+    queryKey: ["goal-plans", storeId, link?.goal_id, "of-decision"],
+    enabled: link != null,
     queryFn: () =>
       unwrap(
-        api.GET("/api/v1/stores/{store_id}/goals", { params: { path: { store_id: storeId } } }),
+        api.GET("/api/v1/stores/{store_id}/goals/{goal_id}/plans", {
+          params: { path: { store_id: storeId, goal_id: link?.goal_id ?? "" } },
+        }),
       ),
   });
-  const plans = useQueries({
-    queries: (goals.data ?? []).map((g) => ({
-      queryKey: ["goal-plans", storeId, g.goal_id, g.status],
-      queryFn: () =>
-        unwrap(
-          api.GET("/api/v1/stores/{store_id}/goals/{goal_id}/plans", {
-            params: { path: { store_id: storeId, goal_id: g.goal_id } },
-          }),
-        ),
-    })),
-  });
-  for (const q of plans) {
-    for (const plan of q.data ?? []) {
-      const step = plan.steps.find((s) => s.decision_id === decisionId);
-      if (step) return { summary: step.summary, facts: plan.facts, names: plan.names };
-    }
-  }
-  return null;
+  if (!link) return null;
+  const plan = plans.data?.find((p) => p.plan_id === link.plan_id);
+  const step = plan?.steps.find((s) => s.step_id === link.step_id);
+  return {
+    ...link,
+    summary: step?.summary ?? null,
+    facts: plan?.facts ?? {},
+    names: plan?.names ?? {},
+  };
 }

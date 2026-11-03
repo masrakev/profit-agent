@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type RefObject } from "react";
+import { useId, useRef } from "react";
 
 import {
   estimateOf,
@@ -14,6 +14,7 @@ import { RangeBar } from "@/charts/RangeBar";
 import { formatPeriod } from "@/format/dates";
 import { humanize } from "@/format/words";
 import { Button } from "@/ui/Button";
+import { useDialog } from "@/ui/dialog";
 import { Icon } from "@/ui/Icon";
 
 interface ProofSheetProps {
@@ -24,9 +25,6 @@ interface ProofSheetProps {
   /** Present when a parent fact was opened from another proof. */
   onBack?: (() => void) | undefined;
 }
-
-const FOCUSABLE =
-  'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
  * The proof of one number, in a side sheet: what it is, exact or estimated, how it is calculated
@@ -200,48 +198,3 @@ function Calculation({ detail, pending, failed }: CalculationProps) {
 }
 
 /** Modal behaviour: focus moves in, Tab stays in, Escape or a click outside closes. */
-function useDialog(panel: RefObject<HTMLDivElement | null>, onClose: () => void) {
-  const close = useRef(onClose);
-  useEffect(() => {
-    close.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    const element = panel.current;
-    if (!element) return;
-    const focusables = () => Array.from(element.querySelectorAll<HTMLElement>(FOCUSABLE));
-    focusables()[0]?.focus();
-
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        close.current();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const items = focusables();
-      const first = items[0];
-      const last = items.at(-1);
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    const onPointer = (event: MouseEvent) => {
-      if (event.target instanceof Node && !element.contains(event.target)) close.current();
-    };
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onPointer);
-    return () => {
-      document.body.style.overflow = overflow;
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onPointer);
-    };
-  }, [panel]);
-}

@@ -1,6 +1,11 @@
 import { createContext, useContext } from "react";
 
+import type { Schemas } from "@/api/client";
+
 import type { Message } from "./model";
+
+/** One kept question and its answer, as the API reads them again. */
+export type Turn = Schemas["TurnOut"];
 
 /** What the next questions are about: a decision or a goal, by its label. */
 export interface Topic {
@@ -11,13 +16,19 @@ export interface Topic {
 
 export interface Conversation {
   messages: Message[];
+  /** The kept conversation the next question continues; null until the first is answered. */
+  conversationId: string | null;
+  /** Starts a new conversation, about a decision or a goal when one is given. */
+  newConversation: (topic?: Topic | null) => void;
+  /** Shows a kept conversation, read again, for the next question to continue. */
+  resume: (conversationId: string, turns: Turn[]) => void;
   /** What typed questions are about, until cleared; null for the store as a whole. */
   topic: Topic | null;
   setTopic: (topic: Topic | null) => void;
-  /** Asks a typed question; the answer streams in below it. */
-  ask: (question: string) => void;
+  /** Asks a typed question (about `about`, else the current topic); the answer streams in. */
+  ask: (question: string, about?: Topic | null) => void;
   /** Asks a recorded question: its transcript appears first, then the answer. */
-  askByVoice: (recording: Blob) => void;
+  askByVoice: (recording: Blob, about?: Topic | null) => void;
   /** Shows a decision in the conversation (once: a second call does nothing). */
   openDecision: (decisionId: string) => void;
   /** Shows what was checked for an incident (once). */

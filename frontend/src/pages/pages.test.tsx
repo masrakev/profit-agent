@@ -349,6 +349,52 @@ describe("the Decisions page", () => {
     ).toBeVisible();
   });
 
+  it("names the goal step a decision carries out, linked to the goal", async () => {
+    const step = {
+      goal_id: "g-1",
+      plan_id: "p-1",
+      step_id: "s-1",
+      position: 1,
+      status: "proposed",
+    };
+    const fake = page()
+      .on(`GET ${BASE}/decisions/${DECISION}`, decision("proposed", { goal_step: step }))
+      .on(`GET ${BASE}/goals/g-1/plans`, [
+        {
+          plan_id: "p-1",
+          goal_id: "g-1",
+          status: "accepted",
+          as_of: "2026-09-01",
+          detailed_days: 90,
+          payload: {},
+          steps: [
+            {
+              step_id: "s-1",
+              position: 1,
+              lever: "scale_profitable",
+              kind: "decision",
+              due_date: "2026-09-01",
+              actions: [],
+              summary: "Raise the daily budget of {{E:store}}.",
+              evidence: [],
+              effect_fact_id: null,
+              status: "proposed",
+              decision_id: DECISION,
+            },
+          ],
+          facts: {},
+          names: { store: "Northwind Outdoor" },
+        },
+      ]);
+    renderApp(`/decisions/${DECISION}`, fake.api);
+    const linked = await screen.findByRole("region", { name: "Linked to" });
+    expect(linked).toHaveTextContent("Step 1 of your goal's plan");
+    const link = await within(linked).findByRole("link", {
+      name: "Raise the daily budget of Northwind Outdoor.",
+    });
+    expect(link).toHaveAttribute("href", "/goals/g-1");
+  });
+
   it("moves through the list with the arrow keys, as a mail client does", async () => {
     const fake = page()
       .on(`GET ${BASE}/decisions/d-done`, decisions().items[1])

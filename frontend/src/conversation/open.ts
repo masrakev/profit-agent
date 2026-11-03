@@ -8,7 +8,7 @@ import { useConversation, type Topic } from "./context";
  * Conversations; from another page, the owner is taken there to see it.
  */
 export function useOpen() {
-  const { openInvestigation, setTopic } = useConversation();
+  const { openInvestigation, newConversation } = useConversation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   return {
@@ -19,9 +19,9 @@ export function useOpen() {
       openInvestigation(incidentId);
       if (pathname !== "/chat") void navigate("/chat");
     },
-    /** A conversation about a decision or a goal: its questions carry it. */
+    /** A new conversation about a decision or a goal: its questions carry it. */
     ask: (topic: Topic) => {
-      setTopic(topic);
+      newConversation(topic);
       void navigate("/chat");
     },
   };
