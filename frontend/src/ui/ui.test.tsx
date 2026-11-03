@@ -1,11 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { AgentMark } from "./AgentMark";
 import { BrandMark } from "./BrandMark";
 import { Bubble } from "./Bubble";
 import { Button } from "./Button";
 import { cx } from "./cx";
+import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
+import { Section } from "./Section";
+import { Skeleton } from "./Skeleton";
 import { StatusPill } from "./StatusPill";
 import { BRAND } from "@/brand";
 
@@ -70,5 +74,30 @@ describe("the style guide's primitives", () => {
     expect(screen.getByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
     render(<Bubble from="owner">Hi</Bubble>);
     expect(screen.getByText("Hi")).toHaveAttribute("data-from", "owner");
+  });
+
+  it("draws the agent's mark in its three states, as decoration", () => {
+    const { container, rerender } = render(<AgentMark />);
+    const mark = container.querySelector(".agent-mark");
+    expect(mark).toHaveAttribute("aria-hidden", "true");
+    expect(mark).toHaveAttribute("data-state", "idle");
+    rerender(<AgentMark state="working" />);
+    expect(container.querySelector(".agent-mark")).toHaveAttribute("data-state", "working");
+    rerender(<AgentMark state="waiting" size="lg" />);
+    expect(container.querySelector(".agent-mark")).toHaveClass("size-8");
+  });
+
+  it("titles a section, says what is empty, and holds the place while loading", () => {
+    render(
+      <Section title="Steps" aside={<span>later</span>}>
+        <p>content</p>
+      </Section>,
+    );
+    expect(screen.getByRole("region", { name: "Steps" })).toHaveTextContent("content");
+    render(<EmptyState title="No goal yet">Say one.</EmptyState>);
+    expect(screen.getByText("No goal yet")).toBeInTheDocument();
+    expect(screen.getByText("Say one.")).toBeInTheDocument();
+    render(<Skeleton rows={2} />);
+    expect(screen.getByLabelText("Loading")).toHaveAttribute("aria-busy", "true");
   });
 });

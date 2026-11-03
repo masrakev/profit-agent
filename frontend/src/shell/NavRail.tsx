@@ -22,6 +22,9 @@ const DESTINATIONS: { to: string; label: string; icon: IconName }[] = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  /** On a phone the rail is a drawer: open, or off screen. */
+  drawer?: boolean;
+  onClose?: () => void;
 }
 
 /**
@@ -29,26 +32,41 @@ interface SidebarProps {
  * each naming itself on hover. The button at the top switches between the two; collapsed, the
  * brand mark becomes that button on hover.
  */
-export function NavRail({ collapsed, onToggle }: SidebarProps) {
+export function NavRail({ collapsed: chosen, onToggle, drawer = false, onClose }: SidebarProps) {
+  // A drawer is always expanded.
+  const collapsed = chosen && !drawer;
   return (
     <nav
       aria-label="Main"
       data-collapsed={collapsed}
       className={cx(
-        "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-line bg-surface px-2 pb-2",
-        "transition-[width] duration-200 ease-out",
+        "fixed inset-y-0 left-0 z-30 flex flex-col border-r border-line bg-canvas px-2 pb-2",
+        "transition-[width,translate] duration-200 ease-out",
         collapsed ? SIDEBAR.collapsed : SIDEBAR.expanded,
+        drawer ? "max-md:translate-x-0 max-md:shadow-float" : "max-md:-translate-x-full",
       )}
     >
-      <div className="flex h-[52px] shrink-0 items-center justify-between">
-        {collapsed ? (
+      <div className="flex h-[52px] shrink-0 items-center justify-between pl-1">
+        {drawer ? (
+          <>
+            <BrandMark named />
+            <button
+              type="button"
+              aria-label="Close the menu"
+              onClick={onClose}
+              className="flex size-9 cursor-pointer items-center justify-center rounded-md text-ink-muted hover:bg-subtle hover:text-ink"
+            >
+              <Icon name="x" />
+            </button>
+          </>
+        ) : collapsed ? (
           <span className="group/tip relative">
             <button
               type="button"
               aria-label="Open sidebar"
               aria-expanded={false}
               onClick={onToggle}
-              className="group/open flex size-9 cursor-pointer items-center justify-center rounded-[10px] text-ink-muted hover:bg-subtle"
+              className="group/open flex size-9 cursor-pointer items-center justify-center rounded-md text-ink-muted hover:bg-subtle"
             >
               <span className="group-hover/open:hidden group-focus-visible/open:hidden">
                 <BrandMark />
@@ -61,16 +79,19 @@ export function NavRail({ collapsed, onToggle }: SidebarProps) {
           </span>
         ) : (
           <>
-            <Link to="/" className="flex size-9 items-center justify-center rounded-[10px]">
-              <BrandMark />
-              <span className="sr-only">{BRAND.name}: the conversation</span>
+            <Link
+              to="/"
+              aria-label={`${BRAND.name}: the conversation`}
+              className="flex h-9 items-center rounded-md"
+            >
+              <BrandMark named />
             </Link>
             <button
               type="button"
               aria-label="Close sidebar"
               aria-expanded
               onClick={onToggle}
-              className="flex size-9 cursor-pointer items-center justify-center rounded-[10px] text-ink-muted hover:bg-subtle hover:text-ink"
+              className="flex size-9 cursor-pointer items-center justify-center rounded-md text-ink-muted hover:bg-subtle hover:text-ink"
             >
               <Icon name="panel-left" />
             </button>
@@ -84,7 +105,7 @@ export function NavRail({ collapsed, onToggle }: SidebarProps) {
               to={destination.to}
               end={destination.to === "/"}
               className={({ isActive }) =>
-                cx(ROW, isActive ? "bg-subtle font-medium" : "hover:bg-subtle")
+                cx(ROW, isActive ? "bg-subtle font-medium text-ink" : "hover:bg-subtle")
               }
             >
               <Icon name={destination.icon} />

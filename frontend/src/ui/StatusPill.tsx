@@ -12,14 +12,17 @@ const DOTS: Record<Tone, string> = {
   neutral: "bg-ink-muted",
 };
 
-/** A status in words with a coloured dot; the words carry the meaning, the dot only echoes it. */
+/**
+ * A status in words with a small coloured dot, no background: the words carry the meaning, the
+ * dot only echoes it.
+ */
 export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-subtle px-2.5 py-[5px] text-label font-medium text-ink">
+    <span className="inline-flex shrink-0 items-center gap-1.5 text-label font-medium whitespace-nowrap text-ink-muted">
       <span
         aria-hidden="true"
         data-tone={tone}
-        className={cx("size-[5px] rounded-full", DOTS[tone])}
+        className={cx("size-1.5 rounded-full", DOTS[tone])}
       />
       {children}
     </span>

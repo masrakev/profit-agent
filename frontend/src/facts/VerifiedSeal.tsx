@@ -45,7 +45,7 @@ export function VerifiedSeal({ fact, title }: { fact: Fact; title?: string }) {
         onClick={() => {
           setOpen((shown) => !shown);
         }}
-        className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-accent-soft px-2 py-[3px] text-caption font-semibold text-accent-ink"
+        className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-1 py-0.5 text-label font-medium text-ink-muted transition-colors duration-150 hover:text-ink"
       >
         <Icon name="circle-check" size={12} />
         Verified

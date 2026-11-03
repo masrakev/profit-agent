@@ -16,10 +16,11 @@ interface RangeBarProps {
 const pct = (fraction: number) => `${String(fraction * 100)}%`;
 
 /**
- * An estimate as its range: the low (P10), most likely (P50) and high (P90) values as the API
- * wrote them, and the track with the most likely value marked where it falls. Nothing here is
- * computed for display: positions only place marks. An estimate without a usable range shows its
- * text alone.
+ * An estimate as its range. On screens the range reads once ("low to high", the API's text), the
+ * most likely value beside it, and the track below with the most likely value marked where it
+ * falls. In the proof sheet each quantile is written under its place on the track. Nothing here
+ * is computed for display: positions only place marks. An estimate without a usable range shows
+ * its text alone.
  */
 export function RangeBar({
   fact,
@@ -35,49 +36,58 @@ export function RangeBar({
     return <p className="text-label text-ink-muted">{fact.display}</p>;
   }
 
-  const content = (
-    <>
-      <span className="flex w-full items-start justify-between text-label whitespace-nowrap">
-        <span className="text-ink-muted">{texts.p10}</span>
-        <span className="font-semibold text-accent-ink">{texts.p50}</span>
-        <span className="text-ink-muted">{texts.p90}</span>
+  const track = (
+    <span aria-hidden="true" className="relative block h-1.5 w-full rounded-full bg-accent-soft">
+      <span className="absolute inset-y-0 right-[3px] left-[3px] block">
+        <Dot at={geometry.low} part="low" />
+        <span
+          data-part="likely"
+          className="absolute top-1/2 block h-3 w-[3px] -translate-1/2 rounded-bar bg-accent-mark"
+          style={{ left: pct(geometry.mark) }}
+        />
+        <Dot at={geometry.high} part="high" />
       </span>
-      <span
-        aria-hidden="true"
-        className="relative block h-2 w-full overflow-hidden rounded-full bg-accent-soft"
-      >
-        <span className="absolute inset-y-0 right-[6.5px] left-[6.5px] block">
-          <Dot at={geometry.low} part="low" />
-          <span
-            data-part="likely"
-            className="absolute top-1/2 block h-3.5 w-1 -translate-1/2 rounded-[2px] bg-accent-mark"
-            style={{ left: pct(geometry.mark) }}
-          />
-          <Dot at={geometry.high} part="high" />
-        </span>
-      </span>
-      <span className="flex w-full items-start justify-between text-caption whitespace-nowrap text-ink-muted">
-        <span>Low</span>
-        <span>Most likely</span>
-        <span>High</span>
-      </span>
-    </>
+    </span>
   );
 
-  const layout = "flex w-full flex-col gap-2 text-left";
-  if (!interactive) return <div className={layout}>{content}</div>;
+  if (!interactive) {
+    return (
+      <div className="flex w-full flex-col gap-2 text-left">
+        <span className="flex w-full items-start justify-between text-label whitespace-nowrap tabular-nums">
+          <span className="text-ink-muted">{texts.p10}</span>
+          <span className="font-semibold text-accent-ink">{texts.p50}</span>
+          <span className="text-ink-muted">{texts.p90}</span>
+        </span>
+        {track}
+        <span className="flex w-full items-start justify-between text-label whitespace-nowrap text-ink-muted">
+          <span>Low</span>
+          <span>Most likely</span>
+          <span>High</span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
       aria-haspopup="dialog"
       aria-label={`${fact.display}, most likely ${texts.p50}, see the proof`}
       data-fact={fact.fact_id}
-      className={cx(layout, "cursor-pointer rounded-[6px]")}
+      className={cx("group flex w-full cursor-pointer flex-col gap-2.5 rounded-md text-left")}
       onClick={() => {
         proof.open(fact, title);
       }}
     >
-      {content}
+      <span className="flex w-full flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span className="text-body font-medium text-ink underline decoration-line decoration-1 underline-offset-[5px] group-hover:decoration-ink-muted">
+          {fact.display}
+        </span>
+        <span className="text-label text-ink-muted">
+          <span>Most likely</span> <span className="font-medium text-accent-ink">{texts.p50}</span>
+        </span>
+      </span>
+      {track}
     </button>
   );
 }

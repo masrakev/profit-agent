@@ -145,7 +145,7 @@ describe("the component catalogue (development builds)", () => {
     ).toBeInTheDocument();
     await waitFor(() => {
       expect(
-        screen.getAllByRole("button", { name: "+$150 to +$205, see the proof" }).length,
+        screen.getAllByRole("button", { name: /^\+\$150 to \+\$205, / }).length,
       ).toBeGreaterThan(0);
     });
     expect(screen.getByRole("button", { name: "$1,235, see the proof" })).toBeInTheDocument();

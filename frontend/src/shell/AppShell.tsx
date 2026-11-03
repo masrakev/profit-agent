@@ -1,4 +1,5 @@
-import { Outlet, useMatches } from "react-router";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation, useMatches } from "react-router";
 
 import { Composer } from "./Composer";
 import { useConversation } from "@/conversation/context";
@@ -22,27 +23,54 @@ export function AppShell() {
   const composer = useMatches().some((match) => wantsComposer(match.handle));
   const sidebar = useSidebar();
   const beside = sidebar.collapsed ? SIDEBAR.besideCollapsed : SIDEBAR.besideExpanded;
+  // On a phone the rail is a drawer, closed again by any navigation.
+  const [drawer, setDrawer] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    setDrawer(false);
+  }, [pathname]);
   return (
     <ConversationProvider>
       <div className="min-h-dvh bg-canvas text-ink">
         <a
           href="#main"
-          className="sr-only z-50 rounded-full bg-surface px-4 py-2 text-small text-ink focus:not-sr-only focus:fixed focus:top-3 focus:left-24"
+          className="sr-only z-50 rounded-full bg-surface px-4 py-2 text-small text-ink focus:not-sr-only focus:fixed focus:top-3 focus:left-4 md:focus:left-24"
         >
           Skip to content
         </a>
-        <NavRail collapsed={sidebar.collapsed} onToggle={sidebar.toggle} />
+        <NavRail
+          collapsed={sidebar.collapsed}
+          onToggle={sidebar.toggle}
+          drawer={drawer}
+          onClose={() => {
+            setDrawer(false);
+          }}
+        />
+        {drawer && (
+          <div
+            aria-hidden="true"
+            className="fixed inset-0 z-20 bg-scrim md:hidden"
+            onClick={() => {
+              setDrawer(false);
+            }}
+          />
+        )}
         <div
           className={cx(
-            "flex min-h-dvh flex-col gap-7 pt-6 pr-10 pb-[120px] transition-[padding] duration-200 ease-out",
+            "flex min-h-dvh flex-col gap-8 px-4 pt-4 transition-[padding] duration-200 ease-out md:pt-6 md:pr-10",
+            composer ? "pb-[200px]" : "pb-24",
             beside,
           )}
         >
-          <TopBar />
+          <TopBar
+            onMenu={() => {
+              setDrawer(true);
+            }}
+          />
           <main
             id="main"
             tabIndex={-1}
-            className="mx-auto flex w-full max-w-[760px] flex-col gap-6"
+            className="mx-auto flex w-full max-w-[720px] min-w-0 flex-col gap-6 outline-none"
           >
             <Outlet />
           </main>
@@ -50,11 +78,11 @@ export function AppShell() {
         {composer && (
           <div
             className={cx(
-              "pointer-events-none fixed inset-x-0 bottom-0 z-20 pr-10 pb-6 transition-[padding] duration-200 ease-out",
+              "pointer-events-none fixed inset-x-0 bottom-0 z-10 bg-linear-to-t from-canvas from-60% to-transparent px-4 pt-8 pb-4 transition-[padding] duration-200 ease-out md:pr-10 md:pb-6",
               beside,
             )}
           >
-            <div className="pointer-events-auto mx-auto w-full max-w-[760px]">
+            <div className="pointer-events-auto mx-auto w-full max-w-[720px]">
               <ConversationComposer />
             </div>
           </div>

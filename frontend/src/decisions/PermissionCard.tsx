@@ -6,8 +6,8 @@ import { FactValue } from "@/facts/FactValue";
 import { VerifiedSeal } from "@/facts/VerifiedSeal";
 import { Button } from "@/ui/Button";
 import { cx } from "@/ui/cx";
+import { AgentMark } from "@/ui/AgentMark";
 import { Icon } from "@/ui/Icon";
-import type { IconName } from "@/ui/icons";
 
 export interface PermissionOption {
   id: string;
@@ -21,7 +21,6 @@ export interface PermissionOption {
 export interface PermissionCardProps {
   /** The question asked of the owner ("Pause ‘Trail Jacket — Prospecting’ until restock?"). */
   question: string;
-  icon?: IconName;
   /** What the impacts are measured against ("Compared with doing nothing over 14 days"). */
   comparedWith: string;
   options: PermissionOption[];
@@ -38,12 +37,12 @@ export interface PermissionCardProps {
 }
 
 /**
- * The agent asks before it acts: the question, every option with its range (P10 to P90, P50 marked),
- * the safety checks, and Approve or Not now. Nothing changes until the owner answers.
+ * The approval moment, the one strong surface of the app: the agent asks before it acts. The
+ * question, every option as a row with its range read once (P10 to P90, P50 marked), the safety
+ * checks, and Approve or Not now. Nothing changes until the owner answers.
  */
 export function PermissionCard({
   question,
-  icon = "pause",
   comparedWith,
   options,
   baseline,
@@ -61,19 +60,17 @@ export function PermissionCard({
   return (
     <article
       aria-labelledby={questionId}
-      className="flex w-full flex-col gap-5 rounded-card border border-line bg-surface p-6 shadow-float"
+      className="flex w-full flex-col gap-6 rounded-card border border-line bg-surface p-5 shadow-float sm:p-6"
     >
       <header className="flex items-start gap-3">
-        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-box bg-accent-soft text-accent-ink">
-          <Icon name={icon} />
-        </span>
+        <AgentMark state="waiting" size="md" className="mt-0.5" />
         <h3 id={questionId} className="flex-1 text-heading font-semibold text-ink">
           {question}
         </h3>
         {sealed && <VerifiedSeal fact={sealed} />}
       </header>
 
-      <section className="flex flex-col gap-4 rounded-box bg-subtle p-4">
+      <section className="flex flex-col gap-4">
         <button
           type="button"
           aria-expanded={expanded}
@@ -81,7 +78,7 @@ export function PermissionCard({
           onClick={() => {
             setExpanded((shown) => !shown);
           }}
-          className="flex w-full cursor-pointer items-start justify-between text-body font-semibold text-ink"
+          className="flex w-full cursor-pointer items-center justify-between rounded-md text-small font-medium text-ink-muted hover:text-ink"
         >
           Summary
           <Icon
@@ -90,31 +87,34 @@ export function PermissionCard({
           />
         </button>
         <div id={summaryId} hidden={!expanded} className="flex-col gap-4 [&:not([hidden])]:flex">
-          <p className="text-label leading-[1.45] text-ink-muted">{comparedWith}</p>
+          <p className="text-label text-ink-muted">{comparedWith}</p>
           {options.map((option, index) => (
             <div key={option.id} className="flex flex-col gap-4">
               {index > 0 && <hr className="border-line" />}
-              <div className="flex flex-col gap-2.5">
-                <p className={cx("text-small text-ink", option.recommended && "font-semibold")}>
-                  {option.label}
-                  {option.impact && (
-                    <>
-                      {" "}
-                      <FactValue fact={option.impact} title={option.label} />
-                    </>
+              <div className="flex flex-col gap-3">
+                <p className="flex items-baseline justify-between gap-3 text-body text-ink">
+                  <span className={cx(option.recommended && "font-medium")}>{option.label}</span>
+                  {option.recommended && (
+                    <span className="shrink-0 text-label text-accent-ink">Recommended</span>
                   )}
-                  {option.recommended && " (recommended)"}
                 </p>
-                {option.impact && estimateOf(option.impact) && (
-                  <RangeBar fact={option.impact} title={option.label} />
-                )}
+                {option.impact &&
+                  (estimateOf(option.impact) ? (
+                    <RangeBar fact={option.impact} title={option.label} />
+                  ) : (
+                    <FactValue
+                      fact={option.impact}
+                      title={option.label}
+                      className="self-start text-small"
+                    />
+                  ))}
               </div>
             </div>
           ))}
           {baseline && (
             <>
               <hr className="border-line" />
-              <p className="flex items-start justify-between gap-4 text-small text-ink">
+              <p className="flex items-start justify-between gap-4 text-body text-ink-muted">
                 <span>{baseline.label}</span>
                 {baseline.impact && <FactValue fact={baseline.impact} title={baseline.label} />}
               </p>
@@ -123,7 +123,21 @@ export function PermissionCard({
         </div>
       </section>
 
-      <p className={cx("text-small", blocked ? "text-danger-ink" : "text-ink-muted")}>{safety}</p>
+      <p
+        className={cx(
+          "flex items-start gap-2 border-t border-line pt-4 text-small",
+          blocked ? "text-danger-ink" : "text-ink-muted",
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={cx(
+            "mt-[7px] size-1.5 shrink-0 rounded-full",
+            blocked ? "bg-danger" : "bg-good",
+          )}
+        />
+        {safety}
+      </p>
 
       <div className="flex flex-wrap gap-2.5">
         <Button onClick={onApprove} disabled={pending || blocked} aria-busy={pending}>

@@ -5,10 +5,10 @@ import { cx } from "./cx";
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-accent-fill text-on-accent hover:brightness-110 active:brightness-95",
-  secondary: "bg-subtle text-ink hover:bg-line",
-  ghost: "bg-transparent text-accent-ink hover:bg-accent-soft",
-  danger: "bg-danger text-on-accent hover:brightness-110 active:brightness-95",
+  primary: "bg-accent-fill text-on-accent hover:opacity-90 active:opacity-80",
+  secondary: "border border-line bg-transparent text-ink hover:bg-subtle",
+  ghost: "bg-transparent text-ink-muted hover:bg-subtle hover:text-ink",
+  danger: "bg-danger text-on-accent hover:opacity-90 active:opacity-80",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -17,7 +17,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean;
 }
 
-/** The style guide's pill buttons: 42 px high, 20 px sides, 15 px semibold. */
+/** Pill buttons: 40 px high, 20 px sides, 15 px medium. Primary is ink on canvas. */
 export function Button({
   variant = "primary",
   block = false,
@@ -29,8 +29,8 @@ export function Button({
     <button
       type={type}
       className={cx(
-        "inline-flex h-[42px] cursor-pointer items-center justify-center gap-2 rounded-full px-5",
-        "text-body leading-none font-semibold whitespace-nowrap transition-[background-color,filter]",
+        "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full px-5",
+        "text-body leading-none font-medium whitespace-nowrap transition-[background-color,opacity,color] duration-150",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANTS[variant],
         block && "w-full",

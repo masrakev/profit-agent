@@ -37,8 +37,8 @@ export function useSidebar(): { collapsed: boolean; toggle: () => void } {
 export const SIDEBAR = {
   expanded: "w-[260px]",
   collapsed: "w-[52px]",
-  besideExpanded: "pl-[300px]",
-  besideCollapsed: "pl-[92px]",
+  besideExpanded: "md:pl-[300px]",
+  besideCollapsed: "md:pl-[92px]",
 };
 
 /**
@@ -46,5 +46,5 @@ export const SIDEBAR = {
  * (8 px into a 36 px row), so collapsing only hides the labels; nothing moves.
  */
 export const ROW =
-  "flex h-9 w-full cursor-pointer items-center gap-2 overflow-hidden rounded-[10px] px-2 " +
-  "text-left text-nav whitespace-nowrap text-ink";
+  "flex h-9 w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-md px-2 " +
+  "text-left text-nav whitespace-nowrap text-ink-muted transition-colors duration-150 hover:text-ink";

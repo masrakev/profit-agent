@@ -1,17 +1,31 @@
-import { ConnectionStatus } from "./ConnectionStatus";
+import { AgentStatus } from "./AgentStatus";
 import { storeLine, useStore } from "@/stores/store";
 import { BrandMark } from "@/ui/BrandMark";
+import { Icon } from "@/ui/Icon";
 
-/** The workspace header: the store on the left, the brand in the middle, the connection right. */
-export function TopBar() {
+/**
+ * The workspace header: the store on the left (on a phone, the menu and the brand), the agent's
+ * status line on the right.
+ */
+export function TopBar({ onMenu }: { onMenu: () => void }) {
   const store = useStore();
   return (
-    <header className="grid h-10 grid-cols-[1fr_auto_1fr] items-center gap-4">
-      <p className="truncate text-label text-ink-muted">{storeLine(store)}</p>
-      <BrandMark named />
-      <div className="flex justify-end">
-        <ConnectionStatus />
+    <header className="flex h-10 items-center justify-between gap-4">
+      <div className="flex min-w-0 items-center gap-2">
+        <button
+          type="button"
+          aria-label="Open the menu"
+          onClick={onMenu}
+          className="-ml-2 flex size-9 cursor-pointer items-center justify-center rounded-md text-ink-muted hover:bg-subtle hover:text-ink md:hidden"
+        >
+          <Icon name="panel-left" />
+        </button>
+        <span className="md:hidden">
+          <BrandMark named />
+        </span>
+        <p className="hidden truncate text-small text-ink-muted md:block">{storeLine(store)}</p>
       </div>
+      <AgentStatus />
     </header>
   );
 }

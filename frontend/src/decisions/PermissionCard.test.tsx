@@ -40,9 +40,10 @@ describe("the permission card", () => {
     const article = screen.getByRole("article", {
       name: "Pause ‘Trail Jacket — Prospecting’ until restock?",
     });
-    expect(within(article).getByText(/Pause until restock/)).toHaveTextContent(
-      "Pause until restock $5,743 to $6,469, see the proof (recommended)",
-    );
+    expect(within(article).getByText("Pause until restock")).toBeInTheDocument();
+    expect(within(article).getByText("Recommended")).toBeInTheDocument();
+    // Each range reads once, on its bar.
+    expect(within(article).getAllByText("$5,743 to $6,469")).toHaveLength(1);
     expect(within(article).getAllByText("Most likely")).toHaveLength(2);
     expect(within(article).getByText("Prepare a reorder")).toBeInTheDocument();
     expect(within(article).getByText("Do nothing")).toBeInTheDocument();
@@ -58,7 +59,7 @@ describe("the permission card", () => {
 
   it("opens each option's proof from its number", async () => {
     card();
-    await userEvent.click(screen.getByRole("button", { name: "+$150 to +$205, see the proof" }));
+    await userEvent.click(screen.getByRole("button", { name: /^\+\$150 to \+\$205, most likely/ }));
     expect(screen.getByRole("dialog", { name: "Cut budget" })).toBeInTheDocument();
   });
 

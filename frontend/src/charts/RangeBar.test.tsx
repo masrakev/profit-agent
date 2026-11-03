@@ -8,14 +8,12 @@ import { fakeApi } from "@/test/fakeApi";
 import { renderInStore } from "@/test/render";
 
 describe("the range bar", () => {
-  it("shows the API's low, most likely and high values, and marks the most likely", () => {
+  it("reads the range once, with the most likely value, and marks it on the track", () => {
     const { container } = renderInStore(<RangeBar fact={estimate} />, fakeApi().api);
-    expect(screen.getByText("$5,743")).toBeInTheDocument();
+    expect(screen.getByText("$5,743 to $6,469")).toBeInTheDocument();
     expect(screen.getByText("$6,100")).toHaveClass("text-accent-ink");
-    expect(screen.getByText("$6,469")).toBeInTheDocument();
-    expect(screen.getByText("Low")).toBeInTheDocument();
     expect(screen.getByText("Most likely")).toBeInTheDocument();
-    expect(screen.getByText("High")).toBeInTheDocument();
+    expect(screen.queryByText("$5,743")).toBeNull(); // the range is not repeated
     const at = (part: string) =>
       container.querySelector<HTMLElement>(`[data-part=${part}]`)?.style.left;
     expect(at("low")).toBe("0%");
@@ -42,6 +40,8 @@ describe("the range bar", () => {
     );
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.getByText("$6,100.00")).toBeInTheDocument();
+    expect(screen.getByText("Low")).toBeInTheDocument();
+    expect(screen.getByText("High")).toBeInTheDocument();
   });
 
   it("falls back to the short text when there is no usable range", () => {

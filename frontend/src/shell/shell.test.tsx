@@ -7,7 +7,8 @@ import { readCollapsed, SIDEBAR_STORAGE_KEY, writeCollapsed } from "./sidebar";
 import { problem } from "@/test/fakeApi";
 import { MAX_SECONDS, type Recorder } from "@/voice/recorder";
 import { mockSystemTheme } from "@/test/matchMedia";
-import { renderApp, signedInApi } from "@/test/render";
+import { decision } from "@/test/conversation";
+import { renderApp, signedInApi, STORE_ID } from "@/test/render";
 
 beforeEach(() => {
   mockSystemTheme(false);
@@ -68,7 +69,27 @@ describe("the app shell", () => {
 
   it("says whether the platform answers", async () => {
     renderApp("/", signedInApi().api);
-    expect(await screen.findByText("Connected")).toBeInTheDocument();
+    expect(await screen.findByText("Watching your store")).toBeInTheDocument();
+  });
+
+  it("says when a decision waits for the owner, and leads to it", async () => {
+    const fake = signedInApi().on(`GET /api/v1/stores/${STORE_ID}/decisions`, {
+      items: [decision("proposed")],
+      next_cursor: null,
+    });
+    renderApp("/", fake.api);
+    const waiting = await screen.findByRole("link", { name: "Waiting for your decision" });
+    await userEvent.click(waiting);
+    expect(await screen.findByRole("heading", { name: "Decisions", level: 1 })).toBeVisible();
+  });
+
+  it("opens the menu as a drawer on a phone, and closes it", async () => {
+    renderApp("/", signedInApi().api);
+    await userEvent.click(await screen.findByRole("button", { name: "Open the menu" }));
+    const nav = screen.getByRole("navigation", { name: "Main" });
+    expect(nav.className).toContain("max-md:translate-x-0");
+    await userEvent.click(within(nav).getByRole("button", { name: "Close the menu" }));
+    expect(nav.className).toContain("max-md:-translate-x-full");
   });
 
   it("says so when it does not", async () => {
