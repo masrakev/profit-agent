@@ -131,7 +131,9 @@ function Why({ decision: d }: { decision: Decision }) {
         </p>
         {expected && (
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-ink">
-            <span className="text-ink-muted">Expected, compared with doing nothing:</span>
+            <span className="text-ink-muted">
+              Expected over {String(d.horizon_days)} days, compared with doing nothing:
+            </span>
             <FactValue fact={expected} title="Expected change in net profit" />
             <VerifiedSeal fact={expected} />
           </p>
@@ -259,6 +261,9 @@ function Earned({ decision: d }: { decision: Decision }) {
                 { label: "Measured", fact: measured },
               ]}
             />
+            <p className="text-label text-ink-muted">
+              Both over the same week, from the day it took effect.
+            </p>
             {outcome?.verdict_text && <p className="text-body text-ink">{outcome.verdict_text}</p>}
           </>
         ) : (

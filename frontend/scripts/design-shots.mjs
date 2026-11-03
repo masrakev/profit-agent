@@ -124,6 +124,16 @@ try {
     }
   }
 
+  if (part("pages")) {
+    // A measured decision, read in full in the inbox.
+    await page.goto(`${BASE}/decisions`);
+    await page.getByRole("group", { name: "Show" }).getByRole("button", { name: "Done" }).click();
+    await page.getByRole("list", { name: "Done" }).getByRole("link").last().click();
+    await page.getByRole("region", { name: "What it earned" }).waitFor();
+    await settle(page);
+    await shoot(page, "decision-measured");
+  }
+
   if (part("states")) {
     // Loading: the API holds its answers; empty: the store has nothing yet.
     await page.route("**/api/v1/stores/*/decisions?*", () => {});

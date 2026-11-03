@@ -330,6 +330,11 @@ describe("the Decisions page", () => {
     expect(await within(earned).findByText("Predicted")).toBeVisible();
     expect(within(earned).getByText("Measured")).toBeVisible();
     expect(within(earned).getByText(HELD_ABOVE)).toBeVisible(); // the backend's verdict
+    // Two periods, named: the option's forecast over its horizon, the measured week.
+    expect(within(earned).getByText(/same week/)).toBeVisible();
+    expect(within(detail).getByRole("region", { name: "Why" })).toHaveTextContent(
+      "Expected over 14 days",
+    );
     expect(
       await within(earned).findByText("1 of 10 confirmations before I can ask to do this alone"),
     ).toBeVisible();
