@@ -140,6 +140,11 @@ try {
   const answer = page.getByRole("article", { name: "Answer" });
   await answer.waitFor({ timeout: 240_000 });
   await answer.getByRole("region", { name: "Evidence" }).waitFor();
+  // The recorded answer, not the fallback the API gives when no model answer is at hand.
+  await answer.getByText(/^Next step:/).waitFor();
+  if ((await answer.textContent())?.includes("model unavailable")) {
+    throw new Error("the answer is the fallback: its model exchange was not replayed");
+  }
   await answer.getByRole("button", { name: "Verified", exact: true }).click();
   await answer.getByRole("button", { name: "See the proof", exact: true }).waitFor();
   holds("the answer, with its evidence and the Verified seal");

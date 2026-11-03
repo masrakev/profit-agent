@@ -155,12 +155,12 @@ try {
       .getByRole("textbox", { name: "Ask anything about your store" })
       .fill("What is hurting my profit the most this week, and what should I do about it?");
     await page.keyboard.press("Enter");
-    // Replayed answers arrive at once: the live work is taken only if it is still on screen.
+    // At the recorded pace (`make demo-api`) the work streams; replayed at once, it is gone.
     const working = page.getByRole("region", { name: "Working" });
     const live = await working
       .getByRole("listitem")
-      .nth(2)
-      .waitFor({ timeout: 4_000 })
+      .nth(1)
+      .waitFor({ timeout: 60_000 })
       .then(() => true)
       .catch(() => false);
     if (live) await shoot(page, "ask-working", { quick: true });
