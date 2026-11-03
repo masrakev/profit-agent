@@ -8,12 +8,15 @@ import { FactValue } from "@/facts/FactValue";
 import { VerifiedSeal } from "@/facts/VerifiedSeal";
 import { formatPeriod } from "@/format/dates";
 import { useStore } from "@/stores/store";
+import { AgentMark } from "@/ui/AgentMark";
+import { Skeleton } from "@/ui/Skeleton";
 
 type Bridge = Schemas["Bridge"];
 
 /**
- * Today: the store's day assembled now from facts (the picture, what needs the owner, the pending
- * decisions) and what moved net profit this week, driver by driver.
+ * Today, as an editorial brief: the day's headline, then what needs the owner, the picture and the
+ * money at stake, the pending decisions as rows (all assembled now from facts), and what moved net
+ * profit this week, driver by driver.
  */
 export function TodayPage() {
   const api = useApi();
@@ -29,16 +32,22 @@ export function TodayPage() {
   });
 
   return (
-    <section aria-labelledby="today-title" className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 id="today-title" className="text-title font-semibold text-ink">
+    <section aria-labelledby="today-title" className="flex flex-col gap-10">
+      <header className="flex flex-col gap-4">
+        <h1
+          id="today-title"
+          className="flex items-center gap-2 font-mono text-label font-normal text-ink-muted"
+        >
+          <AgentMark size="sm" />
           Today
         </h1>
-        {overview.data && <p className="text-body text-ink-muted">{overview.data.headline}</p>}
+        {overview.data && (
+          <p className="max-w-[24ch] text-title font-semibold text-ink md:text-proof">
+            {overview.data.headline}
+          </p>
+        )}
       </header>
-      {overview.isPending && (
-        <p className="h-40 animate-pulse rounded-card bg-subtle" aria-busy="true" />
-      )}
+      {overview.isPending && <Skeleton rows={4} />}
       {overview.isError && (
         <p className="text-body text-ink-muted">Today’s overview could not be loaded.</p>
       )}
@@ -57,17 +66,14 @@ function ProfitBridge({ bridge }: { bridge: Bridge }) {
   const period = formatPeriod(bridge.period_start, bridge.period_end);
   const before = formatPeriod(bridge.baseline_start, bridge.baseline_end);
   return (
-    <section
-      aria-labelledby="bridge-title"
-      className="flex flex-col gap-5 rounded-card border border-line bg-surface p-6 shadow-float"
-    >
-      <div className="flex items-start justify-between gap-3">
+    <section aria-labelledby="bridge-title" className="flex flex-col gap-5">
+      <div className="flex items-start justify-between gap-3 border-b border-line pb-2.5">
         <div className="flex flex-col gap-1">
-          <h2 id="bridge-title" className="text-small font-semibold text-ink">
+          <h2 id="bridge-title" className="text-small font-medium text-ink-muted">
             What moved your net profit
           </h2>
           {period && before && (
-            <p className="text-label text-ink-muted">
+            <p className="font-mono text-label text-ink-muted">
               {period}, against {before}
             </p>
           )}
