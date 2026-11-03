@@ -615,26 +615,109 @@ describe("Settings", () => {
     currency: "USD",
     timezone: "UTC",
     language: "en",
-    alert_channels: ["web", "email"],
+    alert_channels: ["web"],
     autonomy: { pause_campaign: 2, change_budget: 3, resume_campaign: 1 },
+    daily_brief: { enabled: true, at: "08:00:00", weekdays: [1, 2, 3, 4, 5, 6] },
+    weekly_report: { enabled: true, weekday: 1, at: "08:00:00" },
+    monthly_review: { enabled: true, day_of_month: 1, at: "08:00:00" },
+    quiet_hours: { start: "21:00:00", end: "07:00:00" },
+    alert_budget_per_day: 3,
+    materiality: { absolute: "100", relative: "0.03" },
+    detail_level: "standard",
+    spending_caps: { max_budget_change_ratio: "0.30", max_budget_changes_per_campaign_per_day: 1 },
+    notification_email: null,
+    whatsapp_number: null,
   };
+  function page() {
+    let saved: Record<string, unknown> = SETTINGS;
+    let stopped = false;
+    const fake = signedInApi()
+      .on(`GET ${BASE}/settings`, () => json(saved))
+      .on(`PUT ${BASE}/settings`, async (request: Request) => {
+        saved = (await request.json()) as Record<string, unknown>;
+        return json(saved);
+      })
+      .on(`GET ${BASE}/trust`, TRUST)
+      .on(`GET ${BASE}/kill-switch`, () => json({ enabled: stopped }))
+      .on(`PUT ${BASE}/kill-switch`, async (request: Request) => {
+        stopped = ((await request.json()) as { enabled: boolean }).enabled;
+        return json({ enabled: stopped });
+      });
+    return { fake, saved: () => saved, stopped: () => stopped };
+  }
 
-  it("says, per kind of action, its rule and how far it was earned, then the channels", async () => {
-    const fake = signedInApi().on(`GET ${BASE}/settings`, SETTINGS).on(`GET ${BASE}/trust`, TRUST);
+  it("offers acting alone only once earned, and saves a rule at once", async () => {
+    const { fake, saved } = page();
     renderApp("/settings", fake.api);
     const may = await screen.findByRole("region", { name: "What I may do" });
     const pause = within(may).getByRole("listitem", { name: "Pausing a campaign" });
-    expect(within(pause).getByText("Needs your approval")).toBeVisible();
+    const rule = within(pause).getByRole("group", { name: "Rule for pausing a campaign" });
+    expect(
+      within(rule)
+        .getAllByRole("radio")
+        .map((r) => r.parentElement?.textContent),
+    ).toEqual(["Blocked", "Needs your approval"]);
+    expect(within(rule).getByRole("radio", { name: "Needs your approval" })).toBeChecked();
     expect(
       within(pause).getByText("1 of 10 confirmations before I can ask to do this alone"),
     ).toBeVisible();
-    const budget = within(may).getByRole("listitem", { name: "Changing a daily budget" });
-    expect(within(budget).getByText("Allowed")).toBeVisible();
-    const resume = within(may).getByRole("listitem", { name: "Resuming a campaign" });
-    expect(within(resume).getByText("Blocked")).toBeVisible();
-    const channels = screen.getByRole("region", { name: "Where I reach you" });
-    expect(within(channels).getAllByText("On")).toHaveLength(2);
-    expect(within(channels).getAllByText("Off")).toHaveLength(1);
+    // Earned: the ledger proposes managing budgets within their scope.
+    const budget = within(may).getByRole("group", { name: "Rule for changing a daily budget" });
+    expect(within(budget).getByRole("radio", { name: "Allowed" })).toBeChecked();
+    expect(within(budget).getByRole("radio", { name: "Allowed in its scope" })).toBeVisible();
+    await userEvent.click(within(rule).getByRole("radio", { name: "Blocked" }));
+    expect(await screen.findByText("Saved.")).toBeVisible();
+    expect(saved()).toMatchObject({ autonomy: { pause_campaign: 1, change_budget: 3 } });
+    expect(within(rule).getByRole("radio", { name: "Blocked" })).toBeChecked();
+  });
+
+  it("writes by email once there is an address, and changes times and the alert budget", async () => {
+    const { fake, saved } = page();
+    renderApp("/settings", fake.api);
+    const reach = await screen.findByRole("region", { name: "Where I reach you" });
+    const email = within(reach).getByRole("switch", { name: "By email" });
+    expect(email).toBeDisabled();
+    await userEvent.type(within(reach).getByLabelText("Email address"), "owner@store.com{Enter}");
+    await waitFor(() => {
+      expect(email).toBeEnabled();
+    });
+    await userEvent.click(email);
+    await waitFor(() => {
+      expect(saved()).toMatchObject({
+        notification_email: "owner@store.com",
+        alert_channels: ["web", "email"],
+      });
+    });
+    expect(within(reach).getByRole("switch", { name: "On WhatsApp" })).toBeDisabled();
+    const when = screen.getByRole("region", { name: "When I write to you" });
+    const budget = within(when).getByLabelText("Alerts a day");
+    await userEvent.clear(budget);
+    await userEvent.type(budget, "5{Enter}");
+    await waitFor(() => {
+      expect(saved()).toMatchObject({ alert_budget_per_day: 5 });
+    });
+    await userEvent.click(within(when).getByRole("switch", { name: "Weekly report" }));
+    await waitFor(() => {
+      expect(saved()).toMatchObject({ weekly_report: { enabled: false } });
+    });
+  });
+
+  it("stops every action with the brake, and says when a change is refused", async () => {
+    const { fake, stopped } = page();
+    renderApp("/settings", fake.api);
+    const safety = await screen.findByRole("region", { name: "Safety" });
+    const brake = await within(safety).findByRole("switch", { name: "Stop every action" });
+    await waitFor(() => {
+      expect(brake).toBeEnabled();
+    });
+    await userEvent.click(brake);
+    await waitFor(() => {
+      expect(stopped()).toBe(true);
+    });
+    expect(brake).toHaveAttribute("aria-checked", "true");
+    fake.on(`PUT ${BASE}/settings`, () => problem(422, "invalid_request"));
+    await userEvent.click(screen.getByRole("switch", { name: "Morning brief" }));
+    expect(await screen.findByText(/That value is not accepted/)).toBeVisible();
   });
 
   it("says when the settings cannot be read", async () => {

@@ -440,3 +440,12 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
   - `make demo-whatsapp`: the stockout alert delivered on WhatsApp with its buttons, approved
     from the phone, the pause executed through the policy engine and the executor. ADR 0027;
     README "WhatsApp setup". Live verification waits for WhatsApp credentials.
+- **Day 12 - the web platform, redesigned**
+  - Light by default with Meta blue; Home for the day, Conversations for questions, a rail of four.
+  - Decisions as an inbox, each decision read in full at its own address; goals at theirs, read
+    as a thread (ahead, then what happened, newest first).
+  - Conversations kept (ADR 0028): a history, each one at its address and continued where it
+    stopped; a question about a decision or a goal carries it; Ask from any page with Ctrl+K
+    (⌘K); a decision names the goal step it carries out.
+  - Settings changed in place: each action's rule (acting alone offered only once earned),
+    briefs, quiet hours, the alert budget, channels and the brake that stops every action.
