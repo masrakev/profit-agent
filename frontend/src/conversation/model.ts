@@ -24,6 +24,7 @@ export type Message =
       text: string | null; // a recorded question's, once heard
       via: "text" | "voice";
       listening: boolean; // a recorded question, until it is heard or the answer ends
+      about?: string | null; // what it was asked about (a decision, a goal), by its label
     }
   | {
       id: number;

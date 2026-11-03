@@ -10,6 +10,7 @@ import { NavRail } from "./NavRail";
 import { SIDEBAR, useSidebar } from "./sidebar";
 import { TopBar } from "./TopBar";
 import { cx } from "@/ui/cx";
+import { Icon } from "@/ui/Icon";
 
 /**
  * A route asks for the composer dock with `handle: { composer: true }` (Home, Conversations),
@@ -103,13 +104,23 @@ export function AppShell() {
   );
 }
 
+/** Questions worth asking about a decision or a goal, in the owner's words. */
+const TOPIC_QUESTIONS = {
+  decision: [
+    "Why this option rather than the others?",
+    "What happens if I wait a week?",
+    "What could go wrong?",
+  ],
+  goal: ["Am I on track?", "What would make it more likely?", "What if I aim higher?"],
+};
+
 /**
  * The composer of the conversation: a question typed or said goes into it, and from Home it opens
  * Conversations to follow the answer. Until the first one, questions drawn from the morning brief
  * sit above it.
  */
 function ConversationComposer() {
-  const { ask, askByVoice, messages } = useConversation();
+  const { ask, askByVoice, messages, topic, setTopic } = useConversation();
   const { brief } = useMorningBrief();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -127,7 +138,27 @@ function ConversationComposer() {
   };
   return (
     <div className="flex flex-col gap-3">
-      {!asked && <Suggestions questions={suggestedQuestions(brief)} onPick={typed} />}
+      {topic && (
+        <p className="flex items-center gap-2 self-start rounded-full bg-subtle py-1 pr-1 pl-3 text-small text-ink">
+          <span className="text-ink-muted">About</span>
+          <span className="max-w-[48ch] truncate font-medium">{topic.label}</span>
+          <button
+            type="button"
+            aria-label="Ask about the store as a whole"
+            onClick={() => {
+              setTopic(null);
+            }}
+            className="inline-flex size-6 cursor-pointer items-center justify-center rounded-full text-ink-muted hover:bg-line hover:text-ink"
+          >
+            <Icon name="x" size={14} />
+          </button>
+        </p>
+      )}
+      {topic ? (
+        <Suggestions questions={TOPIC_QUESTIONS[topic.kind]} onPick={typed} />
+      ) : (
+        !asked && <Suggestions questions={suggestedQuestions(brief)} onPick={typed} />
+      )}
       <Composer onSend={typed} onVoice={said} />
     </div>
   );

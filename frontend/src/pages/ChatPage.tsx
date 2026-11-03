@@ -44,6 +44,9 @@ function MessageView({ message }: { message: Message }) {
     case "question":
       return (
         <Bubble from="owner">
+          {message.about && (
+            <span className="mb-1 block text-label text-ink-muted">About {message.about}</span>
+          )}
           {message.text ?? (
             <span className="text-ink-muted">
               {message.listening ? "Listening to your question…" : "Your recorded question"}

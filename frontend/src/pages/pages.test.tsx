@@ -295,6 +295,15 @@ describe("the Decisions page", () => {
     expect(await within(propose).findByRole("button", { name: "Approve" })).toBeVisible();
   });
 
+  it("asks about a decision in the conversation, with its questions", async () => {
+    const fake = page().on(`GET ${BASE}/decisions/${DECISION}`, decision("proposed"));
+    const { router } = renderApp(`/decisions/${DECISION}`, fake.api);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask about this decision" }));
+    expect(router.state.location.pathname).toBe("/chat");
+    expect(screen.getByText(decision("proposed").label)).toBeVisible();
+    expect(screen.getByRole("button", { name: "What could go wrong?" })).toBeVisible();
+  });
+
   it("reads a measured decision top to bottom: proposed, decided, happened, earned", async () => {
     const fake = page()
       .on(`GET ${BASE}/decisions/${MEASURED}`, measured())

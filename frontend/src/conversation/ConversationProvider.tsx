@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useReducer, useRef, type ReactNode } from "react";
+import { useCallback, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 
-import { ConversationContext, type Conversation } from "./context";
+import { ConversationContext, type Topic, type Conversation } from "./context";
 import { extension, reduce, type AgentStep, type AskAnswer } from "./model";
 import { ApiError, unwrap } from "@/api/client";
 import { useApi } from "@/api/context";
@@ -77,12 +77,20 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
       text: string | null,
       via: "text" | "voice",
       open: () => Promise<ReadableStream<Uint8Array>>,
+      about: string | null = null,
     ) => {
       const questionId = id();
       const answerId = id();
       dispatch({
         type: "add",
-        message: { id: questionId, kind: "question", text, via, listening: via === "voice" },
+        message: {
+          id: questionId,
+          kind: "question",
+          text,
+          via,
+          listening: via === "voice",
+          about,
+        },
       });
       dispatch({
         type: "add",
@@ -100,8 +108,14 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
     [run],
   );
 
+  const [topic, setTopic] = useState<Topic | null>(null);
+
+  // A question about a decision or a goal carries it, in words, so the agent knows what "this" is.
   const ask = useCallback(
     (question: string) => {
+      const sent = topic
+        ? `About the ${topic.kind} \u201c${topic.label}\u201d: ${question}`
+        : question;
       start(
         question,
         "text",
@@ -109,13 +123,14 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
           unwrap(
             api.POST("/api/v1/stores/{store_id}/ask/stream", {
               params: { path: { store_id: storeId } },
-              body: { question },
+              body: { question: sent },
               parseAs: "stream",
             }),
           ) as Promise<ReadableStream<Uint8Array>>,
+        topic?.label ?? null,
       );
     },
-    [api, storeId, start],
+    [api, storeId, start, topic],
   );
 
   const askByVoice = useCallback(
@@ -163,8 +178,8 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Conversation>(
-    () => ({ messages, ask, askByVoice, openDecision, openInvestigation }),
-    [messages, ask, askByVoice, openDecision, openInvestigation],
+    () => ({ messages, topic, setTopic, ask, askByVoice, openDecision, openInvestigation }),
+    [messages, topic, ask, askByVoice, openDecision, openInvestigation],
   );
   return <ConversationContext.Provider value={value}>{children}</ConversationContext.Provider>;
 }

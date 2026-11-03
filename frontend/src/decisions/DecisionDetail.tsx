@@ -56,6 +56,7 @@ const text = (v: unknown) => (typeof v === "string" ? v : null);
  */
 export function DecisionDetail({ decisionId }: { decisionId: string }) {
   const api = useApi();
+  const open = useOpen();
   const { storeId, timezone } = useStore();
   const decision = useQuery({
     queryKey: ["decision", storeId, decisionId],
@@ -92,7 +93,18 @@ export function DecisionDetail({ decisionId }: { decisionId: string }) {
           >
             {chosen?.label ?? d.label}
           </h2>
-          <StatusPill tone={status.tone}>{status.text}</StatusPill>
+          <span className="flex shrink-0 flex-wrap items-center gap-2">
+            <StatusPill tone={status.tone}>{status.text}</StatusPill>
+            <Button
+              variant="secondary"
+              className="h-8 px-3 text-label"
+              onClick={() => {
+                open.ask({ kind: "decision", id: d.decision_id, label: chosen?.label ?? d.label });
+              }}
+            >
+              Ask about this decision
+            </Button>
+          </span>
         </div>
       </header>
       <Why decision={d} />
