@@ -1539,6 +1539,11 @@ export interface components {
              */
             updated_at: string;
         };
+        /**
+         * Consistency
+         * @enum {string}
+         */
+        Consistency: "inside" | "above" | "below";
         /** Contribution */
         Contribution: {
             /** Driver */
@@ -1616,6 +1621,11 @@ export interface components {
             label: string;
             /** Options */
             options: components["schemas"]["OptionRow"][];
+            /**
+             * Outcomes
+             * @default []
+             */
+            outcomes: components["schemas"]["OutcomeView"][];
             /** Recommended Option Id */
             recommended_option_id: string;
             /** Source */
@@ -2251,6 +2261,46 @@ export interface components {
             reversibility: string;
             /** Risks */
             risks: string[];
+        };
+        /**
+         * OutcomeView
+         * @description What an executed action was measured to do: its effect against what was predicted, and
+         *     whether the prediction held (`verdict`: inside, above or below the predicted range).
+         */
+        OutcomeView: {
+            /**
+             * Action Id
+             * Format: uuid
+             */
+            action_id: string;
+            /** Effect Fact Id */
+            effect_fact_id: number | null;
+            /** Method */
+            method: string | null;
+            /**
+             * Outcome Id
+             * Format: uuid
+             */
+            outcome_id: string;
+            /** Predicted Fact Id */
+            predicted_fact_id: number | null;
+            /** Reason */
+            reason: string | null;
+            /** Status */
+            status: string;
+            verdict: components["schemas"]["Consistency"] | null;
+            /** Verdict Text */
+            verdict_text: string | null;
+            /**
+             * Window End
+             * Format: date
+             */
+            window_end: string;
+            /**
+             * Window Start
+             * Format: date
+             */
+            window_start: string;
         };
         /** Page[BriefingSummary] */
         Page_BriefingSummary_: {

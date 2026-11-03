@@ -26,7 +26,7 @@ import hashlib
 import hmac
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any
@@ -36,6 +36,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Connection, text
 from sqlalchemy.exc import IntegrityError
 
+from app.causal.verdict import Consistency, consistency, verdict_text
 from app.channels.render import load_entity_names
 from app.decisions.labels import DO_NOTHING, decision_label, entity_refs, option_label
 from app.decisions.options import OptionSet
@@ -142,6 +143,7 @@ class DecisionView(BaseModel):
     superseded_reason: str | None = None
     label: str  # the question it asks: its recommended option
     do_nothing: "DoNothing"
+    outcomes: list["OutcomeView"] = []  # what its actions were measured to do, once measured
 
     def option(self, option_id: str) -> OptionRow:
         found = next((o for o in self.options if o.option_id == option_id), None)
@@ -159,7 +161,57 @@ class DoNothing(BaseModel):
     impact_fact_id: int | None  # an exact zero; None on decisions proposed before it existed
 
 
+class OutcomeView(BaseModel):
+    """What an executed action was measured to do: its effect against what was predicted, and
+    whether the prediction held (`verdict`: inside, above or below the predicted range)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    outcome_id: UUID
+    action_id: UUID
+    status: str  # measured | abstained
+    method: str | None
+    window_start: date
+    window_end: date
+    effect_fact_id: int | None  # the measured effect, an estimate
+    predicted_fact_id: int | None  # what was predicted for the same window, an estimate
+    verdict: Consistency | None
+    verdict_text: str | None
+    reason: str | None  # why it was measured, or why not
+
+
 DecisionView.model_rebuild()
+
+
+def outcomes_of(conn: Connection, store_id: UUID, decision_id: UUID) -> list[OutcomeView]:
+    rows = conn.execute(
+        text(
+            "SELECT outcome_id, action_id, status, method, window_start, window_end, "
+            "effect_fact_id, payload FROM outcomes WHERE store_id = :s AND decision_id = :d "
+            "ORDER BY created_at"
+        ),
+        {"s": store_id, "d": decision_id},
+    ).all()
+    out = []
+    for r in rows:
+        found = consistency(r.payload)
+        predicted = r.payload.get("predicted_fact_id")
+        out.append(
+            OutcomeView(
+                outcome_id=r.outcome_id,
+                action_id=r.action_id,
+                status=r.status,
+                method=r.method,
+                window_start=r.window_start,
+                window_end=r.window_end,
+                effect_fact_id=r.effect_fact_id,
+                predicted_fact_id=int(predicted) if predicted is not None else None,
+                verdict=found,
+                verdict_text=verdict_text(found),
+                reason=r.payload.get("reason"),
+            )
+        )
+    return out
 
 
 # What each action acts on, to find decisions acting on the same entity.
@@ -466,6 +518,7 @@ def get(conn: Connection, store_id: UUID, decision_id: UUID, *, lock: bool = Fal
         superseded_reason=row.superseded_reason,
         label=decision_label(recommended.label),
         do_nothing=DoNothing(impact_fact_id=row.do_nothing_fact_id),
+        outcomes=outcomes_of(conn, store_id, decision_id),
     )
 
 

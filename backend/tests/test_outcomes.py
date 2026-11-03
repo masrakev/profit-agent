@@ -15,6 +15,7 @@ from app.causal.control import (
     synthetic_control,
 )
 from app.causal.outcome import measure
+from app.causal.verdict import consistency, verdict_text
 from app.db import tenant_transaction
 from app.decisions.store import DecisionStatus, get
 from app.facts.repository import get_facts
@@ -89,7 +90,8 @@ def test_an_executed_pause_is_measured_after_its_window(
             {"s": sim["id"], "c": campaign, "d": action.after_state["effective_date"]},
         ).scalar_one()
         outcome = measure(conn, sim["id"], action.action_id)
-        status = get(conn, sim["id"], d.decision_id).status
+        decided = get(conn, sim["id"], d.decision_id)
+        status = decided.status
         rows = (
             conn.execute(
                 text("SELECT status FROM outcomes WHERE action_id = :a ORDER BY created_at"),
@@ -109,6 +111,19 @@ def test_an_executed_pause_is_measured_after_its_window(
     assert str(fact.p50) == outcome["predicted"]["p50"]
     assert fact.period.end - fact.period.start == timedelta(days=7)
     assert rows[0] == "abstained"
+    # The decision carries its outcomes, the latest last, with the verdict on the prediction.
+    early_view, latest = decided.outcomes
+    assert (early_view.status, early_view.verdict, early_view.effect_fact_id) == (
+        "abstained",
+        None,
+        None,
+    )
+    assert (latest.action_id, latest.status) == (action.action_id, outcome["status"])
+    assert latest.predicted_fact_id == outcome["predicted_fact_id"]
+    assert latest.effect_fact_id == outcome["effect_fact_id"]
+    assert latest.verdict == consistency(outcome)
+    assert latest.verdict_text == verdict_text(latest.verdict)
+    assert (latest.verdict is None) == (outcome["status"] == "abstained")
     if outcome["status"] == "measured":
         assert status is DecisionStatus.MEASURED
         effect = {k: Decimal(v) for k, v in outcome["effect"].items()}

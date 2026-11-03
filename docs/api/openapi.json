@@ -1077,6 +1077,15 @@
         "title": "ConnectionOut",
         "type": "object"
       },
+      "Consistency": {
+        "enum": [
+          "inside",
+          "above",
+          "below"
+        ],
+        "title": "Consistency",
+        "type": "string"
+      },
       "Contribution": {
         "properties": {
           "driver": {
@@ -1231,6 +1240,14 @@
               "$ref": "#/components/schemas/OptionRow"
             },
             "title": "Options",
+            "type": "array"
+          },
+          "outcomes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OutcomeView"
+            },
+            "title": "Outcomes",
             "type": "array"
           },
           "recommended_option_id": {
@@ -2962,6 +2979,115 @@
           "flags"
         ],
         "title": "OptionRow",
+        "type": "object"
+      },
+      "OutcomeView": {
+        "description": "What an executed action was measured to do: its effect against what was predicted, and\nwhether the prediction held (`verdict`: inside, above or below the predicted range).",
+        "properties": {
+          "action_id": {
+            "format": "uuid",
+            "title": "Action Id",
+            "type": "string"
+          },
+          "effect_fact_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effect Fact Id"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "outcome_id": {
+            "format": "uuid",
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "predicted_fact_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Fact Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Consistency"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verdict_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict Text"
+          },
+          "window_end": {
+            "format": "date",
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "outcome_id",
+          "action_id",
+          "status",
+          "method",
+          "window_start",
+          "window_end",
+          "effect_fact_id",
+          "predicted_fact_id",
+          "verdict",
+          "verdict_text",
+          "reason"
+        ],
+        "title": "OutcomeView",
         "type": "object"
       },
       "Page_BriefingSummary_": {
