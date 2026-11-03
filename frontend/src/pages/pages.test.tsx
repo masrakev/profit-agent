@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -278,6 +278,28 @@ describe("the Decisions page", () => {
     expect(review).toHaveAttribute("aria-expanded", "true");
     expect(await within(waiting).findByRole("button", { name: "Approve" })).toBeVisible();
     expect(screen.queryByRole("heading", { name: "Chat" })).toBeNull();
+  });
+
+  it("moves an approved decision out of the waiting ones", async () => {
+    let status = "proposed";
+    const fake = page()
+      .on(`GET ${BASE}/decisions/${DECISION}`, () => json(decision(status)))
+      .on(`GET ${BASE}/facts/22`, proofOf(zero))
+      .on(`POST ${BASE}/policy/preview`, { allowed: true, rule: "ok", reason: "ok" })
+      .on(`POST ${BASE}/decisions/${DECISION}/approve`, () => {
+        status = "approved";
+        return json(decision("approved"));
+      });
+    renderApp("/decisions", fake.api);
+    const waiting = await screen.findByRole("region", { name: "Waiting for you" });
+    await userEvent.click(within(waiting).getByRole("button", { name: "Review" }));
+    const lists = () =>
+      fake.requests.filter((r) => new URL(r.url).pathname === `${BASE}/decisions`).length;
+    const before = lists();
+    await userEvent.click(await within(waiting).findByRole("button", { name: "Approve" }));
+    await waitFor(() => {
+      expect(lists()).toBeGreaterThan(before);
+    });
   });
 
   it("says when there is none, or they cannot be read", async () => {

@@ -155,18 +155,33 @@ try {
     await shoot(page, "chat-investigation");
 
     await checked.getByRole("button", { name: "See options" }).click();
-    const card = page.getByRole("article").filter({ hasText: "Trail Jacket" }).last();
-    await card.getByText(/^Safety checks passed/).waitFor();
+    // A decision opens on the Decisions page (before the design pass: in the conversation).
+    const card = page
+      .getByRole("article")
+      .filter({ hasText: /Safety checks passed/ })
+      .filter({ has: page.getByRole("button", { name: "Approve" }) })
+      .last();
+    await card.getByRole("button", { name: "Approve" }).waitFor();
     await settle(page);
     await shoot(page, "chat-decision");
 
-    await card.getByRole("button", { name: "Approve" }).click();
-    await card
+    // The keyboard path: focus reaches Approve, with its ring.
+    await card.getByRole("button", { name: "Approve" }).focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    await shoot(page, "approval-focus", { whole: false });
+
+    await page.keyboard.press("Enter");
+    await page
       .getByRole("status")
       .filter({ hasText: /Approved|Carrying/ })
+      .first()
       .waitFor();
     await shoot(page, "approval-executing", { quick: true });
-    await card.getByRole("listitem").first().waitFor({ timeout: 60_000 });
+    await page
+      .getByText(/reports the campaign|carried it out/)
+      .first()
+      .waitFor({ timeout: 60_000 });
     await settle(page);
     await shoot(page, "approval-executed");
   }

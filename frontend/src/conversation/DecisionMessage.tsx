@@ -1,4 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 
 import { useOpen } from "./open";
 import { ApiError, unwrap, type Schemas } from "@/api/client";
@@ -125,6 +126,15 @@ export function DecisionMessage({ decisionId }: { decisionId: string }) {
     if (result) queries.setQueryData(key, result);
     await queries.invalidateQueries({ queryKey: key });
   };
+  // When its status moves on (approved, executing, executed), the lists that show it follow.
+  const status = data?.status;
+  const seen = useRef(status);
+  useEffect(() => {
+    if (status === undefined || seen.current === status) return;
+    const first = seen.current === undefined;
+    seen.current = status;
+    if (!first) void queries.invalidateQueries({ queryKey: ["decisions", storeId] });
+  }, [queries, status, storeId]);
   const approve = useMutation({
     mutationFn: (optionId: string) =>
       unwrap(
