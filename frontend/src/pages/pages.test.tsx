@@ -446,3 +446,40 @@ describe("the Journal", () => {
     expect(await screen.findByText("The journal could not be loaded.")).toBeVisible();
   });
 });
+
+describe("Settings", () => {
+  const SETTINGS = {
+    store_id: STORE_ID,
+    currency: "USD",
+    timezone: "UTC",
+    language: "en",
+    alert_channels: ["web", "email"],
+    autonomy: { pause_campaign: 2, change_budget: 3, resume_campaign: 1 },
+  };
+
+  it("says, per kind of action, its rule and how far it was earned, then the channels", async () => {
+    const fake = signedInApi().on(`GET ${BASE}/settings`, SETTINGS).on(`GET ${BASE}/trust`, TRUST);
+    renderApp("/settings", fake.api);
+    const may = await screen.findByRole("region", { name: "What I may do" });
+    const pause = within(may).getByRole("listitem", { name: "Pausing a campaign" });
+    expect(within(pause).getByText("Needs your approval")).toBeVisible();
+    expect(
+      within(pause).getByText("1 of 10 confirmations before I can ask to do this alone"),
+    ).toBeVisible();
+    const budget = within(may).getByRole("listitem", { name: "Changing a daily budget" });
+    expect(within(budget).getByText("Allowed")).toBeVisible();
+    const resume = within(may).getByRole("listitem", { name: "Resuming a campaign" });
+    expect(within(resume).getByText("Blocked")).toBeVisible();
+    const channels = screen.getByRole("region", { name: "Where I reach you" });
+    expect(within(channels).getAllByText("On")).toHaveLength(2);
+    expect(within(channels).getAllByText("Off")).toHaveLength(1);
+  });
+
+  it("says when the settings cannot be read", async () => {
+    const fake = signedInApi()
+      .on(`GET ${BASE}/settings`, () => problem(503, "down"))
+      .on(`GET ${BASE}/trust`, []);
+    renderApp("/settings", fake.api);
+    expect(await screen.findByText("Your settings could not be loaded.")).toBeVisible();
+  });
+});
