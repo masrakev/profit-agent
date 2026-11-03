@@ -19,7 +19,7 @@ export function CompareRanges({ rows }: { rows: Compared[] }) {
   const domain = sharedDomain(estimates.flatMap((e) => (e ? [e] : [])));
   return (
     // One grid for every row, so the ranges share their axis on screen too.
-    <ul className="grid grid-cols-[6rem_1fr_auto] items-center gap-x-4 gap-y-3">
+    <ul className="grid grid-cols-[7rem_1fr_auto] sm:grid-cols-[8.5rem_1fr_auto] items-center gap-x-4 gap-y-3">
       {rows.map((row, index) => {
         const e = estimates[index];
         const geometry = e && domain && rangeGeometry(e.p10, e.p50, e.p90, domain);
@@ -34,7 +34,7 @@ export function CompareRanges({ rows }: { rows: Compared[] }) {
                 <>
                   <span
                     data-part="range"
-                    className="absolute inset-y-0 block rounded-full bg-accent-mark/35"
+                    className="absolute inset-y-0 block rounded-full bg-accent-mark/30"
                     style={{
                       left: pct(geometry.low),
                       width: pct(Math.max(geometry.high - geometry.low, 0.01)),

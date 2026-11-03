@@ -291,7 +291,9 @@ describe("Goals", () => {
     expect(within(yours).getByText("Northwind Outdoor")).toBeVisible();
 
     const reach = await screen.findByRole("region", { name: "Within reach?" });
-    expect(within(reach).getByText("Possible")).toBeVisible();
+    expect(within(reach).getAllByText("Possible")[0]).toBeVisible(); // the verdict, then its step
+    const lit = reach.querySelectorAll('[data-part="verdict-band"] [data-lit="true"]');
+    expect([...lit].map((step) => step.textContent)).toEqual(["Possible"]);
     expect(
       within(reach).getByRole("button", { name: "0.48× to 0.51×, see the proof" }),
     ).toBeVisible();
@@ -365,6 +367,8 @@ describe("Goals", () => {
     renderApp("/goals", goals((f) => f.on(`GET ${BASE}/goals/${GOAL}/feasibility`, far)).api);
     const reach = await screen.findByRole("region", { name: "Within reach?" });
     expect(within(reach).getByText("Between a stretch and possible")).toBeVisible();
+    const band = reach.querySelectorAll('[data-part="verdict-band"] [data-lit="true"]');
+    expect([...band].map((step) => step.textContent)).toEqual(["A stretch", "Possible"]);
     expect(within(reach).queryByText(/Chance of reaching it/)).toBeNull();
     expect(within(reach).getByText(/I give no single chance/)).toBeVisible();
     expect(within(reach).getByText("Low evidence: less than a year of history.")).toBeVisible();

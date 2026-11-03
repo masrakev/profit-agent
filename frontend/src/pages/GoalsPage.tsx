@@ -6,6 +6,7 @@ import { unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
 import { CompareRanges } from "@/charts/CompareRanges";
 import { FanChart, type FanWeek } from "@/charts/FanChart";
+import { VerdictBand } from "@/charts/VerdictBand";
 import { RangeBar } from "@/charts/RangeBar";
 import { useOpen } from "@/conversation/open";
 import { RichText, type Facts, type Names } from "@/conversation/RichText";
@@ -15,7 +16,11 @@ import { formatDay } from "@/format/dates";
 import { useGoalAsk } from "@/goals/ask";
 import { Composer } from "@/shell/Composer";
 import { useStore } from "@/stores/store";
+import { AgentMark } from "@/ui/AgentMark";
 import { Button } from "@/ui/Button";
+import { cx } from "@/ui/cx";
+import { EmptyState } from "@/ui/EmptyState";
+import { Skeleton } from "@/ui/Skeleton";
 import { StatusPill, type Tone } from "@/ui/StatusPill";
 
 type Goal = Schemas["GoalOut"];
@@ -144,17 +149,21 @@ export function GoalsPage() {
         />
         <AskState ask={ask} />
       </section>
-      {goals.isPending && (
-        <p className="h-40 animate-pulse rounded-card bg-subtle" aria-busy="true" />
-      )}
+      {goals.isPending && <Skeleton rows={4} />}
       {goals.isError && <p className="text-body text-ink-muted">The goals could not be loaded.</p>}
       {goals.data && items.length === 0 && (
-        <p className="text-body text-ink-muted">No goal yet: say or type one above.</p>
+        <EmptyState title="No goal yet: say or type one above.">
+          Say what you aim for, how much and by when. I restate it for you to confirm, tell you
+          whether it is within reach, and propose a plan week by week.
+        </EmptyState>
       )}
       {current && <GoalView key={current.goal_id} goal={current} />}
       {others.length > 0 && (
         <section aria-labelledby="other-goals" className="flex flex-col gap-3">
-          <h2 id="other-goals" className="text-small font-semibold text-ink">
+          <h2
+            id="other-goals"
+            className="border-b border-line pb-2.5 text-small font-medium text-ink-muted"
+          >
             Other goals
           </h2>
           <ul className="flex flex-col divide-y divide-line">
@@ -255,13 +264,21 @@ function GoalView({ goal }: { goal: Goal }) {
   const plan = all.find((p) => p.status === "accepted") ?? all.find((p) => p.status === "proposed");
 
   return (
-    <article aria-label="Your goal" className="flex flex-col gap-8">
-      <section className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-float">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="text-small font-semibold text-ink">Your goal</h2>
+    <article aria-label="Your goal" className="flex flex-col gap-12">
+      <section
+        className={cx(
+          "flex flex-col gap-4",
+          !confirmed && "rounded-card border border-line bg-surface p-5 shadow-float sm:p-6",
+        )}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-small font-medium text-ink-muted">
+            <AgentMark size="sm" state={confirmed ? "idle" : "waiting"} />
+            Your goal
+          </h2>
           <StatusPill tone={status.tone}>{status.text}</StatusPill>
         </div>
-        <p className="text-body text-ink">
+        <p className="max-w-[40ch] text-heading font-medium text-ink">
           <RichText text={goal.restatement} facts={goal.facts} names={goal.names} />
         </p>
         {goal.question && <p className="text-label text-ink-muted">You said: “{goal.question}”</p>}
@@ -335,12 +352,14 @@ function Reach({ feasibility: f }: { feasibility: Feasibility }) {
   });
   return (
     <section aria-labelledby="reach-title" className="flex flex-col gap-4">
-      <h2 id="reach-title" className="text-small font-semibold text-ink">
+      <h2
+        id="reach-title"
+        className="border-b border-line pb-2.5 text-small font-medium text-ink-muted"
+      >
         Within reach?
       </h2>
-      <p className="text-heading font-semibold tracking-tight text-ink">
-        {verdictText(f.verdict, f.verdict_band)}
-      </p>
+      <p className="text-title font-semibold text-ink">{verdictText(f.verdict, f.verdict_band)}</p>
+      <VerdictBand band={f.verdict ? [f.verdict] : f.verdict_band} />
       {f.probability !== null && chance ? (
         <p className="text-small text-ink">
           <span className="text-ink-muted">Chance of reaching it: </span>
@@ -374,7 +393,7 @@ function Reach({ feasibility: f }: { feasibility: Feasibility }) {
       </dl>
       {checkpoints.length > 0 && (
         <section aria-label="Checkpoints" className="flex flex-col gap-2">
-          <h3 className="text-small font-semibold text-ink">Checkpoints</h3>
+          <h3 className="text-small font-medium text-ink">Checkpoints</h3>
           <ol className="flex flex-col border-l border-line pl-4">
             {checkpoints.map((c) => (
               <li key={c.day} className="flex justify-between gap-3 py-1.5 text-small">
@@ -441,7 +460,7 @@ function PlanView({
   return (
     <section aria-labelledby="plan-title" className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 id="plan-title" className="text-small font-semibold text-ink">
+        <h2 id="plan-title" className="text-small font-medium text-ink-muted">
           The plan
         </h2>
         <StatusPill tone={plan.status === "accepted" ? "info" : "warning"}>
@@ -457,7 +476,7 @@ function PlanView({
       )}
       {(without ?? withPlan) && (
         <div className="flex flex-col gap-3">
-          <h3 className="text-small font-semibold text-ink">At the deadline</h3>
+          <h3 className="text-small font-medium text-ink">At the deadline</h3>
           <CompareRanges
             rows={[
               ...(without ? [{ label: "Without the plan", fact: without }] : []),
@@ -466,7 +485,7 @@ function PlanView({
           />
           {chanceWithout && chanceWith && (
             <>
-              <h3 className="text-small font-semibold text-ink">Chance of reaching the target</h3>
+              <h3 className="text-small font-medium text-ink">Chance of reaching the target</h3>
               <CompareRanges
                 rows={[
                   { label: "Without the plan", fact: chanceWithout },
@@ -490,7 +509,7 @@ function PlanView({
         </p>
       )}
       <section aria-labelledby="steps-title" className="flex flex-col gap-2">
-        <h3 id="steps-title" className="text-small font-semibold text-ink">
+        <h3 id="steps-title" className="text-small font-medium text-ink">
           Steps
         </h3>
         <ol className="flex flex-col divide-y divide-line">
@@ -501,7 +520,7 @@ function PlanView({
       </section>
       {(p.experiments ?? []).length > 0 && (
         <section aria-labelledby="experiments-title" className="flex flex-col gap-2">
-          <h3 id="experiments-title" className="text-small font-semibold text-ink">
+          <h3 id="experiments-title" className="text-small font-medium text-ink">
             Experiments to try
           </h3>
           <ul className="flex flex-col divide-y divide-line">
@@ -648,7 +667,10 @@ function ReplacedBy({ decisionId, names }: { decisionId: string; names: Names })
 function Weekly({ entries, names }: { entries: Progress[]; names: Names }) {
   return (
     <section aria-labelledby="weekly-title" className="flex flex-col gap-2">
-      <h2 id="weekly-title" className="text-small font-semibold text-ink">
+      <h2
+        id="weekly-title"
+        className="border-b border-line pb-2.5 text-small font-medium text-ink-muted"
+      >
         Week by week
       </h2>
       <ol className="flex flex-col divide-y divide-line">
