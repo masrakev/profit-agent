@@ -67,7 +67,7 @@ def test_render_formats_each_unit() -> None:
     }
     text = " | ".join(f"{{{{F{i}}}}}" for i in facts)
     assert render(text, facts) == (
-        "$1,234.56 | $0.00 | €1,200.50 | 99.00 CHF | ¥1,250 | 1,234 | 2.34× | 196.0 days | n/a"
+        "$1,234.56 | $0.00 | €1,200.50 | 99.00 CHF | ¥1,250 | 1,234 | 2.34× | 196 days | n/a"
         " | $1,000.00–$1,500.50"
     )
     assert render("Revenue was {{F6}}.", facts) == "Revenue was 1,234."
@@ -86,7 +86,8 @@ def test_display_texts_are_short_and_signed_for_changes() -> None:
     assert display_fact(fact("99.5", currency="CHF")) == "100 CHF"
     assert display_fact(fact("1234", Unit.COUNT), signed=True) == "+1,234"
     assert display_fact(fact("2.345", Unit.RATIO)) == "2.34×"
-    assert display_fact(fact("196.04", Unit.DAYS)) == "196.0 days"
+    assert display_fact(fact("196.04", Unit.DAYS)) == "196 days"  # a whole number of days
+    assert display_fact(fact("12.46", Unit.DAYS)) == "12.5 days"
     assert display_fact(fact(None)) == "n/a"
     estimate = fact(
         "634.40",

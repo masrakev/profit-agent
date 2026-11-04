@@ -34,6 +34,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import Engine, text
 
+import bench.demo_clock as clock
 from app.api.deps import get_app_settings, get_engine
 from app.api.main import app
 from app.api.whatsapp import get_inbound_queue, get_whatsapp_sender
@@ -51,7 +52,7 @@ from app.settings.models import AlertChannel
 from app.whatsapp.inbound import Inbox
 from app.whatsapp.webhook import PREFIX
 from bench.demo import _meta
-from bench.demo_seed import DEMO_DB, Seeded, demo_provider, seed
+from bench.demo_seed import DEMO_DB, Seeded, demo_provider, local_today_of, seed
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
 
@@ -131,6 +132,12 @@ def _shown(message: WhatsAppMessage, session: bool) -> dict[str, Any]:
 
 
 def run(engine: Engine, settings: Settings, seeded: Seeded) -> dict[str, Any]:
+    """The flow below, on the store's clock (bench/demo_clock.py), as the seed stamped it."""
+    with clock.travel(clock.on_store_date(local_today_of(engine, seeded.store_id))):
+        return _run(engine, settings, seeded)
+
+
+def _run(engine: Engine, settings: Settings, seeded: Seeded) -> dict[str, Any]:
     store = seeded.store_id
     label = seeded.manifest.labels[0]
     campaign = next(e.id for e in label.entities if e.kind.value == "campaign")

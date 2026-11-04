@@ -14,7 +14,12 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.agent.guard import OutputViolation, check_output, feedback_messages
+from app.agent.guard import (
+    OutputViolation,
+    check_output,
+    feedback_messages,
+    read_as_written,
+)
 from app.agent.llm.errors import LLMError, StructuredOutputError
 from app.agent.llm.models import ModelId, Usage, load_prices
 from app.agent.llm.provider import LLMProvider
@@ -214,7 +219,7 @@ def run_session[T: BaseModel](
             if validate is not None:
                 violations.extend(validate(candidate))
             if not violations:
-                run.output = candidate
+                run.output = read_as_written(candidate)
                 emit(Step("answer"))
                 return run
             run.violations += sum(v.kind == "number" for v in violations)

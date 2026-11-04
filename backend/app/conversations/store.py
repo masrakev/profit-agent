@@ -8,7 +8,7 @@ question got no answer has no turn and is not listed.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -90,8 +90,8 @@ def start(conn: Connection, store_id: UUID, question: str) -> UUID:
             conversation_id=conversation_id,
             store_id=store_id,
             title=title_of(question) or "Question",
-            created_at=func.now(),
-            updated_at=func.now(),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
     )
     return conversation_id
@@ -150,7 +150,7 @@ def append(
             topic_label=topic.label if topic else None,
             ask_id=result.ask_id,
             result=result.model_dump(mode="json"),
-            created_at=func.now(),
+            created_at=datetime.now(UTC),
         )
     )
     conn.execute(
@@ -159,7 +159,7 @@ def append(
             conversations.c.store_id == store_id,
             conversations.c.conversation_id == conversation_id,
         )
-        .values(updated_at=func.now())
+        .values(updated_at=datetime.now(UTC))
     )
     return int(position)
 

@@ -92,6 +92,18 @@ def test_a_clean_first_answer_is_used() -> None:
     assert out.output.answer == "Margin is {{F11}}."
 
 
+def test_a_reference_introduced_with_as_in_reads_at() -> None:
+    text = "Campaign profit as in {{F11}} versus prior as in {{F12}}; as in the brief."
+    doubt = "Lead time As in {{F12}}, cover per {{F11}}."
+    h = Harness([f.structured(answer(text, uncertainty=doubt))])
+    out = guarded(h)
+    assert out.source == "model"
+    assert (
+        out.output.answer == "Campaign profit at {{F11}} versus prior at {{F12}}; as in the brief."
+    )
+    assert out.output.uncertainty == "Lead time at {{F12}}, cover at {{F11}}."
+
+
 def test_violations_are_fed_back_then_fixed() -> None:
     h = Harness(
         [

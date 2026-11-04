@@ -6,9 +6,14 @@ tool returned in this run, a malformed reference, a copied data block, an intege
 a known fact id, a tool call in a final answer, or output that does not match the schema. On a
 violation the model regenerates, at most twice, with the violations fed back; then a
 deterministic answer built only from facts is used instead.
+
+An accepted answer is also read as the owner will: a model that may not write numbers tends to
+introduce a reference with "as in" or "per" ("campaign profit as in {{F12}}", "lead time per
+{{F13}}"); code writes it "at" instead, which changes no number and no reference.
 """
 
 import json
+import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -25,6 +30,25 @@ from app.verifier import entity_references, fact_references, verify
 from app.verifier.render import ENTITY_REFERENCE, REFERENCE
 
 MAX_REGENERATIONS = 2
+AS_IN = re.compile(r"\b(?:[Aa]s in|per) (?=\{\{F\d+\}\})")
+
+
+def natural(value: Any) -> Any:
+    """Every text of a dumped output with "as in {{F..}}" or "per {{F..}}" written "at"."""
+    if isinstance(value, str):
+        return AS_IN.sub("at ", value)
+    if isinstance(value, dict):
+        return {k: natural(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [natural(v) for v in value]
+    return value
+
+
+def read_as_written[T: BaseModel](output: T) -> T:
+    """An accepted output as the owner reads it (see the module docstring)."""
+    dumped = output.model_dump()
+    rewritten = natural(dumped)
+    return output if rewritten == dumped else type(output).model_validate(rewritten)
 
 
 @dataclass(frozen=True)
@@ -162,7 +186,8 @@ def generate_guarded[T: BaseModel](
                 if validate is not None:
                     violations.extend(validate(result.parsed))
                 if not violations:
-                    return GuardedOutcome(result.parsed, "model", attempt, history, results)
+                    accepted = read_as_written(result.parsed)
+                    return GuardedOutcome(accepted, "model", attempt, history, results)
                 rejected = result.parsed.model_dump_json()
         history.append(violations)
         request = request.model_copy(

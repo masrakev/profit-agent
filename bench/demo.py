@@ -31,6 +31,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import Engine, text
 
+import bench.demo_clock as clock
 from app.api.deps import get_app_settings, get_engine
 from app.api.main import app
 from app.causal.outcome import measure
@@ -42,7 +43,7 @@ from app.executor.meta import MetaAdsAdapter
 from app.executor.simulator import SimulatorAdapter
 from app.executor.worker import Executor
 from app.observability import configure_logging
-from bench.demo_seed import DEMO_DB, SCENARIO, Seeded, demo_provider, seed
+from bench.demo_seed import DEMO_DB, SCENARIO, Seeded, demo_provider, local_today_of, seed
 from bench.meta_fake import ACCOUNT, FakeCampaign, FakeGraph
 from bench.runner.__main__ import prepare_database
 from bench.runner.report import REPORT_DIR
@@ -79,6 +80,12 @@ def _meta(
 
 
 def run(engine: Engine, settings: Settings, seeded: Seeded) -> dict[str, Any]:
+    """The flow below, on the store's clock (bench/demo_clock.py), as the seed stamped it."""
+    with clock.travel(clock.on_store_date(local_today_of(engine, seeded.store_id))):
+        return _run(engine, settings, seeded)
+
+
+def _run(engine: Engine, settings: Settings, seeded: Seeded) -> dict[str, Any]:
     """The loop on the seeded store: approve its pending decision, execute, restock, measure."""
     store = seeded.store_id
     label = seeded.manifest.labels[0]

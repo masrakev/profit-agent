@@ -44,7 +44,10 @@ def format_value(value: Decimal, unit: Unit, currency: str | None) -> str:
         return f"{round_for_display(value, 2):,}×"
     if unit is Unit.PROBABILITY:
         return f"{round_for_display(value * 100, 0)}%"
-    return f"{round_for_display(value, 1):,} days"
+    days = round_for_display(value, 1)
+    if days == days.to_integral_value():
+        days = days.quantize(Decimal(1))  # "20 days", not "20.0 days"
+    return f"{days:,} days"
 
 
 def format_fact(fact: Fact) -> str:

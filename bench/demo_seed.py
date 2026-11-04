@@ -40,6 +40,7 @@ from uuid import UUID, uuid4
 import numpy as np
 from sqlalchemy import Engine, text
 
+import bench.demo_clock as clock
 from app.agent.contracts import ActionFamily
 from app.agent.llm.cassette import LLMMode
 from app.agent.llm.factory import build_provider
@@ -289,7 +290,7 @@ def past_decision(
             d.decision_id,
             d.recommended_option_id,
             Verdict.APPROVED,
-            channel=Channel.API,
+            channel=Channel.WEB,  # the owner approved it in the app
             actor=f"owner:{OWNER}",
             now=when,
         )
@@ -372,7 +373,7 @@ def track_goal(engine: Engine, store: UUID, goal_id: UUID) -> dict[str, Any]:
     }
 
 
-def _local_today(engine: Engine, store: UUID) -> date:
+def local_today_of(engine: Engine, store: UUID) -> date:
     """The day after the last day of data: the store's today in the simulator."""
     with tenant_transaction(engine, store) as conn:
         today: date = conn.execute(
@@ -400,59 +401,62 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
     promoted = next(e.id for e in label.entities if e.kind.value == "campaign")
     assert promoted is not None
     store = register(engine, manifest, manifest.config.days - DAYS_BEFORE_END)
-    goal_id, plan_id, levers, proposed = set_goal(engine, store)
+    # Each step is stamped on the store's own day (bench/demo_clock.py), as the brief is.
+    with clock.travel(clock.at(local_today_of(engine, store), clock.SEEDS_AT)):
+        goal_id, plan_id, levers, proposed = set_goal(engine, store)
     planned = _planned(engine, store, proposed)
     others = [c for c in _campaigns(engine, store, promoted) if c not in planned]
     assert others, "no campaign outside the promoted one and the goal's plan"
     past, weeks = [], []
-    now = datetime.now(UTC)
     for seed, (name, change) in enumerate(PAST):
         campaign = others[seed % len(others)]  # with one such campaign: cut, then raise it
-        when = now - timedelta(days=WINDOW_DAYS * (len(PAST) - seed))  # its week, in the past
-        past.append(past_decision(engine, store, campaign, name, change, seed, when=when))
-        weeks.append(track_goal(engine, store, goal_id))
-    detected = run_pipeline(engine, store)
-    alert = next(
-        a
-        for a in dispatch_alerts(engine, store)
-        if a.level is AlertLevel.CRITICAL and a.decision_id is not None
-    )
-    assert alert.decision_id is not None
-    incident = next(i for i in detected.incidents if i.incident_id == alert.incident_id)
-    with tenant_transaction(engine, store) as conn:
-        states = {str(d): get_decision(conn, store, d).status.value for d in proposed}
-        revisions = sum(p.kind == "revision" for p in goals.progress(conn, store, goal_id))
-    investigation_id = uuid4()
-    run_investigation(engine, provider, store, incident.incident_id, investigation_id, True)
-    with tenant_transaction(engine, store) as conn:
-        steps = steps_after(conn, store, investigation_id)
-    if steps[-1].kind != "done" or steps[-1].detail.get("status") != "complete":
-        stopped = [s.detail for s in steps if s.kind in ("stopped", "failed")]
-        raise RuntimeError(f"the investigation is not complete: {stopped or steps[-1].detail}")
-    local_today = _local_today(engine, store)
-    briefings: dict[str, UUID] = {}
-    for kind in KINDS:
-        record = generate(engine, store, kind, provider, local_today=local_today, run_id="demo")
-        if record.narration.narrative is None:
-            raise RuntimeError(f"the {kind.value} briefing has no narrative")
-        briefings[kind.value] = record.briefing_id
-    owner = add_owner(engine, OWNER, store)
-    # The owner sets a second goal once the briefings are written: they stay as recorded.
-    long_goal_id = set_long_goal(engine, store)
-    _, api_token = create_api_token(engine, store, "demo", owner, datetime.now(UTC))
-    return Seeded(
-        store_id=store,
-        manifest=manifest,
-        goal=DemoGoal(goal_id, plan_id, levers, proposed, weeks, states, revisions),
-        long_goal_id=long_goal_id,
-        incident=incident,
-        decision_id=alert.decision_id,
-        investigation_id=investigation_id,
-        past=past,
-        briefings=briefings,
-        api_token=api_token,
-        counts=_counts(engine, store),
-    )
+        when = clock.at(local_today_of(engine, store), clock.SEEDS_AT)  # its week's first day
+        with clock.travel(when):
+            past.append(past_decision(engine, store, campaign, name, change, seed, when=when))
+            weeks.append(track_goal(engine, store, goal_id))
+    with clock.travel(clock.at(local_today_of(engine, store), clock.SEEDS_AT)):
+        detected = run_pipeline(engine, store)
+        alert = next(
+            a
+            for a in dispatch_alerts(engine, store)
+            if a.level is AlertLevel.CRITICAL and a.decision_id is not None
+        )
+        assert alert.decision_id is not None
+        incident = next(i for i in detected.incidents if i.incident_id == alert.incident_id)
+        with tenant_transaction(engine, store) as conn:
+            states = {str(d): get_decision(conn, store, d).status.value for d in proposed}
+            revisions = sum(p.kind == "revision" for p in goals.progress(conn, store, goal_id))
+        investigation_id = uuid4()
+        run_investigation(engine, provider, store, incident.incident_id, investigation_id, True)
+        with tenant_transaction(engine, store) as conn:
+            steps = steps_after(conn, store, investigation_id)
+        if steps[-1].kind != "done" or steps[-1].detail.get("status") != "complete":
+            stopped = [s.detail for s in steps if s.kind in ("stopped", "failed")]
+            raise RuntimeError(f"the investigation is not complete: {stopped or steps[-1].detail}")
+        local_today = local_today_of(engine, store)
+        briefings: dict[str, UUID] = {}
+        for kind in KINDS:
+            record = generate(engine, store, kind, provider, local_today=local_today, run_id="demo")
+            if record.narration.narrative is None:
+                raise RuntimeError(f"the {kind.value} briefing has no narrative")
+            briefings[kind.value] = record.briefing_id
+        owner = add_owner(engine, OWNER, store)
+        # The owner sets a second goal once the briefings are written: they stay as recorded.
+        long_goal_id = set_long_goal(engine, store)
+        _, api_token = create_api_token(engine, store, "demo", owner, datetime.now(UTC))
+        return Seeded(
+            store_id=store,
+            manifest=manifest,
+            goal=DemoGoal(goal_id, plan_id, levers, proposed, weeks, states, revisions),
+            long_goal_id=long_goal_id,
+            incident=incident,
+            decision_id=alert.decision_id,
+            investigation_id=investigation_id,
+            past=past,
+            briefings=briefings,
+            api_token=api_token,
+            counts=_counts(engine, store),
+        )
 
 
 def demo_provider(settings: Settings, mode: LLMMode = LLMMode.REPLAY) -> LLMProvider:
