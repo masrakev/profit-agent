@@ -1829,6 +1829,8 @@ export interface components {
         DemoAvailability: {
             /** Available */
             available: boolean;
+            /** Local Inbox */
+            local_inbox: boolean;
         };
         /**
          * DetailLevel

@@ -1512,10 +1512,15 @@
           "available": {
             "title": "Available",
             "type": "boolean"
+          },
+          "local_inbox": {
+            "title": "Local Inbox",
+            "type": "boolean"
           }
         },
         "required": [
-          "available"
+          "available",
+          "local_inbox"
         ],
         "title": "DemoAvailability",
         "type": "object"

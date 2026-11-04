@@ -77,7 +77,6 @@ from bench.simulator import advance, register
 SCENARIO = "golden-stockout_on_promoted"
 DEMO_DB = "profit_demo"
 CASSETTES = repo_path("backend/tests/cassettes/demo")
-OWNER = "owner@example.com"
 DAYS_BEFORE_END = 28
 PAST = (("budget -30%", Decimal("-0.3")), ("budget +20%", Decimal("0.2")))
 HORIZON_DAYS = 14  # the decisions' horizon, as for an alert's options
@@ -291,7 +290,7 @@ def past_decision(
             d.recommended_option_id,
             Verdict.APPROVED,
             channel=Channel.WEB,  # the owner approved it in the app
-            actor=f"owner:{OWNER}",
+            actor=f"owner:{owner_email()}",
             now=when,
         )
     Executor(engine, {"simulator": SimulatorAdapter(engine)}, clock=lambda: when).run_once()
@@ -330,7 +329,7 @@ def set_goal(engine: Engine, store: UUID) -> tuple[UUID, UUID, list[str], list[U
         )
         goals.confirm(conn, store, goal.goal_id, now=now)
         plan = goals.make_plan(conn, store, goal.goal_id, now=now)
-        accepted = goals.accept(conn, store, plan.plan_id, now=now, actor=f"owner:{OWNER}")
+        accepted = goals.accept(conn, store, plan.plan_id, now=now, actor=f"owner:{owner_email()}")
     proposed = [s.decision_id for s in accepted.steps if s.decision_id is not None]
     return goal.goal_id, plan.plan_id, [s.lever for s in plan.steps], proposed
 
@@ -440,7 +439,7 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
             if record.narration.narrative is None:
                 raise RuntimeError(f"the {kind.value} briefing has no narrative")
             briefings[kind.value] = record.briefing_id
-        owner = add_owner(engine, OWNER, store)
+        owner = add_owner(engine, owner_email(), store)
         # The owner sets a second goal once the briefings are written: they stay as recorded.
         long_goal_id = set_long_goal(engine, store)
         _, api_token = create_api_token(engine, store, "demo", owner, datetime.now(UTC))
@@ -459,6 +458,11 @@ def seed(engine: Engine, provider: LLMProvider) -> Seeded:
         )
 
 
+def owner_email() -> str:
+    """The demo store owner's address: `DEMO_STORE_OWNER`, owner@example.com by default."""
+    return get_settings().demo_store_owner
+
+
 def demo_provider(settings: Settings, mode: LLMMode = LLMMode.REPLAY) -> LLMProvider:
     return build_provider(settings, mode=mode, cassette_dir=CASSETTES)
 
@@ -470,7 +474,8 @@ def markdown(s: Seeded, started: datetime) -> str:
         f"Seeded {started.isoformat()} by `make demo-seed` from `{SCENARIO}` (simulator, "
         f"{DAYS_BEFORE_END} days before the data end, then two windows of {WINDOW_DAYS} days).",
         "",
-        f"- Store `{s.store_id}`, owner `{OWNER}` with an API token (printed by the seed).",
+        f"- Store `{s.store_id}`, its owner (`DEMO_STORE_OWNER`) with an API token (printed by "
+        "the seed).",
         f"- Alert `{s.incident.incident_id}`, level **{s.incident.alert.value}** "
         f"({s.incident.category.value}); its decision `{s.decision_id}` is pending.",
         f"- Investigation `{s.investigation_id}`, with its step trace.",

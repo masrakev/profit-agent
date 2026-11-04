@@ -11,13 +11,13 @@ const signedOut = () =>
   fakeApi()
     .on("GET /api/v1/auth/session", () => problem(401, "unauthenticated"))
     .on("GET /api/v1/ready", { status: "ready", database: "ok" })
-    .on("GET /api/v1/auth/demo", { available: false });
+    .on("GET /api/v1/auth/demo", { available: false, local_inbox: true });
 
 /** A demo server: its demo store opens without an email (or fails as `opened` says). */
-function demoServer(opened: () => Response = () => json(SESSION, 201)) {
+function demoServer(opened: () => Response = () => json(SESSION, 201), localInbox = true) {
   let session: unknown = null;
   return signedOut()
-    .on("GET /api/v1/auth/demo", { available: true })
+    .on("GET /api/v1/auth/demo", { available: true, local_inbox: localInbox })
     .on("GET /api/v1/auth/session", () =>
       session ? json(session) : problem(401, "unauthenticated"),
     )
@@ -53,6 +53,18 @@ describe("signing in by email link", () => {
     await askForLink();
     const inbox = await screen.findByRole("link", { name: "open it" });
     expect(inbox).toHaveAttribute("href", "http://localhost:8025");
+  });
+
+  it("sends a demo server's visitor to their own inbox when its emails are real", async () => {
+    const fake = demoServer(undefined, false).on(
+      "POST /api/v1/auth/magic-links",
+      { status: "accepted", message: "ok" },
+      202,
+    );
+    renderApp("/sign-in", fake.api);
+    await askForLink();
+    expect(await screen.findByRole("heading", { name: "Check your email" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "open it" })).not.toBeInTheDocument();
   });
 
   it("sends the owner to sign in, then back where they were", async () => {

@@ -90,13 +90,18 @@ def test_a_demo_server_opens_its_owner_session_without_a_link(
     client: TestClient, sender: RecordingSender, stores: dict[str, Any]
 ) -> None:
     # Not a demo server: nothing to open, whoever asks.
-    assert client.get("/api/v1/auth/demo").json() == {"available": False}
+    assert client.get("/api/v1/auth/demo").json() == {"available": False, "local_inbox": True}
     assert client.post("/api/v1/auth/demo-session").status_code == 404
     demo = get_settings().model_copy(
         update={"app_base_url": APP_URL, "demo_owner_email": stores["email"].upper()}
     )
     app.dependency_overrides[get_app_settings] = lambda: demo
-    assert client.get("/api/v1/auth/demo").json() == {"available": True}
+    assert client.get("/api/v1/auth/demo").json() == {"available": True, "local_inbox": True}
+    # With a real email provider, its sign-in links reach real inboxes.
+    resend = demo.model_copy(update={"email_smtp_host": "smtp.resend.com"})
+    app.dependency_overrides[get_app_settings] = lambda: resend
+    assert client.get("/api/v1/auth/demo").json() == {"available": True, "local_inbox": False}
+    app.dependency_overrides[get_app_settings] = lambda: demo
     opened = client.post("/api/v1/auth/demo-session")
     assert opened.status_code == 201, opened.text
     assert opened.json()["store_ids"] == [str(stores["a"])]

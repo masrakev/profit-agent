@@ -189,15 +189,22 @@ def post_session(
     return _opened(response, engine, settings, session)
 
 
+LOCAL_SMTP = frozenset({"localhost", "127.0.0.1", "::1", "mailpit"})
+
+
 class DemoAvailability(BaseModel):
     available: bool  # a demo server: /auth/demo-session opens the demo store
+    local_inbox: bool  # its emails stay on this machine, in Mailpit's inbox, not real ones
 
 
 @router.get("/auth/demo", response_model=DemoAvailability)
 def get_demo(settings: SettingsDep) -> DemoAvailability:
     """Whether this server offers its demo store (a demo server, `bench/demo_serve.py`): the
     sign-in page then offers to explore it, without an email."""
-    return DemoAvailability(available=bool(settings.demo_owner_email))
+    return DemoAvailability(
+        available=bool(settings.demo_owner_email),
+        local_inbox=settings.email_smtp_host.strip().lower() in LOCAL_SMTP,
+    )
 
 
 @router.post(

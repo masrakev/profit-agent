@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     email_from: str = "Merit <briefings@profit-agent.localhost>"
     # Demo servers only (bench/demo_serve.py): /auth/demo-session opens this owner's session.
     demo_owner_email: str | None = None
+    # The demo store's owner (bench/demo_seed.py): the address that signs in to it and receives
+    # its sign-in links. A real inbox with a real email provider; Mailpit catches any address.
+    demo_store_owner: str = "owner@example.com"
     # WhatsApp Cloud API (ADR 0027). Without the token and phone number id, WhatsApp deliveries
     # are skipped and the webhook answers nothing; the app secret checks webhook signatures.
     whatsapp_access_token: SecretStr | None = None

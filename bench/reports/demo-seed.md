@@ -2,7 +2,7 @@
 
 Seeded 2026-11-03T13:26:55+00:00 by `make demo-seed` from `golden-stockout_on_promoted` (simulator, 28 days before the data end, then two windows of 7 days).
 
-- Store `ed68bb6d-1d14-5b04-af2b-e272de12e862`, owner `owner@example.com` with an API token (printed by the seed).
+- Store `ed68bb6d-1d14-5b04-af2b-e272de12e862`, its owner (`DEMO_STORE_OWNER`) with an API token (printed by the seed).
 - Alert `inc-0806cd14e96b`, level **critical** (profitability); its decision `a297dbd1-9791-4a6d-8567-ac9e82964dcf` is pending.
 - Investigation `f120835b-20b5-4aaf-bb3b-0d685935e36b`, with its step trace.
 - Briefings: daily `62259df8-20f1-4740-a5b7-201116fd283c`, weekly `86afe247-3b8a-40a0-9d07-4ff77b1cdb9f`, monthly `65e42537-6aed-4fc6-bff8-0893b97e9194`.

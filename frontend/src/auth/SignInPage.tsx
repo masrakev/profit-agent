@@ -65,7 +65,8 @@ export function SignInPage() {
   }, []);
   const exchange = useOpenSession();
   const exchanged = useRef(false);
-  const demo = useDemo().data?.available === true;
+  const server = useDemo().data;
+  const demo = server?.available === true;
 
   useEffect(() => {
     if (!token || exchanged.current) return;
@@ -103,6 +104,7 @@ export function SignInPage() {
         ) : (
           <LinkForm
             demo={demo}
+            localInbox={server ? server.available && server.local_inbox : false}
             notice={exchange.isError ? sessionProblem(exchange.error) : null}
             onSignedIn={() => {
               void navigate(next, { replace: true });
@@ -117,12 +119,14 @@ export function SignInPage() {
 interface LinkFormProps {
   /** A demo server: exploring its demo store comes first, the email form after it. */
   demo: boolean;
+  /** Its emails stay in the local inbox (Mailpit): the page says where to read them. */
+  localInbox: boolean;
   /** Why the owner is back on the form (a link that failed), shown above it. */
   notice: string | null;
   onSignedIn: () => void;
 }
 
-function LinkForm({ demo, notice, onSignedIn }: LinkFormProps) {
+function LinkForm({ demo, localInbox, notice, onSignedIn }: LinkFormProps) {
   const request = useRequestLink();
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -150,7 +154,7 @@ function LinkForm({ demo, notice, onSignedIn }: LinkFormProps) {
           If <span className="font-semibold">{sentTo}</span> has an account, a sign-in link is on
           its way. Open it on this device.
         </p>
-        {demo && (
+        {localInbox && (
           <p className="text-small text-ink-muted">
             This is a demo server: its emails arrive in its local inbox,{" "}
             <a

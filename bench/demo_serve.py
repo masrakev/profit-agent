@@ -23,7 +23,7 @@ from sqlalchemy import create_engine, text
 
 import bench.demo_clock as clock
 from app.config import get_settings
-from bench.demo_seed import DEMO_DB, OWNER
+from bench.demo_seed import DEMO_DB
 from bench.runner.__main__ import _with_db
 
 
@@ -35,7 +35,7 @@ def demo_environment() -> None:
     os.environ.setdefault("LLM_MODE", "replay")
     os.environ.setdefault("LLM_REPLAY_PACE", "true")
     os.environ.setdefault("LLM_CASSETTE_DIR", "backend/tests/cassettes/demo")
-    os.environ["DEMO_OWNER_EMAIL"] = OWNER  # /demo opens the demo store without an email
+    os.environ["DEMO_OWNER_EMAIL"] = settings.demo_store_owner  # /demo: no email needed
     os.environ.setdefault("SIGN_IN_LINKS_PER_HOUR", "100")  # people try the demo many times
     get_settings.cache_clear()
 
