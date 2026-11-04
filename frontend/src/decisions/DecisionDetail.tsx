@@ -87,7 +87,7 @@ export function DecisionDetail({ decisionId }: { decisionId: string }) {
           <time className="font-mono">{localDay(d.created_at, timezone).label}</time>
           {waiting && <span>Expires {formatDay(d.expires_at.slice(0, 10))}</span>}
         </p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <h2
             className={cx(
               "text-title font-semibold text-ink",
