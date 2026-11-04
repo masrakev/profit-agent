@@ -1,7 +1,7 @@
 # Page 1 — Foundation: screens next to Figma
 
 Each sheet puts the app (left; light on top, dark below) next to the matching Figma frame (right).
-The app runs on the demo store (`make demo-seed`), signed in with "Use the demo store"; the
+The app runs on the demo store (`make demo-up`), opened at `/demo`; the
 screenshots come from `node frontend/scripts/screens.mjs`, the raw ones are in `app/`, the Figma
 exports in `../figma/`.
 
@@ -44,8 +44,8 @@ session (the sign-in frame, the estimate sheet, the header and the composer).
    an icon and its label in a 36 px row; collapsed (52 px) only the icons, naming themselves on
    hover; a button at the top switches, and the choice is remembered. The theme and the store are
    rows at its foot.
-7. **Development build only:** "Use the demo store" under the sign-in form, and the `/style-guide`
-   catalogue itself (absent from a production build).
+7. **Demo servers only:** "Explore the demo store" above the sign-in form; **development build
+   only:** the `/style-guide` catalogue itself (absent from a production build).
 
 ### Filled by the API (the backend task after page 1)
 

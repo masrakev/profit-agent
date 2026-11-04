@@ -47,12 +47,11 @@ async function demoSession(browser) {
   return state;
 }
 
-/** Signs in as the demo owner, through the development build's button. */
+/** Signs in as the demo owner: the demo server opens its store at /demo, without an email. */
 async function signIn(browser) {
   const context = await browser.newContext({ viewport: VIEWPORT });
   const page = await context.newPage();
-  await page.goto(`${BASE}/sign-in`);
-  await page.getByRole("button", { name: "Use the demo store" }).click();
+  await page.goto(`${BASE}/demo`);
   await page.waitForURL(`${BASE}/`);
   const state = await context.storageState();
   await context.close();

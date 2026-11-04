@@ -63,10 +63,13 @@ The Verified seal on a card with numbers says that code computed them and links 
 the track, and P50 as a mark placed between them; each bar spans its own range, as in Figma.
 
 **Sign-in.** By email link (ADR 0020): the token travels in the URL fragment and is removed from
-the address bar before it is exchanged. Development builds add "Use the demo store", which asks
-for a link for the demo owner and reads it from Mailpit through the dev server's proxy; the
-module is imported behind `import.meta.env.DEV`, so production bundles contain neither it nor the
-component catalogue (checked on `npm run build`). A request refused with 401 forgets the session,
+the address bar before it is exchanged. On a demo server (the API's `GET /auth/demo` says so: only
+`bench/demo_serve.py` sets `DEMO_OWNER_EMAIL`), the page first offers "Explore the demo store",
+and `/demo` opens it directly: `POST /auth/demo-session` opens the demo owner's session without an
+email, in any build, and answers 404 anywhere else (updated 2026-11-04; the earlier development
+button read a sign-in email from Mailpit and broke past five links an hour). The component
+catalogue stays behind `import.meta.env.DEV` (checked on `npm run build`). A request refused with
+401 forgets the session,
 and the gate sends the owner to sign in, then back to the page they were on.
 
 **Dependencies.** `npm audit --omit=dev` is clean. The development tools carry one moderate

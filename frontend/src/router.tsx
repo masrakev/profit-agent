@@ -1,6 +1,7 @@
 import { Navigate, type RouteObject } from "react-router";
 
 import { ApprovalPage } from "@/approval/ApprovalPage";
+import { DemoEntry } from "@/auth/DemoEntry";
 import { RequireSession } from "@/auth/RequireSession";
 import { SignInPage } from "@/auth/SignInPage";
 import { ChatPage } from "@/pages/ChatPage";
@@ -16,8 +17,8 @@ const conversation: RouteHandle = { composer: true };
 const inbox: RouteHandle = { wide: true };
 
 /**
- * Every page. `dev` adds the component catalogue (`/style-guide`) and `/demo` (the demo store,
- * opened on Home), both absent from production.
+ * Every page. `/demo` opens a demo server's demo store (anywhere else it says there is none).
+ * `dev` adds the component catalogue (`/style-guide`), absent from production.
  */
 export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
   const signedIn: RouteObject[] = [
@@ -41,19 +42,8 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
       lazy: async () => ({ Component: (await import("@/dev/StyleGuidePage")).StyleGuidePage }),
     });
   }
-  const demo: RouteObject[] =
-    import.meta.env.DEV && dev
-      ? [
-          {
-            path: "/demo",
-            // Loaded on demand: a blank canvas while it loads, rather than a warning.
-            hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
-            lazy: async () => ({ Component: (await import("@/dev/DemoEntry")).DemoEntry }),
-          },
-        ]
-      : [];
   return [
-    ...demo,
+    { path: "/demo", element: <DemoEntry /> },
     { path: "/sign-in", element: <SignInPage /> },
     { path: "/approve", element: <ApprovalPage /> },
     { element: <RequireSession />, children: gated },

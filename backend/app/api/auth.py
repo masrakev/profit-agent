@@ -138,7 +138,7 @@ def post_magic_link(
 ) -> Accepted:
     """Email a sign-in link (single use, 15 minutes). The answer is the same whether or not
     the address has an account."""
-    token = request_link(engine, body.email, _now())
+    token = request_link(engine, body.email, _now(), per_hour=settings.sign_in_links_per_hour)
     if token is not None:
         link = f"{settings.app_base_url.rstrip('/')}/sign-in#token={token}"
         message = render_sign_in(link, minutes=int(LINK_TTL.total_seconds() // 60))
@@ -187,6 +187,17 @@ def post_session(
             status_code=STATUS[exc.code], detail={"code": exc.code, "message": str(exc)}
         ) from exc
     return _opened(response, engine, settings, session)
+
+
+class DemoAvailability(BaseModel):
+    available: bool  # a demo server: /auth/demo-session opens the demo store
+
+
+@router.get("/auth/demo", response_model=DemoAvailability)
+def get_demo(settings: SettingsDep) -> DemoAvailability:
+    """Whether this server offers its demo store (a demo server, `bench/demo_serve.py`): the
+    sign-in page then offers to explore it, without an email."""
+    return DemoAvailability(available=bool(settings.demo_owner_email))
 
 
 @router.post(

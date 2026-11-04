@@ -1,9 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
 
+import { useDemo, useOpenDemo } from "./demo";
 import {
-  SESSION_KEY,
   clearFragment,
   tokenFromFragment,
   useOpenSession,
@@ -11,7 +10,6 @@ import {
   useSession,
 } from "./session";
 import { ApiError } from "@/api/client";
-import { useApi } from "@/api/context";
 import { BrandMark } from "@/ui/BrandMark";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
@@ -37,19 +35,37 @@ function sessionProblem(error: unknown): string {
   return "Signing in failed. Check your connection, then open the link again.";
 }
 
+/** Mailpit, the local inbox of `make up`: where a local demo server's emails arrive. */
+const LOCAL_INBOX = "http://localhost:8025";
+
 /**
  * Sign in by email link (ADR 0020). The page asks for a link, and exchanges the token of a link
- * that opened it (`/sign-in#token=…`), removing it from the address bar first. Development builds
- * add "Use the demo store", which signs in as the demo owner through Mailpit.
+ * that opened it (`/sign-in#token=…`), removing it from the address bar first. On a demo server
+ * (the API says so), exploring its demo store comes first: one click, no email.
  */
 export function SignInPage() {
   const session = useSession();
   const location = useLocation();
   const navigate = useNavigate();
   const next = destination(location.state);
-  const [token] = useState(() => tokenFromFragment(window.location.hash));
+  const [token, setToken] = useState(() => tokenFromFragment(window.location.hash));
+  // A link opened in this same tab changes only the fragment: read it then too.
+  useEffect(() => {
+    const read = () => {
+      const fresh = tokenFromFragment(window.location.hash);
+      if (fresh) {
+        exchanged.current = false;
+        setToken(fresh);
+      }
+    };
+    window.addEventListener("hashchange", read);
+    return () => {
+      window.removeEventListener("hashchange", read);
+    };
+  }, []);
   const exchange = useOpenSession();
   const exchanged = useRef(false);
+  const demo = useDemo().data?.available === true;
 
   useEffect(() => {
     if (!token || exchanged.current) return;
@@ -86,6 +102,7 @@ export function SignInPage() {
           </p>
         ) : (
           <LinkForm
+            demo={demo}
             notice={exchange.isError ? sessionProblem(exchange.error) : null}
             onSignedIn={() => {
               void navigate(next, { replace: true });
@@ -98,12 +115,14 @@ export function SignInPage() {
 }
 
 interface LinkFormProps {
+  /** A demo server: exploring its demo store comes first, the email form after it. */
+  demo: boolean;
   /** Why the owner is back on the form (a link that failed), shown above it. */
   notice: string | null;
   onSignedIn: () => void;
 }
 
-function LinkForm({ notice, onSignedIn }: LinkFormProps) {
+function LinkForm({ demo, notice, onSignedIn }: LinkFormProps) {
   const request = useRequestLink();
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -131,6 +150,20 @@ function LinkForm({ notice, onSignedIn }: LinkFormProps) {
           If <span className="font-semibold">{sentTo}</span> has an account, a sign-in link is on
           its way. Open it on this device.
         </p>
+        {demo && (
+          <p className="text-small text-ink-muted">
+            This is a demo server: its emails arrive in its local inbox,{" "}
+            <a
+              href={LOCAL_INBOX}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-accent-ink underline-offset-4 hover:underline"
+            >
+              open it
+            </a>
+            . Only the demo store's owner has an account here.
+          </p>
+        )}
         <SecurityNote />
         <Button
           variant="ghost"
@@ -158,6 +191,7 @@ function LinkForm({ notice, onSignedIn }: LinkFormProps) {
           {notice}
         </p>
       )}
+      {demo && <ExploreDemo onSignedIn={onSignedIn} />}
       <div className="flex flex-col gap-2">
         <label htmlFor={emailId} className="text-small font-semibold text-ink">
           Email
@@ -184,11 +218,16 @@ function LinkForm({ notice, onSignedIn }: LinkFormProps) {
           </p>
         )}
       </div>
-      <Button type="submit" block disabled={request.isPending} aria-busy={request.isPending}>
+      <Button
+        type="submit"
+        block
+        variant={demo ? "secondary" : "primary"}
+        disabled={request.isPending}
+        aria-busy={request.isPending}
+      >
         {request.isPending ? "Sending…" : "Email me a sign-in link"}
       </Button>
       <SecurityNote />
-      {import.meta.env.DEV && <DemoSignIn onSignedIn={onSignedIn} />}
     </form>
   );
 }
@@ -203,46 +242,27 @@ function SecurityNote() {
   );
 }
 
-/** Development builds only: one click signs in as the demo store's owner. */
-function DemoSignIn({ onSignedIn }: { onSignedIn: () => void }) {
-  const api = useApi();
-  const queries = useQueryClient();
-  const [state, setState] = useState<{ busy: boolean; problem: string | null }>({
-    busy: false,
-    problem: null,
-  });
-
-  const signIn = async () => {
-    setState({ busy: true, problem: null });
-    try {
-      const { demoSignIn } = await import("./demoSignIn");
-      queries.setQueryData(SESSION_KEY, await demoSignIn(api));
-      onSignedIn();
-    } catch (error) {
-      setState({
-        busy: false,
-        problem: error instanceof Error ? error.message : "The demo sign-in failed.",
-      });
-    }
-  };
-
+/** A demo server's demo store, opened in one click as its owner, without an email. */
+function ExploreDemo({ onSignedIn }: { onSignedIn: () => void }) {
+  const open = useOpenDemo();
   return (
-    <div className="flex flex-col gap-2 border-t border-line pt-5">
+    <div className="flex flex-col gap-3 border-b border-line pb-5">
       <Button
-        variant="secondary"
         block
-        disabled={state.busy}
-        aria-busy={state.busy}
+        disabled={open.isPending}
+        aria-busy={open.isPending}
         onClick={() => {
-          void signIn();
+          open.mutate(undefined, { onSuccess: onSignedIn });
         }}
       >
-        {state.busy ? "Opening the demo store…" : "Use the demo store"}
+        {open.isPending ? "Opening the demo store…" : "Explore the demo store"}
       </Button>
-      <p className="text-center text-caption text-ink-muted">Development build only</p>
-      {state.problem && (
+      <p className="text-center text-label text-ink-muted">
+        A sample outdoor store, with its data, its decisions and its goals. No email needed.
+      </p>
+      {open.isError && (
         <p role="alert" className="text-label leading-[1.45] text-danger-ink">
-          {state.problem}
+          The demo store could not be opened. Try again in a moment.
         </p>
       )}
     </div>

@@ -2,18 +2,31 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { demoSignIn } from "./demoSignIn";
 import { SESSION_KEY } from "./session";
 import { fakeApi, json, problem } from "@/test/fakeApi";
 import { mockSystemTheme } from "@/test/matchMedia";
 import { renderApp, SESSION, signedInApi, STORE_ID } from "@/test/render";
 
-vi.mock("./demoSignIn", () => ({ DEMO_OWNER: "owner@example.com", demoSignIn: vi.fn() }));
-
 const signedOut = () =>
   fakeApi()
     .on("GET /api/v1/auth/session", () => problem(401, "unauthenticated"))
-    .on("GET /api/v1/ready", { status: "ready", database: "ok" });
+    .on("GET /api/v1/ready", { status: "ready", database: "ok" })
+    .on("GET /api/v1/auth/demo", { available: false });
+
+/** A demo server: its demo store opens without an email (or fails as `opened` says). */
+function demoServer(opened: () => Response = () => json(SESSION, 201)) {
+  let session: unknown = null;
+  return signedOut()
+    .on("GET /api/v1/auth/demo", { available: true })
+    .on("GET /api/v1/auth/session", () =>
+      session ? json(session) : problem(401, "unauthenticated"),
+    )
+    .on("POST /api/v1/auth/demo-session", () => {
+      const answer = opened();
+      if (answer.ok) session = SESSION;
+      return answer;
+    });
+}
 
 beforeEach(() => {
   mockSystemTheme(false);
@@ -22,7 +35,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.mocked(demoSignIn).mockReset();
 });
 
 async function askForLink(email = "owner@example.com") {
@@ -31,6 +43,18 @@ async function askForLink(email = "owner@example.com") {
 }
 
 describe("signing in by email link", () => {
+  it("tells a demo server's visitor where its emails arrive", async () => {
+    const fake = demoServer().on(
+      "POST /api/v1/auth/magic-links",
+      { status: "accepted", message: "ok" },
+      202,
+    );
+    renderApp("/sign-in", fake.api);
+    await askForLink();
+    const inbox = await screen.findByRole("link", { name: "open it" });
+    expect(inbox).toHaveAttribute("href", "http://localhost:8025");
+  });
+
   it("sends the owner to sign in, then back where they were", async () => {
     const fake = signedOut().on("POST /api/v1/auth/sessions", SESSION, 201);
     const { router } = renderApp("/goals", fake.api);
@@ -89,6 +113,27 @@ describe("signing in by email link", () => {
     expect(queries.getQueryData(SESSION_KEY)).toEqual(SESSION);
   });
 
+  it("exchanges a link opened in the same tab, where only the fragment changes", async () => {
+    let session: unknown = null;
+    const fake = signedOut()
+      .on("GET /api/v1/auth/session", () =>
+        session ? json(session) : problem(401, "unauthenticated"),
+      )
+      .on("POST /api/v1/auth/sessions", () => {
+        session = SESSION;
+        return json(SESSION, 201);
+      });
+    const { router } = renderApp("/sign-in", fake.api);
+    await screen.findByRole("button", { name: "Email me a sign-in link" });
+    window.history.replaceState(null, "", "/sign-in#token=Tok_456");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/");
+    });
+    const exchange = fake.requests.find((request) => request.url.endsWith("/auth/sessions"));
+    expect(await exchange?.json()).toEqual({ token: "Tok_456" });
+  });
+
   it("says when a link has expired or was used, and offers a new one", async () => {
     window.history.replaceState(null, "", "/sign-in#token=old");
     const fake = signedOut().on("POST /api/v1/auth/sessions", () => problem(409, "used_link"));
@@ -118,37 +163,30 @@ describe("signing in by email link", () => {
   });
 });
 
-describe("the demo store button (development builds)", () => {
-  it("signs in as the demo owner", async () => {
-    let session: unknown = null;
-    vi.mocked(demoSignIn).mockImplementation(() => {
-      session = SESSION;
-      return Promise.resolve(SESSION);
-    });
-    const fake = signedOut().on("GET /api/v1/auth/session", () =>
-      session ? json(session) : problem(401, "unauthenticated"),
-    );
+describe("exploring the demo store", () => {
+  it("comes first on a demo server, and opens the store without an email", async () => {
+    const fake = demoServer();
     const { router, queries } = renderApp("/sign-in", fake.api);
-    await userEvent.click(await screen.findByRole("button", { name: "Use the demo store" }));
+    const explore = await screen.findByRole("button", { name: "Explore the demo store" });
+    expect(screen.getByRole("button", { name: "Email me a sign-in link" })).toBeVisible();
+    await userEvent.click(explore);
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/");
     });
     expect(queries.getQueryData(SESSION_KEY)).toEqual(SESSION);
+    expect(fake.requests.some((r) => r.url.includes("magic-links"))).toBe(false);
   });
 
-  it("says why it could not", async () => {
-    vi.mocked(demoSignIn).mockRejectedValue(new Error("Mailpit is not reachable: run `make up`"));
+  it("is not offered anywhere else", async () => {
     renderApp("/sign-in", signedOut().api);
-    await userEvent.click(await screen.findByRole("button", { name: "Use the demo store" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Mailpit is not reachable");
-    expect(screen.getByRole("button", { name: "Use the demo store" })).toBeEnabled();
+    await screen.findByRole("button", { name: "Email me a sign-in link" });
+    expect(screen.queryByRole("button", { name: "Explore the demo store" })).toBeNull();
   });
 
-  it("reports a failure that is not an error object", async () => {
-    vi.mocked(demoSignIn).mockRejectedValue("nope");
-    renderApp("/sign-in", signedOut().api);
-    await userEvent.click(await screen.findByRole("button", { name: "Use the demo store" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("The demo sign-in failed.");
+  it("says when the demo store cannot be opened", async () => {
+    renderApp("/sign-in", demoServer(() => problem(503, "down")).api);
+    await userEvent.click(await screen.findByRole("button", { name: "Explore the demo store" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be opened");
   });
 });
 
@@ -184,44 +222,26 @@ describe("the gate of signed-in pages", () => {
   });
 });
 
-describe("/demo (development builds)", () => {
-  function demoServer(opened: () => Response) {
-    let session: unknown = null;
-    return signedOut()
-      .on("GET /api/v1/auth/session", () =>
-        session ? json(session) : problem(401, "unauthenticated"),
-      )
-      .on("POST /api/v1/auth/demo-session", () => {
-        const answer = opened();
-        if (answer.ok) session = SESSION;
-        return answer;
-      });
-  }
-
-  it("opens the demo store on Home, without an email, in the light theme", async () => {
+describe("/demo", () => {
+  it("opens a demo server's store on Home, without an email, in the light theme", async () => {
     window.localStorage.setItem("profit-agent.theme", "dark");
-    const fake = demoServer(() => json(SESSION, 201));
-    const { router, queries } = renderApp("/demo", fake.api, { dev: true });
+    const fake = demoServer();
+    const { router, queries } = renderApp("/demo", fake.api);
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/");
     });
     expect(queries.getQueryData(SESSION_KEY)).toEqual(SESSION);
     expect(document.documentElement.dataset["theme"]).toBe("light");
     expect(window.localStorage.getItem("profit-agent.theme")).toBe("light");
-    expect(vi.mocked(demoSignIn)).not.toHaveBeenCalled();
     expect(fake.requests.some((r) => r.url.includes("magic-links"))).toBe(false);
   });
 
-  it("says how to start the demo when this server is not one", async () => {
-    renderApp("/demo", demoServer(() => problem(404, "not_found")).api, { dev: true });
-    expect(await screen.findByText(/Start it with `make demo-up`/)).toBeVisible();
-  });
-
-  it("does not exist in production builds", async () => {
-    const { router } = renderApp("/demo", signedOut().api);
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/demo");
-    });
-    expect(await screen.findByRole("heading", { name: "Nothing here" })).toBeVisible();
+  it("says there is no demo store on any other server", async () => {
+    renderApp("/demo", demoServer(() => problem(404, "not_found")).api);
+    expect(await screen.findByText("This server has no demo store.")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Sign in to your store" })).toHaveAttribute(
+      "href",
+      "/sign-in",
+    );
   });
 });

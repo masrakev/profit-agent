@@ -93,7 +93,9 @@ def add_owner(engine: Engine, email: str, store_id: UUID) -> UUID:
     return owner_id
 
 
-def request_link(engine: Engine, email: str, now: datetime) -> str | None:
+def request_link(
+    engine: Engine, email: str, now: datetime, *, per_hour: int = MAX_LINKS_PER_HOUR
+) -> str | None:
     """A sign-in token for the address, or None (no such owner, or too many links lately).
     The caller answers the same either way, so addresses cannot be probed."""
     with engine.begin() as conn:
@@ -108,7 +110,7 @@ def request_link(engine: Engine, email: str, now: datetime) -> str | None:
             ),
             {"o": owner_id, "since": now - timedelta(hours=1)},
         ).scalar_one()
-        if recent >= MAX_LINKS_PER_HOUR:
+        if recent >= per_hour:
             return None
         token = secrets.token_urlsafe(32)
         conn.execute(

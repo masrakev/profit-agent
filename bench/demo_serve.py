@@ -36,6 +36,7 @@ def demo_environment() -> None:
     os.environ.setdefault("LLM_REPLAY_PACE", "true")
     os.environ.setdefault("LLM_CASSETTE_DIR", "backend/tests/cassettes/demo")
     os.environ["DEMO_OWNER_EMAIL"] = OWNER  # /demo opens the demo store without an email
+    os.environ.setdefault("SIGN_IN_LINKS_PER_HOUR", "100")  # people try the demo many times
     get_settings.cache_clear()
 
 

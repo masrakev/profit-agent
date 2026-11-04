@@ -39,9 +39,8 @@ async function session(browser) {
   }
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(`${BASE}/sign-in`);
-  await page.getByRole("button", { name: "Use the demo store" }).click();
-  await page.waitForURL((u) => !u.pathname.startsWith("/sign-in"));
+  await page.goto(`${BASE}/demo`); // the demo server opens its store, without an email
+  await page.waitForURL((u) => u.pathname === "/");
   const state = await context.storageState();
   await context.close();
   await mkdir(new URL(".", SESSION), { recursive: true });

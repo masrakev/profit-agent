@@ -1507,6 +1507,19 @@
         "title": "Deleted",
         "type": "object"
       },
+      "DemoAvailability": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "DemoAvailability",
+        "type": "object"
+      },
       "DetailLevel": {
         "enum": [
           "brief",
@@ -5763,6 +5776,83 @@
         "summary": "Confirm Link",
         "tags": [
           "decisions"
+        ]
+      }
+    },
+    "/api/v1/auth/demo": {
+      "get": {
+        "description": "Whether this server offers its demo store (a demo server, `bench/demo_serve.py`): the\nsign-in page then offers to explore it, without an email.",
+        "operationId": "get_demo_api_v1_auth_demo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not signed in, or the token is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not allowed (CSRF, a token where a session is needed)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not found, or not one of the caller's stores"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "The request is not valid"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Too many requests"
+          }
+        },
+        "summary": "Get Demo",
+        "tags": [
+          "auth"
         ]
       }
     },

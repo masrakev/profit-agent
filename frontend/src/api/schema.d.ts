@@ -48,6 +48,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Demo
+         * @description Whether this server offers its demo store (a demo server, `bench/demo_serve.py`): the
+         *     sign-in page then offers to explore it, without an email.
+         */
+        get: operations["get_demo_api_v1_auth_demo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/demo-session": {
         parameters: {
             query?: never;
@@ -1803,6 +1824,11 @@ export interface components {
              * Format: uuid
              */
             store_id: string;
+        };
+        /** DemoAvailability */
+        DemoAvailability: {
+            /** Available */
+            available: boolean;
         };
         /**
          * DetailLevel
@@ -3580,6 +3606,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LinkResult"];
+                };
+            };
+            /** @description Not signed in, or the token is not valid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not allowed (CSRF, a token where a session is needed) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Not found, or not one of the caller's stores */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description The request is not valid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+            /** @description Too many requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                    "application/problem+json": unknown;
+                };
+            };
+        };
+    };
+    get_demo_api_v1_auth_demo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoAvailability"];
                 };
             };
             /** @description Not signed in, or the token is not valid */

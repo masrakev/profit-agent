@@ -15,7 +15,7 @@ from app.api.deps import get_app_settings, get_email_sender, get_engine
 from app.api.main import app
 from app.auth.service import MAX_LINKS_PER_HOUR, add_owner, request_link
 from app.channels.email import RecordingSender
-from app.config import get_settings
+from app.config import Settings, get_settings
 from tests.conftest import create_store
 
 pytestmark = pytest.mark.db
@@ -90,11 +90,13 @@ def test_a_demo_server_opens_its_owner_session_without_a_link(
     client: TestClient, sender: RecordingSender, stores: dict[str, Any]
 ) -> None:
     # Not a demo server: nothing to open, whoever asks.
+    assert client.get("/api/v1/auth/demo").json() == {"available": False}
     assert client.post("/api/v1/auth/demo-session").status_code == 404
     demo = get_settings().model_copy(
         update={"app_base_url": APP_URL, "demo_owner_email": stores["email"].upper()}
     )
     app.dependency_overrides[get_app_settings] = lambda: demo
+    assert client.get("/api/v1/auth/demo").json() == {"available": True}
     opened = client.post("/api/v1/auth/demo-session")
     assert opened.status_code == 201, opened.text
     assert opened.json()["store_ids"] == [str(stores["a"])]
@@ -104,6 +106,20 @@ def test_a_demo_server_opens_its_owner_session_without_a_link(
     nobody = get_settings().model_copy(update={"demo_owner_email": "nobody@example.com"})
     app.dependency_overrides[get_app_settings] = lambda: nobody
     assert client.post("/api/v1/auth/demo-session").status_code == 404
+
+
+def test_emailed_links_are_absolute_and_the_hourly_limit_is_a_setting(
+    app_engine: Engine, stores: dict[str, Any]
+) -> None:
+    blank = Settings(_env_file=None, app_base_url="")
+    assert blank.app_base_url == "http://localhost:3000"
+    trailing = Settings(_env_file=None, app_base_url="https://x.test/")
+    assert trailing.app_base_url == "https://x.test"
+    now = datetime.now(UTC)
+    email = f"limit-{uuid4().hex[:8]}@example.com"
+    add_owner(app_engine, email, stores["a"])
+    issued = [request_link(app_engine, email, now, per_hour=7) for _ in range(8)]
+    assert sum(t is not None for t in issued) == 7
 
 
 def test_unknown_addresses_and_expired_links(

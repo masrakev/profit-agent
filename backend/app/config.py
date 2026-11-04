@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     whatsapp_template_language: str = "en"
     # Links in messages: the web platform (evidence, decisions, the approval confirmation page).
     app_base_url: str = "http://localhost:3000"
+    # Sign-in links one address may receive in an hour (the demo servers allow more).
+    sign_in_links_per_hour: int = 5
     # Session cookies are Secure (HTTPS only); turn off only for plain-HTTP local development.
     session_cookie_secure: bool = True
     # Master key wrapping the data keys of stores' platform tokens (32 bytes, base64url; ADR
@@ -76,6 +78,12 @@ class Settings(BaseSettings):
     token_encryption_key: SecretStr | None = None
     token_encryption_key_id: str = "k1"  # noqa: S105 - the key's name, not the key
     model_trace_retention_days: int = 30
+
+    @field_validator("app_base_url")
+    @classmethod
+    def _base_url(cls, value: str) -> str:
+        """An empty APP_BASE_URL would make every emailed link relative, and unusable."""
+        return value.strip().rstrip("/") or "http://localhost:3000"
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
