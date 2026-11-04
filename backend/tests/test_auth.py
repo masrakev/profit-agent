@@ -86,6 +86,26 @@ def test_the_email_link_signs_in_once(
     assert bad.status_code == 401
 
 
+def test_a_demo_server_opens_its_owner_session_without_a_link(
+    client: TestClient, sender: RecordingSender, stores: dict[str, Any]
+) -> None:
+    # Not a demo server: nothing to open, whoever asks.
+    assert client.post("/api/v1/auth/demo-session").status_code == 404
+    demo = get_settings().model_copy(
+        update={"app_base_url": APP_URL, "demo_owner_email": stores["email"].upper()}
+    )
+    app.dependency_overrides[get_app_settings] = lambda: demo
+    opened = client.post("/api/v1/auth/demo-session")
+    assert opened.status_code == 201, opened.text
+    assert opened.json()["store_ids"] == [str(stores["a"])]
+    assert "pa_session=" in opened.headers["set-cookie"].lower()
+    assert client.get("/api/v1/auth/session").json()["actor"] == f"owner:{stores['email']}"
+    assert sender.sent == []  # no email, so no hourly limit on sign-in links
+    nobody = get_settings().model_copy(update={"demo_owner_email": "nobody@example.com"})
+    app.dependency_overrides[get_app_settings] = lambda: nobody
+    assert client.post("/api/v1/auth/demo-session").status_code == 404
+
+
 def test_unknown_addresses_and_expired_links(
     client: TestClient, sender: RecordingSender, app_engine: Engine, stores: dict[str, Any]
 ) -> None:

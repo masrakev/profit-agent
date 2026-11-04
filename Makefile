@@ -1,4 +1,4 @@
-.PHONY: up down migrate test lint format web web-install web-lint web-test web-audit eval eval-dev scenarios smoke-live smoke-whatsapp api demo-api e2e openapi worker scheduler demo-seed demo demo-whatsapp
+.PHONY: up down migrate test lint format web web-install web-lint web-test web-audit eval eval-dev scenarios smoke-live smoke-whatsapp api demo-api e2e openapi worker scheduler demo-seed demo demo-whatsapp demo-up
 
 up:
 	docker compose up -d --wait
@@ -62,6 +62,9 @@ scheduler:
 
 demo-seed:
 	uv run python -m bench.demo_seed
+
+demo-up: up
+	uv run python -m bench.demo_up
 
 demo:
 	uv run python -m bench.demo

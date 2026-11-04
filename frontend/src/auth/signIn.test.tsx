@@ -185,35 +185,36 @@ describe("the gate of signed-in pages", () => {
 });
 
 describe("/demo (development builds)", () => {
-  it("opens the demo store on Home, signing in as its owner", async () => {
+  function demoServer(opened: () => Response) {
     let session: unknown = null;
-    vi.mocked(demoSignIn).mockImplementation(() => {
-      session = SESSION;
-      return Promise.resolve(SESSION);
-    });
-    const fake = signedOut().on("GET /api/v1/auth/session", () =>
-      session ? json(session) : problem(401, "unauthenticated"),
-    );
+    return signedOut()
+      .on("GET /api/v1/auth/session", () =>
+        session ? json(session) : problem(401, "unauthenticated"),
+      )
+      .on("POST /api/v1/auth/demo-session", () => {
+        const answer = opened();
+        if (answer.ok) session = SESSION;
+        return answer;
+      });
+  }
+
+  it("opens the demo store on Home, without an email, in the light theme", async () => {
+    window.localStorage.setItem("profit-agent.theme", "dark");
+    const fake = demoServer(() => json(SESSION, 201));
     const { router, queries } = renderApp("/demo", fake.api, { dev: true });
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/");
     });
-    expect(vi.mocked(demoSignIn)).toHaveBeenCalledTimes(1);
     expect(queries.getQueryData(SESSION_KEY)).toEqual(SESSION);
-  });
-
-  it("goes straight to Home when already signed in", async () => {
-    const { router } = renderApp("/demo", signedInApi().api, { dev: true });
-    await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/");
-    });
+    expect(document.documentElement.dataset["theme"]).toBe("light");
+    expect(window.localStorage.getItem("profit-agent.theme")).toBe("light");
     expect(vi.mocked(demoSignIn)).not.toHaveBeenCalled();
+    expect(fake.requests.some((r) => r.url.includes("magic-links"))).toBe(false);
   });
 
-  it("says why it could not", async () => {
-    vi.mocked(demoSignIn).mockRejectedValue(new Error("Mailpit is not reachable: run `make up`"));
-    renderApp("/demo", signedOut().api, { dev: true });
-    expect(await screen.findByText(/Mailpit is not reachable/)).toBeVisible();
+  it("says how to start the demo when this server is not one", async () => {
+    renderApp("/demo", demoServer(() => problem(404, "not_found")).api, { dev: true });
+    expect(await screen.findByText(/Start it with `make demo-up`/)).toBeVisible();
   });
 
   it("does not exist in production builds", async () => {

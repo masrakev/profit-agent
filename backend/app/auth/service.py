@@ -142,23 +142,40 @@ def open_session(engine: Engine, link_token: str, now: datetime) -> Session:
             if known.used_at is not None:
                 raise AuthError("used_link", "the sign-in link was already used")
             raise AuthError("expired_link", "the sign-in link has expired")
-        token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-        expires = now + SESSION_TTL
-        conn.execute(
-            text(
-                "INSERT INTO auth.sessions (session_id, owner_id, token_hash, csrf_hash, "
-                "created_at, expires_at, last_seen_at) VALUES (:s, :o, :t, :c, :now, :exp, :now)"
-            ),
-            {
-                "s": uuid4(),
-                "o": row.owner_id,
-                "t": digest(token),
-                "c": digest(csrf),
-                "now": now,
-                "exp": expires,
-            },
-        )
-    return Session(token, csrf, row.owner_id, row.email, expires)
+        return _new_session(conn, row.owner_id, row.email, now)
+
+
+def open_owner_session(engine: Engine, email: str, now: datetime) -> Session | None:
+    """A session for an owner, without a link: for the demo servers only (the API refuses it
+    unless `demo_owner_email` names that owner). None when there is no such owner."""
+    with engine.begin() as conn:
+        row = conn.execute(
+            text("SELECT owner_id, email FROM auth.owners WHERE email = :e"),
+            {"e": normalize(email)},
+        ).first()
+        if row is None:
+            return None
+        return _new_session(conn, row.owner_id, row.email, now)
+
+
+def _new_session(conn: Connection, owner_id: UUID, email: str, now: datetime) -> Session:
+    token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    expires = now + SESSION_TTL
+    conn.execute(
+        text(
+            "INSERT INTO auth.sessions (session_id, owner_id, token_hash, csrf_hash, "
+            "created_at, expires_at, last_seen_at) VALUES (:s, :o, :t, :c, :now, :exp, :now)"
+        ),
+        {
+            "s": uuid4(),
+            "o": owner_id,
+            "t": digest(token),
+            "c": digest(csrf),
+            "now": now,
+            "exp": expires,
+        },
+    )
+    return Session(token, csrf, owner_id, email, expires)
 
 
 def session_principal(engine: Engine, session_token: str, now: datetime) -> Principal | None:

@@ -17,6 +17,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import Engine
 
 from app.api.deps import EmailSenderDep, EngineDep, SettingsDep
 from app.auth.service import (
@@ -24,8 +25,10 @@ from app.auth.service import (
     SESSION_TTL,
     AuthError,
     Principal,
+    Session,
     create_api_token,
     list_api_tokens,
+    open_owner_session,
     open_session,
     request_link,
     revoke_api_token,
@@ -36,6 +39,7 @@ from app.auth.service import (
 )
 from app.channels.email import EmailError, EmailMessage
 from app.channels.messages import render_sign_in
+from app.config import Settings
 from app.db import tenant_transaction
 from app.domain.audit import append_audit
 from app.observability import get_logger
@@ -182,6 +186,32 @@ def post_session(
         raise HTTPException(
             status_code=STATUS[exc.code], detail={"code": exc.code, "message": str(exc)}
         ) from exc
+    return _opened(response, engine, settings, session)
+
+
+@router.post(
+    "/auth/demo-session",
+    status_code=201,
+    response_model=SessionView,
+    responses={404: {"description": "Not a demo server"}},
+)
+def post_demo_session(response: Response, engine: EngineDep, settings: SettingsDep) -> SessionView:
+    """Demo servers only (`bench/demo_serve.py` sets `DEMO_OWNER_EMAIL`): a session for the demo
+    store's owner without a sign-in link, so a demo opens on the product. Anywhere else, and
+    when that owner does not exist: 404."""
+    email = settings.demo_owner_email
+    session = open_owner_session(engine, email, _now()) if email else None
+    if session is None:
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "not a demo server"}
+        )
+    return _opened(response, engine, settings, session)
+
+
+def _opened(
+    response: Response, engine: Engine, settings: Settings, session: Session
+) -> SessionView:
+    """The session's cookies set, and its view."""
     age = int(SESSION_TTL.total_seconds())
     secure = settings.session_cookie_secure
     response.set_cookie(

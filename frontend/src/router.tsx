@@ -46,6 +46,8 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
       ? [
           {
             path: "/demo",
+            // Loaded on demand: a blank canvas while it loads, rather than a warning.
+            hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
             lazy: async () => ({ Component: (await import("@/dev/DemoEntry")).DemoEntry }),
           },
         ]

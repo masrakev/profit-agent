@@ -11,6 +11,20 @@ Built for the Meta Global AI Developer Hackathon (Startup track).
 What the product does, for whom, and its settings and alerting rules: see the
 [product specification](docs/product/SPEC.md).
 
+## Try it
+
+Requirements: Docker, Python 3.12 with [uv](https://docs.astral.sh/uv/), Node 20.19 or later, GNU make.
+
+```bash
+cp .env.example .env
+make web-install    # once
+make demo-up        # the demo store, its API, the executor and the web app
+```
+
+Then open http://localhost:3000/demo: it opens the demo store on Home, signed in as its owner,
+without an email. The agent's work replays recorded model exchanges at their recorded pace, so no
+model key is needed. Ctrl+C stops everything.
+
 ## Principles
 
 - **No number comes from an LLM.** Every number is a `Fact` computed by deterministic code and
@@ -45,9 +59,8 @@ make web-install                          # the web platform's packages (Node 20
 make web                                  # the web platform on http://localhost:3000 (proxies /api)
 ```
 
-To browse the demo store on the web, run the API on its database
-(`APP_DATABASE_URL` with the database name `profit_demo`, then `make api`) and sign in with "Use
-the demo store" (development builds only). `node frontend/scripts/screens.mjs` then writes the
+To browse the demo store on the web, `make demo-up` (see Try it) and open
+http://localhost:3000/demo (development builds only). `node frontend/scripts/screens.mjs` then writes the
 light and dark screenshots used for design review (ADR 0025).
 
 The benchmark's agent arm investigates each primary incident with a live model:
@@ -91,6 +104,7 @@ Each Makefile target runs these commands:
 | `make scheduler` | `uv run arq app.scheduler.worker.WorkerSettings` (cron jobs) |
 | `make openapi` | `uv run python -m app.api.openapi` (writes the frozen contract `docs/api/openapi.json`) |
 | `make demo-seed` | `uv run python -m bench.demo_seed` (a fresh `profit_demo` database with the demo store) |
+| `make demo-up` | `make up`, then `uv run python -m bench.demo_up` (seeds the demo store, runs its API, executor, WhatsApp worker when configured and the web app; open http://localhost:3000/demo) |
 | `make demo` | `uv run python -m bench.demo` (seeds the demo store, runs the loop; writes `bench/reports/demo-stockout.md`) |
 | `make demo-whatsapp` | `uv run python -m bench.demo_whatsapp` (the stockout alert on WhatsApp, approved from the phone; writes `bench/reports/demo-whatsapp.md`) |
 | `make smoke-whatsapp` | `uv run python scripts/whatsapp_smoke.py` (live: a template, a text and reply buttons to `WHATSAPP_TEST_RECIPIENT`) |

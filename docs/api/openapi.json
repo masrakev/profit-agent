@@ -5766,6 +5766,75 @@
         ]
       }
     },
+    "/api/v1/auth/demo-session": {
+      "post": {
+        "description": "Demo servers only (`bench/demo_serve.py` sets `DEMO_OWNER_EMAIL`): a session for the demo\nstore's owner without a sign-in link, so a demo opens on the product. Anywhere else, and\nwhen that owner does not exist: 404.",
+        "operationId": "post_demo_session_api_v1_auth_demo_session_post",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not signed in, or the token is not valid"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Not allowed (CSRF, a token where a session is needed)"
+          },
+          "404": {
+            "description": "Not a demo server"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "The request is not valid"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              },
+              "application/problem+json": {}
+            },
+            "description": "Too many requests"
+          }
+        },
+        "summary": "Post Demo Session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/magic-links": {
       "post": {
         "description": "Email a sign-in link (single use, 15 minutes). The answer is the same whether or not\nthe address has an account.",
