@@ -12,7 +12,6 @@ import { FactValue } from "@/facts/FactValue";
 import { VerifiedSeal } from "@/facts/VerifiedSeal";
 import { formatPeriod } from "@/format/dates";
 import { useStore } from "@/stores/store";
-import { AgentMark } from "@/ui/AgentMark";
 import { Section } from "@/ui/Section";
 import { Skeleton } from "@/ui/Skeleton";
 import { StatusPill, type Tone } from "@/ui/StatusPill";
@@ -70,10 +69,7 @@ function Overview() {
   return (
     <article aria-label="Today" className="flex flex-col gap-10">
       <header className="flex flex-col gap-4">
-        <p className="flex items-center gap-2 font-mono text-label text-ink-muted">
-          <AgentMark size="sm" />
-          Today
-        </p>
+        <p className="flex items-center gap-2 font-mono text-label text-ink-muted">Today</p>
         <h1 className="max-w-[24ch] text-title font-semibold text-ink md:text-proof">
           {overview.data.headline}
         </h1>

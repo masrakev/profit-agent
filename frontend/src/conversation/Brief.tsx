@@ -3,7 +3,6 @@ import { useMorningBrief } from "./morningBrief";
 import { RichText } from "./RichText";
 import { formatTime, formatWeekday } from "@/format/dates";
 import { useStore } from "@/stores/store";
-import { AgentMark } from "@/ui/AgentMark";
 import { Skeleton } from "@/ui/Skeleton";
 
 /** The morning brief, first in the conversation: the day, the picture, what needs the owner. */
@@ -25,7 +24,6 @@ export function Brief() {
     <article aria-label="Morning brief" className="flex flex-col gap-10">
       <header className="flex flex-col gap-4">
         <p className="flex items-center gap-2 font-mono text-label text-ink-muted">
-          <AgentMark size="sm" />
           <span>{formatWeekday(brief.local_date)}</span>
           <span aria-hidden="true" className="h-3 w-px bg-line" />
           <time>{formatTime(brief.scheduled_at, timezone)}</time>

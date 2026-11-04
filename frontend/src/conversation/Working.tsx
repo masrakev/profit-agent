@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 
 import type { AgentStep } from "./model";
+import { workingModel } from "./models";
 import type { Names } from "./RichText";
 import { stepFailed, stepText, visibleSteps } from "./steps";
 import { AgentMark } from "@/ui/AgentMark";
@@ -20,8 +21,8 @@ interface WorkingProps {
 
 /**
  * The agent's work, step by step, as it happens: what it read and checked, in plain words. While
- * it works the mark breathes and each step appears under a thin rule; once the answer is there it
- * folds into one line.
+ * it works the median of its mark moves and each step appears under a thin rule; once the answer
+ * is there it folds into one line.
  */
 export function Working({
   steps,
@@ -33,6 +34,7 @@ export function Working({
   const [open, setOpen] = useState(false);
   const listId = useId();
   const shown = visibleSteps(steps);
+  const model = workingModel(steps);
   const expanded = live || open;
 
   return (
@@ -53,7 +55,7 @@ export function Working({
           ) : (
             <Icon name="circle-check" size={16} className="text-ink-muted" />
           )}
-          {live ? "Working…" : title}
+          {live ? (model ? `Working with ${model}…` : "Working…") : title}
           {!live && duration && (
             <span className="font-mono text-label font-normal text-ink-muted">
               · took {duration}

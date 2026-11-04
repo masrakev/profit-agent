@@ -6,7 +6,6 @@ import { Suggestions } from "./Suggestions";
 import { useConversation, type Topic } from "@/conversation/context";
 import { suggestedQuestions, useMorningBrief } from "@/conversation/morningBrief";
 import { TOPIC_QUESTIONS } from "@/conversation/topics";
-import { AgentMark } from "@/ui/AgentMark";
 import { cx } from "@/ui/cx";
 import { useDialog } from "@/ui/dialog";
 import { Icon } from "@/ui/Icon";
@@ -55,7 +54,6 @@ export function AskPalette({ here, onClose }: { here: Topic | null; onClose: () 
       >
         <div className="flex items-center justify-between gap-3">
           <h2 id={titleId} className="flex items-center gap-2 text-small font-medium text-ink">
-            <AgentMark size="sm" />
             Ask
           </h2>
           <button

@@ -183,3 +183,44 @@ describe("the gate of signed-in pages", () => {
     expect(await screen.findByText("No store is linked to this account yet.")).toBeInTheDocument();
   });
 });
+
+describe("/demo (development builds)", () => {
+  it("opens the demo store on Home, signing in as its owner", async () => {
+    let session: unknown = null;
+    vi.mocked(demoSignIn).mockImplementation(() => {
+      session = SESSION;
+      return Promise.resolve(SESSION);
+    });
+    const fake = signedOut().on("GET /api/v1/auth/session", () =>
+      session ? json(session) : problem(401, "unauthenticated"),
+    );
+    const { router, queries } = renderApp("/demo", fake.api, { dev: true });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/");
+    });
+    expect(vi.mocked(demoSignIn)).toHaveBeenCalledTimes(1);
+    expect(queries.getQueryData(SESSION_KEY)).toEqual(SESSION);
+  });
+
+  it("goes straight to Home when already signed in", async () => {
+    const { router } = renderApp("/demo", signedInApi().api, { dev: true });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/");
+    });
+    expect(vi.mocked(demoSignIn)).not.toHaveBeenCalled();
+  });
+
+  it("says why it could not", async () => {
+    vi.mocked(demoSignIn).mockRejectedValue(new Error("Mailpit is not reachable: run `make up`"));
+    renderApp("/demo", signedOut().api, { dev: true });
+    expect(await screen.findByText(/Mailpit is not reachable/)).toBeVisible();
+  });
+
+  it("does not exist in production builds", async () => {
+    const { router } = renderApp("/demo", signedOut().api);
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/demo");
+    });
+    expect(await screen.findByRole("heading", { name: "Nothing here" })).toBeVisible();
+  });
+});

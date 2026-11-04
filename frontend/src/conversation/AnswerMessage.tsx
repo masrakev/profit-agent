@@ -2,10 +2,10 @@ import { useId, useState } from "react";
 
 import type { AnswerStatus, AgentStep, AskAnswer } from "./model";
 import { RichText } from "./RichText";
+import { modelName } from "./models";
 import { Working } from "./Working";
 import { FactValue } from "@/facts/FactValue";
 import { VerifiedSeal } from "@/facts/VerifiedSeal";
-import { AgentMark } from "@/ui/AgentMark";
 import { StatusPill } from "@/ui/StatusPill";
 
 const FLAGS: Record<string, string> = {
@@ -60,6 +60,7 @@ function Answer({ result }: { result: AskAnswer }) {
     return fact ? [fact] : [];
   });
   const sealed = evidence[0];
+  const answeredBy = modelName(result.model);
   const deeper =
     Boolean(answer.reasoning) ||
     answer.alternatives.length > 0 ||
@@ -67,7 +68,6 @@ function Answer({ result }: { result: AskAnswer }) {
 
   return (
     <article aria-label="Answer" className="flex gap-3">
-      <AgentMark size="sm" className="mt-1" />
       <div className="flex min-w-0 flex-1 flex-col gap-5">
         <p className="max-w-[65ch] text-body text-ink">
           <RichText text={answer.answer} facts={facts} names={names} />
@@ -168,6 +168,7 @@ function Answer({ result }: { result: AskAnswer }) {
             </div>
           </div>
         )}
+        {answeredBy && <p className="text-label text-ink-muted">Answered with {answeredBy}</p>}
       </div>
     </article>
   );

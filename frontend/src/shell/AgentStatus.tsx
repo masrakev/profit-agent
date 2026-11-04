@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { unwrap } from "@/api/client";
 import { useApi } from "@/api/context";
 import { useConversation } from "@/conversation/context";
+import { workingModel } from "@/conversation/models";
 import { BRAND } from "@/brand";
 import { useDecisions } from "@/decisions/useDecisions";
 import { AgentMark, type AgentState } from "@/ui/AgentMark";
@@ -24,7 +25,9 @@ export function AgentStatus() {
   });
   const decisions = useDecisions();
   const waiting = (decisions.data?.items ?? []).some((d) => d.status === "proposed");
-  const working = messages.some((m) => m.kind === "answer" && m.status === "working");
+  const live = messages.find((m) => m.kind === "answer" && m.status === "working");
+  const working = live !== undefined;
+  const model = live?.kind === "answer" ? workingModel(live.steps) : null;
 
   let state: AgentState = "idle";
   let text = `${BRAND.name} is watching your store`;
@@ -32,7 +35,9 @@ export function AgentStatus() {
   else if (ready.isError) text = "Not connected";
   else if (working) {
     state = "working";
-    text = `${BRAND.name} is working on your question`;
+    text = model
+      ? `${BRAND.name} is working with ${model}`
+      : `${BRAND.name} is working on your question`;
   } else if (waiting) {
     state = "waiting";
     text = `${BRAND.name} is waiting for your decision`;

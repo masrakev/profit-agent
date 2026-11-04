@@ -165,6 +165,42 @@ describe("the morning brief", () => {
 });
 
 describe("asking", () => {
+  it("says which of Meta's models it works with, live and under the answer", async () => {
+    const encoder = new TextEncoder();
+    let push: (event: string, data: unknown) => void = () => undefined;
+    let close: () => void = () => undefined;
+    const fake = store().on(`POST ${BASE}/ask/stream`, () => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          push = (event, data) => {
+            controller.enqueue(
+              encoder.encode(`event: ${event}
+data: ${JSON.stringify(data)}
+
+`),
+            );
+          };
+          close = () => {
+            controller.close();
+          };
+        },
+      });
+      return new Response(body, { headers: { "Content-Type": "text/event-stream" } });
+    });
+    renderApp("/", fake.api);
+    await userEvent.type(await screen.findByRole("textbox"), "Why?{Enter}");
+    await waitFor(() => {
+      push("step", { kind: "model", name: "muse-spark-1.3-contributor", detail: {} });
+    });
+    expect(await screen.findByText("Working with Muse Spark 1.3…")).toBeVisible();
+    expect(await screen.findByText("Merit is working with Muse Spark 1.3")).toBeVisible();
+    push("answer", { ...ANSWER, model: "muse-spark-1.3-contributor" });
+    push("done", {});
+    close();
+    const answer = await screen.findByRole("article", { name: "Answer" });
+    expect(within(answer).getByText("Answered with Muse Spark 1.3")).toBeVisible();
+  });
+
   it("streams the agent's work, then the answer with its proofs", async () => {
     const fake = store().on(`POST ${BASE}/ask/stream`, () =>
       sse(

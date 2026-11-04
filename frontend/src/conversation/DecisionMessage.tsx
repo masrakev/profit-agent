@@ -9,7 +9,6 @@ import { factKey, type Fact } from "@/facts/facts";
 import { formatPeriod } from "@/format/dates";
 import { useStore } from "@/stores/store";
 import { Button } from "@/ui/Button";
-import { AgentMark } from "@/ui/AgentMark";
 import { Icon } from "@/ui/Icon";
 import { STATUS } from "@/decisions/status";
 import { StatusPill, type Tone } from "@/ui/StatusPill";
@@ -250,7 +249,6 @@ function Outcome({
           <span className="flex-1 text-small font-medium text-ink-muted">Where it stands</span>
         ) : (
           <>
-            <AgentMark size="sm" className="mt-1" />
             <h3
               className={`flex-1 text-body font-medium text-ink ${superseded ? "line-through" : ""}`}
             >

@@ -6,7 +6,6 @@ import { ApiError, unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
 import { approvalToken } from "./token";
 import { clearFragment } from "@/auth/session";
-import { BRAND } from "@/brand";
 import { BrandMark } from "@/ui/BrandMark";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
@@ -126,7 +125,6 @@ function ApprovalLink() {
           </p>
         )}
       </main>
-      <footer className="mt-auto text-label text-ink-muted">{BRAND.name}</footer>
     </div>
   );
 }

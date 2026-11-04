@@ -20,8 +20,10 @@ for. Read it before any interface work and pass its checklist before calling the
    confirmation are cards. Everything else is lists, rows and sections over hairlines.
 6. **Numbers are the API's.** Every number shown is a fact's own text, opening its proof. The
    frontend never rounds, formats or computes one (Task 7, rule 1). A range reads once.
-7. **The agent is one mark.** The same blue orb wherever the agent appears, with the same status
-   line: idle (watching), working (it breathes), waiting for you (a small dot).
+7. **The agent is one mark, used where it means something.** A range with its median, the
+   product's own sign: in the brand, the status line, the Working block and the approval card,
+   nowhere as decoration. Idle it rests; working, its median moves; waiting for you, a small dot.
+   Working, it names the Meta model it works with, as the API reports it.
 8. **Never a blank page.** Wherever there is a composer, questions drawn from the store's situation
    sit above it. An empty list says what will appear and what to do now.
 9. **Decisions live in Decisions.** The conversation holds the brief, questions and answers.
@@ -78,8 +80,8 @@ Amounts are set in tabular figures (`[data-fact]`, `time` and `.tabular-nums` ge
 - **Radii:** 2 (bars), 8 (controls, marks), 12 (the few cards), full (pills, the agent's mark).
 - **Elevation:** one level, `shadow-float`, for what floats: the composer, popovers, the proof
   sheet, the approval moment. Nothing else casts a shadow.
-- **Motion:** 150 to 250 ms, eased out (`--ease-out`). The agent's mark breathes while it works
-  (`animate-breathe`); lists reveal in a stagger (`data-stagger`, 40 ms apart). Everything stops
+- **Motion:** 150 to 250 ms, eased out (`--ease-out`). The agent's median moves while it works
+  (`animate-estimate`); lists reveal in a stagger (`data-stagger`, 40 ms apart). Everything stops
   under `prefers-reduced-motion`.
 
 ## 3. Components
@@ -89,7 +91,7 @@ One component per concept; check `frontend/src/ui` and `frontend/src/charts` bef
 | Concept                   | Component                                           | Do                                                                                                              | Don't                                    |
 | ------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | App shell                 | `shell/AppShell`, `NavRail`, `TopBar`               | rail on `md` up, a drawer on phones                                                                             | put content outside the 720 px column    |
-| Agent mark                | `ui/AgentMark`                                      | `idle`, `working`, `waiting`; sizes sm, md, lg                                                                  | draw another logo, or colour it per page |
+| Agent mark                | `ui/AgentMark`                                      | a range and its median; `idle`, `working`, `waiting`; sm, md, lg; brand, status, Working, approval only         | an avatar beside every message           |
 | Status line               | `shell/AgentStatus`                                 | three levels in words beside the mark                                                                           | show counts the API did not give         |
 | Composer                  | `shell/Composer` + `shell/Suggestions`              | text and voice; suggestions until the first question                                                            | leave it on a blank page                 |
 | Section header            | `ui/Section`                                        | a muted label over a hairline, an aside on the right                                                            | uppercase, tracked-out eyebrows          |

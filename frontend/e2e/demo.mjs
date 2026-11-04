@@ -7,7 +7,7 @@
  * Mailpit) and ports 8000 and 3000 free. E2E_SHOTS=<dir> also writes the live Working block at
  * 1440 px, dark and light, there. Exits 0 when every step held, 1 otherwise.
  *
- *   1. Home opens on the morning brief.
+ *   1. /demo opens the demo store on Home, on the morning brief.
  *   2. A question typed on Home opens Conversations: the Working block streams, then the answer
  *      with its evidence and the Verified seal; the conversation kept, in the history.
  *   3. The status line leads to the decisions inbox; the decision opens at its address, why and
@@ -107,9 +107,9 @@ try {
   });
 
   step = "sign in";
-  await page.goto(`${WEB}/sign-in`);
-  await page.getByRole("button", { name: "Use the demo store" }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/sign-in"), { timeout: 60_000 });
+  // The demo starts on the product: /demo signs in as the demo store's owner and opens Home.
+  await page.goto(`${WEB}/demo`);
+  await page.waitForURL((url) => url.pathname === "/", { timeout: 60_000 });
 
   step = "the morning brief";
   const brief = page.getByRole("article", { name: "Morning brief" });
@@ -123,7 +123,9 @@ try {
   const working = page.getByRole("region", { name: "Working" });
   await working.getByRole("listitem").nth(1).waitFor({ timeout: 60_000 });
   await page.locator('.agent-mark[data-state="working"]').first().waitFor();
-  holds("the Working block streams the agent's steps, its mark breathing");
+  await working.getByText(/^Working with Muse Spark/).waitFor({ timeout: 60_000 });
+  await page.getByText(/^Merit is working with Muse Spark/).waitFor();
+  holds("the Working block streams the agent's steps, with the Meta model it works with");
   if (SHOTS) {
     await mkdir(SHOTS, { recursive: true });
     await working.scrollIntoViewIfNeeded();
@@ -147,7 +149,8 @@ try {
   }
   await answer.getByRole("button", { name: "Verified", exact: true }).click();
   await answer.getByRole("button", { name: "See the proof", exact: true }).waitFor();
-  holds("the answer, with its evidence and the Verified seal");
+  await answer.getByText(/^Answered with Muse Spark/).waitFor();
+  holds("the answer, with its evidence, the Verified seal and the model that answered");
   await page.waitForURL(/\/chat\/[0-9a-f-]{36}$/);
   await page.getByRole("button", { name: "History" }).click();
   await page

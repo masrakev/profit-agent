@@ -12,7 +12,6 @@ import {
 } from "./session";
 import { ApiError } from "@/api/client";
 import { useApi } from "@/api/context";
-import { BRAND } from "@/brand";
 import { BrandMark } from "@/ui/BrandMark";
 import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
@@ -70,7 +69,9 @@ export function SignInPage() {
       <BrandMark named />
       <main className="flex w-full max-w-[460px] flex-col gap-6">
         <div className="flex flex-col gap-3 text-center">
-          <p className="text-small text-ink-muted">Your profit, a little clearer.</p>
+          <p className="text-small text-ink-muted">
+            Every number proven. Nothing changes without you.
+          </p>
           <h1 className="text-title font-semibold text-ink">Sign in to your store</h1>
           <p className="text-body text-ink-muted">
             No password to remember. We’ll send you a secure link.
@@ -92,7 +93,6 @@ export function SignInPage() {
           />
         )}
       </main>
-      <footer className="mt-auto text-label text-ink-muted">{BRAND.name}</footer>
     </div>
   );
 }

@@ -15,7 +15,10 @@ import { AppShell, type RouteHandle } from "@/shell/AppShell";
 const conversation: RouteHandle = { composer: true };
 const inbox: RouteHandle = { wide: true };
 
-/** Every page. `dev` adds the component catalogue (`/style-guide`), absent from production. */
+/**
+ * Every page. `dev` adds the component catalogue (`/style-guide`) and `/demo` (the demo store,
+ * opened on Home), both absent from production.
+ */
 export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
   const signedIn: RouteObject[] = [
     { index: true, element: <HomePage />, handle: conversation },
@@ -38,7 +41,17 @@ export function routes(dev: boolean = import.meta.env.DEV): RouteObject[] {
       lazy: async () => ({ Component: (await import("@/dev/StyleGuidePage")).StyleGuidePage }),
     });
   }
+  const demo: RouteObject[] =
+    import.meta.env.DEV && dev
+      ? [
+          {
+            path: "/demo",
+            lazy: async () => ({ Component: (await import("@/dev/DemoEntry")).DemoEntry }),
+          },
+        ]
+      : [];
   return [
+    ...demo,
     { path: "/sign-in", element: <SignInPage /> },
     { path: "/approve", element: <ApprovalPage /> },
     { element: <RequireSession />, children: gated },

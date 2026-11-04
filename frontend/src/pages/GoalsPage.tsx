@@ -20,7 +20,6 @@ import { useGoalAsk } from "@/goals/ask";
 import { Composer } from "@/shell/Composer";
 import { useHere } from "@/shell/here";
 import { useStore } from "@/stores/store";
-import { AgentMark } from "@/ui/AgentMark";
 import { Button } from "@/ui/Button";
 import { cx } from "@/ui/cx";
 import { EmptyState } from "@/ui/EmptyState";
@@ -286,7 +285,6 @@ function GoalView({ goal }: { goal: Goal }) {
       >
         <div className="flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-small font-medium text-ink-muted">
-            <AgentMark size="sm" state={confirmed ? "idle" : "waiting"} />
             Your goal
           </h2>
           <StatusPill tone={status.tone}>{status.text}</StatusPill>

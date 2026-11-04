@@ -17,7 +17,6 @@ import { VerifiedSeal } from "@/facts/VerifiedSeal";
 import { formatDay, formatTime, localDay } from "@/format/dates";
 import { useHere } from "@/shell/here";
 import { useStore } from "@/stores/store";
-import { AgentMark } from "@/ui/AgentMark";
 import { Button } from "@/ui/Button";
 import { cx } from "@/ui/cx";
 import { Section } from "@/ui/Section";
@@ -82,7 +81,6 @@ export function DecisionDetail({ decisionId }: { decisionId: string }) {
     <section aria-label={chosen?.label ?? d.label} className="flex flex-col gap-10">
       <header className="flex flex-col gap-3">
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-label text-ink-muted">
-          <AgentMark size="sm" state={waiting ? "waiting" : "idle"} />
           <span>{SOURCES[d.source] ?? d.source}</span>
           <time className="font-mono">{localDay(d.created_at, timezone).label}</time>
           {waiting && <span>Expires {formatDay(d.expires_at.slice(0, 10))}</span>}
