@@ -639,6 +639,7 @@ describe("Settings", () => {
       })
       .on(`GET ${BASE}/trust`, TRUST)
       .on(`GET ${BASE}/kill-switch`, () => json({ enabled: stopped }))
+      .on(`GET ${BASE}/whatsapp`, { number: null, verified: false, window_open: false })
       .on(`PUT ${BASE}/kill-switch`, async (request: Request) => {
         stopped = ((await request.json()) as { enabled: boolean }).enabled;
         return json({ enabled: stopped });
@@ -700,6 +701,62 @@ describe("Settings", () => {
     await waitFor(() => {
       expect(saved()).toMatchObject({ weekly_report: { enabled: false } });
     });
+  });
+
+  it("verifies a WhatsApp number with the code it receives, then reaches it there", async () => {
+    const { fake, saved } = page();
+    let number: Record<string, unknown> = { number: null, verified: false, window_open: false };
+    let code = "";
+    fake
+      .on(`GET ${BASE}/whatsapp`, () => json(number))
+      .on(`POST ${BASE}/whatsapp/verification`, () => {
+        number = {
+          ...number,
+          number: saved()["whatsapp_number"],
+          code_expires_at: "2099-01-01T00:00:00Z",
+        };
+        return json({ sent_to_ending: "5678", expires_at: "2099-01-01T00:00:00Z" }, 202);
+      })
+      .on(`POST ${BASE}/whatsapp/verification/confirm`, async (request: Request) => {
+        code = ((await request.json()) as { code: string }).code;
+        if (code !== "123456") return problem(422, "invalid_code");
+        number = { number: number["number"], verified: true, window_open: false };
+        return json(number);
+      });
+    renderApp("/settings", fake.api);
+    const reach = await screen.findByRole("region", { name: "Where I reach you" });
+    expect(within(reach).getByRole("switch", { name: "On WhatsApp" })).toBeDisabled();
+    const send = within(reach).getByRole("button", { name: "Send me a code" });
+    await userEvent.type(within(reach).getByLabelText(/Your WhatsApp number/), "+33 6 12 34 56 78");
+    await userEvent.click(send);
+    const box = await within(reach).findByLabelText(/The code I sent on WhatsApp to \+33612345678/);
+    expect(saved()).toMatchObject({ whatsapp_number: "+33612345678" });
+    await userEvent.type(box, "111111");
+    await userEvent.click(within(reach).getByRole("button", { name: "Confirm" }));
+    expect(await within(reach).findByText("That code does not match.")).toBeVisible();
+    await userEvent.clear(box);
+    await userEvent.type(box, "123456");
+    await userEvent.click(within(reach).getByRole("button", { name: "Confirm" }));
+    expect(await within(reach).findByText("Verified")).toBeVisible();
+    // Verified: WhatsApp joins the channels, and its switch can be used.
+    const toggle = within(reach).getByRole("switch", { name: "On WhatsApp" });
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute("aria-checked", "true");
+    });
+    expect(saved()).toMatchObject({ alert_channels: ["web", "whatsapp"] });
+    expect(within(reach).getByRole("button", { name: "Change number" })).toBeVisible();
+  });
+
+  it("says when WhatsApp is not set up on the server", async () => {
+    const { fake } = page();
+    fake.on(`POST ${BASE}/whatsapp/verification`, () => problem(503, "whatsapp_unavailable"));
+    renderApp("/settings", fake.api);
+    const reach = await screen.findByRole("region", { name: "Where I reach you" });
+    await userEvent.type(within(reach).getByLabelText(/Your WhatsApp number/), "+15550001111");
+    await userEvent.click(within(reach).getByRole("button", { name: "Send me a code" }));
+    expect(
+      await within(reach).findByText("WhatsApp is not set up on this server yet."),
+    ).toBeVisible();
   });
 
   it("stops every action with the brake, and says when a change is refused", async () => {

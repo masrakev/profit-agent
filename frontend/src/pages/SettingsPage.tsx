@@ -9,6 +9,8 @@ import { useStore } from "@/stores/store";
 import { cx } from "@/ui/cx";
 import { Section } from "@/ui/Section";
 import { Skeleton } from "@/ui/Skeleton";
+import { useWhatsAppNumber } from "@/settings/whatsapp";
+import { WhatsAppSetup } from "@/settings/WhatsAppSetup";
 import { Switch } from "@/ui/Switch";
 
 type Settings = Schemas["StoreSettings-Output"];
@@ -59,6 +61,7 @@ export function SettingsPage() {
     queryKey: ["kill-switch", storeId],
     queryFn: () => unwrap(api.GET("/api/v1/stores/{store_id}/kill-switch", path)),
   });
+  const whatsapp = useWhatsAppNumber();
   const [saving, setSaving] = useState<Saving>("idle");
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -315,23 +318,24 @@ export function SettingsPage() {
               <Row
                 label="On WhatsApp"
                 hint={
-                  current.whatsapp_number
+                  whatsapp.data?.verified
                     ? "Alerts and approvals, on your verified number."
-                    : "Needs your number, verified: not set up yet."
+                    : "Add and verify your number below to receive them."
                 }
                 control={
                   <Switch
                     label="On WhatsApp"
                     checked={
-                      current.alert_channels.includes("whatsapp") && !!current.whatsapp_number
+                      current.alert_channels.includes("whatsapp") && !!whatsapp.data?.verified
                     }
-                    disabled={!current.whatsapp_number}
+                    disabled={!whatsapp.data?.verified}
                     onChange={(on) => {
                       change({ alert_channels: toggled(current.alert_channels, "whatsapp", on) });
                     }}
                   />
                 }
               />
+              <WhatsAppSetup settings={current} />
             </ul>
           </Section>
           <Section title="Safety">
