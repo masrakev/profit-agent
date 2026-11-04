@@ -121,15 +121,17 @@ texts, voice notes and button taps come in. Without credentials it runs on the f
    the `hello_world` template, and, once you have written to the business number in the last 24
    hours, a text and a reply-button message.
 3. **Templates.** Outside the 24-hour window only approved templates can be sent. Create them in
-   WhatsApp Manager, language `en` (each variable is one line of the session message):
+   WhatsApp Manager, language `en` (each variable is one line of the session message). Meta rejects
+   a body that starts or ends with a variable, or two variables with no text between them: hence
+   the fixed words around each one.
 
    | Name | Category | Body | Buttons |
    | --- | --- | --- | --- |
-   | `profit_alert` | Utility | `Profit Agent alert` / `{{1}}` / `{{2}}` / `{{3}}` | Quick replies `Approve`, `See options` |
-   | `data_alert` | Utility | `Profit Agent data notice` / `{{1}}` / `{{2}}` / `{{3}}` | - |
-   | `daily_brief` | Utility | `{{1}}` / `{{2}}` / `{{3}}` | - |
-   | `decision_update` | Utility | `Profit Agent decision: {{1}}` | - |
-   | `goal_update` | Utility | `Profit Agent goal progress: {{1}}` | - |
+   | `profit_alert` | Utility | `Profit Agent alert` / `What happened: {{1}}` / `Why it matters: {{2}}` / `Recommended: {{3}}` / `Tap a button below or open Profit Agent.` | Quick replies `Approve`, `See options` |
+   | `data_alert` | Utility | `Profit Agent data notice` / `What happened: {{1}}` / `Why: {{2}}` / `Next step: {{3}}` / `Open Profit Agent for the evidence.` | - |
+   | `daily_brief` | Utility | `Your Profit Agent brief` / `{{1}}` / `Health: {{2}}` / `Top item: {{3}}` / `Open Profit Agent for the rest.` | - |
+   | `decision_update` | Utility | `Profit Agent decision update: {{1}}` / `Open Profit Agent for the details.` | - |
+   | `goal_update` | Utility | `Profit Agent goal progress: {{1}}` / `Open Profit Agent for the plan.` | - |
    | `verification_code` | Authentication | the code (`{{1}}`) | Copy code |
 
 4. **Webhook, locally through a tunnel.** Run `make up`, `make api` and `make scheduler` (the worker
@@ -138,10 +140,19 @@ texts, voice notes and button taps come in. Without credentials it runs on the f
    URL to `https://<the tunnel's host>/api/v1/whatsapp/webhook` and the verify token to
    `WHATSAPP_VERIFY_TOKEN` (Meta's handshake is answered at once), then subscribe to `messages`.
    Every notification is checked against `X-Hub-Signature-256` with the app secret.
-5. **The owner's number.** Put it in the store's settings (`whatsapp_number`, E.164), send the code
-   (`POST /api/v1/stores/{store_id}/whatsapp/verification`), type it on the web
-   (`.../verification/confirm`), and add `whatsapp` to `alert_channels`. Only a verified number
-   reaches the store; anyone else gets one polite refusal.
+5. **The owner's number.** In Settings, "Where I reach you": type the number with its country code,
+   "Send me a code", then type the code received on WhatsApp; WhatsApp joins the channels
+   (the API: `POST /api/v1/stores/{store_id}/whatsapp/verification`, then `.../verification/confirm`).
+   Only a verified number reaches the store; anyone else gets one polite refusal.
+6. **On the demo store.** `make demo-seed`, then `make demo-api`, `uv run python -m bench.demo_serve
+   worker` (the executor) and `uv run python -m bench.demo_serve whatsapp` (inbound messages and
+   deliveries only: no briefing or detection runs on the demo store; `LLM_MODE=live` answers
+   WhatsApp questions with the model). Verify the number in Settings, then
+   `uv run python -m bench.demo_serve send-alert` sends the open critical alert. All of them run
+   on the store's clock (`bench/demo_clock.py`). For a live pause on Meta, mirror the demo
+   campaigns on a sandbox ad account once: `uv run python scripts/meta_sandbox_campaigns.py`
+   prints the `META_CAMPAIGN_LINKS` line for `.env` (it needs `META_ACCESS_TOKEN` and
+   `META_AD_ACCOUNT_ID`).
 
 ## Layout
 
