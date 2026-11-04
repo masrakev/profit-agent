@@ -57,7 +57,7 @@ describe("the app shell", () => {
     renderApp("/", signedInApi().api);
     const header = await screen.findByRole("banner");
     expect(within(header).getByText("Northwind Outdoor · Demo store")).toBeInTheDocument();
-    expect(within(header).getByText("Profit Agent")).toBeInTheDocument();
+    expect(within(header).getByText("Merit")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");
   });
 
@@ -71,7 +71,7 @@ describe("the app shell", () => {
 
   it("says whether the platform answers", async () => {
     renderApp("/", signedInApi().api);
-    expect(await screen.findByText("Watching your store")).toBeInTheDocument();
+    expect(await screen.findByText("Merit is watching your store")).toBeInTheDocument();
   });
 
   it("says when a decision waits for the owner, and leads to it", async () => {
@@ -80,7 +80,7 @@ describe("the app shell", () => {
       next_cursor: null,
     });
     renderApp("/", fake.api);
-    const waiting = await screen.findByRole("link", { name: "Waiting for your decision" });
+    const waiting = await screen.findByRole("link", { name: "Merit is waiting for your decision" });
     await userEvent.click(waiting);
     expect(await screen.findByRole("heading", { name: "Decisions", level: 1 })).toBeVisible();
   });

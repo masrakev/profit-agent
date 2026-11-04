@@ -31,5 +31,5 @@ Critical alert: Deluxe Bottle 23: ads keep spending on a product that is out of 
   Approve: https://app.example/approve#token=token-stockout_on_promoted%3Apause_until_restock%3Aea63836b-e0d7-5298-b9db-b58631ed27f1
   Review options: https://app.example/decisions/<decision>
 
-Every number in this message is a fact with its formula and source rows: open it in Profit Agent to check it. You receive this message because email is one of this store's channels.
+Every number in this message is a fact with its formula and source rows: open it in Merit to check it. You receive this message because email is one of this store's channels.
 Settings: https://app.example/settings

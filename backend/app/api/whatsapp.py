@@ -103,7 +103,7 @@ def _error(exc: NumberError) -> HTTPException:
 def code_message(code: str) -> WhatsAppMessage:
     """The code, as a session text and as the authentication template (with its copy button)."""
     return WhatsAppMessage(
-        text=f"Your Profit Agent verification code is {code}. It works for ten minutes. If you "
+        text=f"Your Merit verification code is {code}. It works for ten minutes. If you "
         "did not ask for it, ignore this message.",
         template=CODE_TEMPLATE,
         params=(code,),

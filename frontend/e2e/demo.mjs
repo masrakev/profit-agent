@@ -157,7 +157,7 @@ try {
   holds("the conversation is kept, at its own address, in the history");
 
   step = "Decisions";
-  await page.getByRole("link", { name: "Waiting for your decision" }).click();
+  await page.getByRole("link", { name: "Merit is waiting for your decision" }).click();
   await page.getByRole("heading", { name: "Decisions", level: 1 }).waitFor();
   const waiting = page.getByRole("list", { name: "To decide" });
   await waiting.getByRole("link", { name: /Pause ‘Trail Jacket/ }).click();

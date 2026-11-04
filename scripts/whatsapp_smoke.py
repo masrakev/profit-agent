@@ -57,11 +57,11 @@ def main(argv: list[str] | None = None, settings: Settings | None = None) -> int
     to = str(settings.whatsapp_test_recipient).removeprefix("+")
     checks = [
         ("template hello_world", WhatsAppMessage(text="", template="hello_world"), False),
-        ("session text", WhatsAppMessage(text="Profit Agent smoke test: a session text."), True),
+        ("session text", WhatsAppMessage(text="Merit smoke test: a session text."), True),
         (
             "reply buttons",
             WhatsAppMessage(
-                text="Profit Agent smoke test: reply buttons (tapping them changes nothing).",
+                text="Merit smoke test: reply buttons (tapping them changes nothing).",
                 buttons=(ReplyButton("smoke.yes", "Looks right"), ReplyButton("smoke.no", "No")),
             ),
             True,

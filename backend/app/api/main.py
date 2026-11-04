@@ -100,7 +100,7 @@ def get_investigation(
 
 def create_app(limiter: RateLimiter | None = None) -> FastAPI:
     app = FastAPI(
-        title="Verifiable Profit Agent API",
+        title="Merit API",
         version=API_VERSION,
         description="Every number is a fact with an id; model text cites facts, never numbers. "
         "Errors are RFC 9457 problem details; lists are cursor-paginated; every response "

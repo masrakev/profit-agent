@@ -38,7 +38,7 @@ LEVEL_WORDS = {
 }
 FOOTER = (
     "Every number in this message is a fact with its formula and source rows: open it in "
-    "Profit Agent to check it. You receive this message because email is one of this store's "
+    "Merit to check it. You receive this message because email is one of this store's "
     "channels."
 )
 
@@ -296,12 +296,11 @@ def render_briefing(
 
 def render_sign_in(link: str, *, minutes: int) -> Rendered:
     """The sign-in email: one link, single use, short-lived. No store data in it."""
-    subject = "Your Profit Agent sign-in link"
+    subject = "Your Merit sign-in link"
     note = "If you did not ask to sign in, ignore this email: nobody can sign in without the link."
     text = "\n".join(
         [
-            f"Sign in to Profit Agent with this link. It works once, for the next {minutes} "
-            "minutes:",
+            f"Sign in to Merit with this link. It works once, for the next {minutes} minutes:",
             "",
             link,
             "",

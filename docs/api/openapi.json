@@ -5484,7 +5484,7 @@
   },
   "info": {
     "description": "Every number is a fact with an id; model text cites facts, never numbers. Errors are RFC 9457 problem details; lists are cursor-paginated; every response carries an X-Request-ID.",
-    "title": "Verifiable Profit Agent API",
+    "title": "Merit API",
     "version": "v1"
   },
   "openapi": "3.1.0",

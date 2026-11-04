@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Merit</title>
   <defs>
     <radialGradient id="orb" cx="0.34" cy="0.3" r="0.75">
       <stop offset="0" stop-color="#b9d4ff" />

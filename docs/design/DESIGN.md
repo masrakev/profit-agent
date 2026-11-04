@@ -1,4 +1,4 @@
-# Profit Agent: design
+# Merit: design
 
 How the web app looks, moves and is checked. The values live in
 `frontend/src/styles/index.css` (the only place a value is written); this page says what they are

@@ -21,7 +21,7 @@ Sent as: session message.
 4. The executor runs the policy engine and executes: pause_campaign on meta (executed); the decision is `executed`.
 5. The owner hears how it went:
 
-> Done for Deluxe Bottle 23: pause the campaigns that promote it until it is restocked. It can be undone in Profit Agent.
+> Done for Deluxe Bottle 23: pause the campaigns that promote it until it is restocked. It can be undone in Merit.
 
 Sent as: session message.
 

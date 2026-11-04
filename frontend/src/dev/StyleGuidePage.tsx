@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { unwrap, type Schemas } from "@/api/client";
 import { useApi } from "@/api/context";
+import { BRAND } from "@/brand";
 import { RangeBar } from "@/charts/RangeBar";
 import { PermissionCard } from "@/decisions/PermissionCard";
 import { estimateOf, factKey, type Fact } from "@/facts/facts";
@@ -105,7 +106,7 @@ export function StyleGuidePage() {
       <header className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <BrandMark named />
-          <StatusPill tone="info">Profit Agent / Foundations</StatusPill>
+          <StatusPill tone="info">{BRAND.name} / Foundations</StatusPill>
         </div>
         <h1 className="text-title font-semibold text-ink">
           A calm workspace for clearer decisions.

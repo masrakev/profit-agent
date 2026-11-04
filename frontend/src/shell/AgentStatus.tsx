@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { unwrap } from "@/api/client";
 import { useApi } from "@/api/context";
 import { useConversation } from "@/conversation/context";
+import { BRAND } from "@/brand";
 import { useDecisions } from "@/decisions/useDecisions";
 import { AgentMark, type AgentState } from "@/ui/AgentMark";
 
@@ -26,15 +27,15 @@ export function AgentStatus() {
   const working = messages.some((m) => m.kind === "answer" && m.status === "working");
 
   let state: AgentState = "idle";
-  let text = "Watching your store";
+  let text = `${BRAND.name} is watching your store`;
   if (ready.isPending) text = "Connecting…";
   else if (ready.isError) text = "Not connected";
   else if (working) {
     state = "working";
-    text = "Working on your question";
+    text = `${BRAND.name} is working on your question`;
   } else if (waiting) {
     state = "waiting";
-    text = "Waiting for your decision";
+    text = `${BRAND.name} is waiting for your decision`;
   }
 
   const line = (

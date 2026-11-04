@@ -37,11 +37,11 @@ from app.goals import service as goal_service
 from app.verifier import entity_references, fact_references
 from app.whatsapp.buttons import approve_button, goal_button, options_button
 
-FOOTER = "Every number is a fact you can check in Profit Agent."
+FOOTER = "Every number is a fact you can check in Merit."
 HELP = (
     "Ask me about your store: profit, campaigns, products, stock, or a goal you want to reach "
     "by a date. You can also send a voice note. A decision is approved with its button here or "
-    "in Profit Agent; nothing written here approves anything."
+    "in Merit; nothing written here approves anything."
 )
 REFUSAL = (
     "Hello. This number only talks to the owners of the stores it serves, from a number they "
@@ -57,8 +57,8 @@ TEMPLATES = {
 STATUS_WORDS = {
     DecisionStatus.APPROVED: "Approved for {entity}: {option}. It runs within your spending caps.",
     DecisionStatus.EXECUTING: "Approved for {entity}: {option}. It is being executed.",
-    DecisionStatus.EXECUTED: "Done for {entity}: {option}. It can be undone in Profit Agent.",
-    DecisionStatus.MEASURED: "Measured for {entity}: what this change earned is in Profit Agent "
+    DecisionStatus.EXECUTED: "Done for {entity}: {option}. It can be undone in Merit.",
+    DecisionStatus.MEASURED: "Measured for {entity}: what this change earned is in Merit "
     "({option}).",
     DecisionStatus.FAILED: "Not done for {entity}: {option} could not be executed; nothing "
     "changed.",
@@ -235,7 +235,7 @@ class Formats:
         where = self._link(f"decisions/{decision_id}") if decision_id else self.app_base_url
         return WhatsAppMessage(
             text=f"That button has expired or was already used: nothing was decided. Open "
-            f"Profit Agent to decide: {where}"
+            f"Merit to decide: {where}"
         )
 
     def above_caps(self, decision_id: UUID) -> WhatsAppMessage:

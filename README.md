@@ -1,4 +1,4 @@
-# Verifiable Profit Agent
+# Merit
 
 An AI profit analyst for e-commerce stores: it finds where a store loses money, proves it with
 verifiable numbers, acts with the owner's approval, and measures what each decision earned.
@@ -127,11 +127,11 @@ texts, voice notes and button taps come in. Without credentials it runs on the f
 
    | Name | Category | Body | Buttons |
    | --- | --- | --- | --- |
-   | `profit_alert` | Utility | `Profit Agent alert` / `What happened: {{1}}` / `Why it matters: {{2}}` / `Recommended: {{3}}` / `Tap a button below or open Profit Agent.` | Quick replies `Approve`, `See options` |
-   | `data_alert` | Utility | `Profit Agent data notice` / `What happened: {{1}}` / `Why: {{2}}` / `Next step: {{3}}` / `Open Profit Agent for the evidence.` | - |
-   | `daily_brief` | Utility | `Your Profit Agent brief` / `{{1}}` / `Health: {{2}}` / `Top item: {{3}}` / `Open Profit Agent for the rest.` | - |
-   | `decision_update` | Utility | `Profit Agent decision update: {{1}}` / `Open Profit Agent for the details.` | - |
-   | `goal_update` | Utility | `Profit Agent goal progress: {{1}}` / `Open Profit Agent for the plan.` | - |
+   | `profit_alert` | Utility | `Merit alert` / `What happened: {{1}}` / `Why it matters: {{2}}` / `Recommended: {{3}}` / `Tap a button below or open Merit.` | Quick replies `Approve`, `See options` |
+   | `data_alert` | Utility | `Merit data notice` / `What happened: {{1}}` / `Why: {{2}}` / `Next step: {{3}}` / `Open Merit for the evidence.` | - |
+   | `daily_brief` | Utility | `Your Merit brief` / `{{1}}` / `Health: {{2}}` / `Top item: {{3}}` / `Open Merit for the rest.` | - |
+   | `decision_update` | Utility | `Merit decision update: {{1}}` / `Open Merit for the details.` | - |
+   | `goal_update` | Utility | `Merit goal progress: {{1}}` / `Open Merit for the plan.` | - |
    | `verification_code` | Authentication | the code (`{{1}}`) | Copy code |
 
 4. **Webhook, locally through a tunnel.** Run `make up`, `make api` and `make scheduler` (the worker

@@ -55,7 +55,7 @@ def reset() -> None:
 
 
 def test_the_message_has_a_text_and_an_html_part() -> None:
-    out = mime(MESSAGE, sender="Profit Agent <b@example.com>", message_id="<id@example.com>")
+    out = mime(MESSAGE, sender="Merit <b@example.com>", message_id="<id@example.com>")
     assert out.get_content_type() == "multipart/alternative"
     parts = list(out.iter_parts())
     assert [p.get_content_type() for p in parts] == ["text/plain", "text/html"]
@@ -69,7 +69,7 @@ def test_the_message_has_a_text_and_an_html_part() -> None:
 
 
 def test_mailpit_style_delivery() -> None:
-    sender = SmtpSender("localhost", 1025, "Profit Agent <b@profit.test>", connect=FakeSmtp)
+    sender = SmtpSender("localhost", 1025, "Merit <b@profit.test>", connect=FakeSmtp)
     message_id = sender.send(MESSAGE)
     [smtp] = FakeSmtp.instances
     assert smtp.args == ("localhost", 1025, 10.0)

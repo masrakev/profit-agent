@@ -59,7 +59,7 @@ LEASE = timedelta(minutes=5)
 MAX_ATTEMPTS = 3
 SWEEP_AFTER = timedelta(minutes=1)  # a message the queue missed is picked up by the sweep
 NOTHING_HEARD = "I heard nothing in your voice note: try again, a little closer."
-APOLOGY = "Sorry, I could not answer that. Try again in a moment, or open Profit Agent."
+APOLOGY = "Sorry, I could not answer that. Try again in a moment, or open Merit."
 
 
 def _now() -> datetime:

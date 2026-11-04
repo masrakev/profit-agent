@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     email_smtp_username: str | None = None
     email_smtp_password: SecretStr | None = None
     email_smtp_timeout_s: float = 10.0
-    email_from: str = "Profit Agent <briefings@profit-agent.localhost>"
+    email_from: str = "Merit <briefings@profit-agent.localhost>"
     # WhatsApp Cloud API (ADR 0027). Without the token and phone number id, WhatsApp deliveries
     # are skipped and the webhook answers nothing; the app secret checks webhook signatures.
     whatsapp_access_token: SecretStr | None = None
