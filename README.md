@@ -6,7 +6,7 @@ verifiable numbers, acts with the owner's approval, and measures what each decis
 > General agents tell you what to do. Ours proves why, simulates before acting, and measures what
 > it earned.
 
-Built for the Meta Global AI Developer Hackathon (Startup track).
+Built for the Meta Global AI Developer Hackathon (Individual track). MIT licensed.
 
 What the product does, for whom, and its settings and alerting rules: see the
 [product specification](docs/product/SPEC.md).
@@ -24,6 +24,14 @@ make demo-up        # the demo store, its API, the executor and the web app
 Then open http://localhost:3000/demo: it opens the demo store on Home, signed in as its owner,
 without an email. The agent's work replays recorded model exchanges at their recorded pace, so no
 model key is needed. Ctrl+C stops everything.
+
+- Ask the recorded question: "What is hurting my profit the most this week, and what should I do
+  about it?" (Home and the history link to it). Any other question needs the model:
+  `LLM_MODE=live make demo-up`, with `MODEL_API_KEY` in `.env`.
+- Real channels are optional: email through any SMTP provider (Resend in `.env.example`, with
+  `DEMO_STORE_OWNER` as the address that signs in), WhatsApp (README "WhatsApp setup") and the
+  Meta Marketing API sandbox (`scripts/meta_sandbox_campaigns.py`). Without them, emails land in
+  Mailpit (http://localhost:8025) and actions run on the documented-contract fake.
 
 ## Principles
 
@@ -60,7 +68,7 @@ make web                                  # the web platform on http://localhost
 ```
 
 To browse the demo store on the web, `make demo-up` (see Try it) and open
-http://localhost:3000/demo (development builds only). `node frontend/scripts/screens.mjs` then writes the
+http://localhost:3000/demo. `node frontend/scripts/screens.mjs` then writes the
 light and dark screenshots used for design review (ADR 0025).
 
 The benchmark's agent arm investigates each primary incident with a live model:
@@ -474,3 +482,15 @@ Everything in this repository was built during the event (Oct 26 - Nov 4, 2026).
     (⌘K); a decision names the goal step it carries out.
   - Settings changed in place: each action's rule (acting alone offered only once earned),
     briefs, quiet hours, the alert budget, channels and the brake that stops every action.
+- **Day 13 - Merit, live on Meta**
+  - The product is named Merit; the agent's mark is a range with its median, and the status line
+    names the Meta model it works with.
+  - One command for the demo (`make demo-up`); "Explore the demo store" on sign-in, no email
+    needed; sign-in links that work by a real email provider (Resend).
+  - Live on Meta: the Meta models through the Model API, approvals executed on a Marketing API
+    sandbox ad account (the campaign paused and read back), WhatsApp sending and receiving through
+    the webhook. The verification code goes as a text while Meta reviews its template.
+
+## License
+
+MIT: see [LICENSE](LICENSE).
