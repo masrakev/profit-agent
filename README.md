@@ -8,6 +8,38 @@ verifiable numbers, acts with the owner's approval, and measures what each decis
 
 Built for the Meta Global AI Developer Hackathon (Individual track). MIT licensed.
 
+## Why Merit
+
+**The problem.** Most online stores are run by one owner, or a small team, who sells, packs,
+answers customers and buys ads, all at once. Their data is everywhere: orders in the store,
+spend in Meta Ads, costs in a spreadsheet. They see revenue going up and still end the month
+short, without knowing why: an ad still spending on a product that is out of stock, a best seller
+sold at a loss once refunds and fees are counted, a campaign that looks good on clicks and loses
+money on margin. Large brands have analysts and finance teams to catch this. A small store cannot
+afford one, so the losses run for weeks before anyone notices, if anyone does.
+
+**What Merit does about it.** Merit is the profit analyst such a store cannot hire:
+
+1. **It watches.** Every day it reads the store's orders, costs, refunds, stock and ad spend,
+   and tells the owner in a short brief what changed and what needs attention.
+2. **It proves.** When it finds money being lost, it shows the cause number by number. Every
+   figure is computed by code from the store's own data, traceable to its formula; the AI explains,
+   it never invents a number.
+3. **It acts, with the owner's say.** It simulates the options (pause, cut, wait) as ranges, not
+   promises, recommends one, and acts only once the owner approves, within spending caps, on the
+   web or from WhatsApp.
+4. **It measures.** After the action it measures what the decision actually earned, so the next
+   recommendation is better and the owner learns which decisions work.
+
+The owner can also ask in plain words ("why did my profit drop?", "I want 225,000 in profit over
+the next three months") and get an answer with its evidence, or a plan to reach the goal.
+
+**The vision.** Become the profit analyst of every online store that cannot afford one, starting
+with Shopify stores advertising on Meta, then every data source a small business runs on (other
+stores and ad platforms, accounting, payments, logistics) and every sector where a wrong decision
+costs money. The principle stays the same: proven numbers, the owner in control, and results
+measured rather than promised.
+
 What the product does, for whom, and its settings and alerting rules: see the
 [product specification](docs/product/SPEC.md).
 
