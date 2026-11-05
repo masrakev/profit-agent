@@ -195,3 +195,25 @@ def test_without_whatsapp_or_a_secret_nothing_is_sent(
         update={"approval_link_secret": None}
     )
     assert client.post(f"{base}/verification").json()["code"] == "whatsapp_unavailable"
+
+
+def test_the_code_goes_as_a_text_when_meta_refuses_its_template(
+    client: TestClient, app_engine: Engine, fake: FakeWhatsApp
+) -> None:
+    store = create_store(app_engine)
+    base = f"/api/v1/stores/{store}/whatsapp"
+    set_number(client, store, "+15551230009")
+    # The template is not approved yet: the owner may still have written to the business number.
+    fake.failures.append(WhatsAppError("template not approved", retryable=False, code=132001))
+    assert client.post(f"{base}/verification").status_code == 202
+    _, message, session = fake.sent[-1]
+    assert session is True
+    assert message.params[0] in message.text
+    confirmed = client.post(f"{base}/verification/confirm", json={"code": message.params[0]})
+    assert confirmed.json()["verified"] is True
+    # A passing failure is not a refusal: no text after it, the owner retries.
+    fake.failures.append(WhatsAppError("timeout", retryable=True, code=131000))
+    sent = len(fake.sent)
+    set_number(client, store, "+15551230010")
+    assert client.post(f"{base}/verification").status_code == 503
+    assert len(fake.sent) == sent

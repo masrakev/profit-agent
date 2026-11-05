@@ -118,6 +118,23 @@ def get_number(store_id: StoreDep, engine: EngineDep) -> WhatsAppNumber:
         return _out(numbers.state(conn, store_id), datetime.now(UTC))
 
 
+def _send_code(
+    sender: WhatsAppSender, phone: str, message: WhatsAppMessage, *, window_open: bool
+) -> None:
+    """The code as a session text when the owner wrote in the last 24 hours, else as the
+    authentication template; when Meta refuses the template (not approved yet, say), as a session
+    text after all: the owner may have written to the business number before the store knew it."""
+    if window_open:
+        sender.send(phone, message, session=True)
+        return
+    try:
+        sender.send(phone, message, session=False)
+    except WhatsAppError as exc:
+        if exc.retryable:
+            raise
+        sender.send(phone, message, session=True)
+
+
 @router.post("/verification", status_code=202, response_model=CodeSent)
 def post_verification(
     store_id: StoreDep, engine: EngineDep, settings: SettingsDep, sender: WhatsAppDep
@@ -138,7 +155,7 @@ def post_verification(
     assert found is not None
     assert found.code_expires_at is not None
     try:
-        sender.send(phone, code_message(code), session=found.window_open(now))
+        _send_code(sender, phone, code_message(code), window_open=found.window_open(now))
     except WhatsAppError as exc:
         raise HTTPException(
             status_code=503 if exc.retryable else 502,
